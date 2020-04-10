@@ -1,0 +1,3 @@
+category,name,value,Note
+assortative_matching,age_group,0.7,"Probability of meeting someone from the own age group, conditional on meeting someone. Rest of probability mass is split equally across other age groups. "
+assortative_matching,region,0.9,Probability of meeting someone from the own region conditional on meeting someone. Rest of probability mass is split equally across other regions. 

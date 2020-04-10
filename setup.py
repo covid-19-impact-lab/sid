@@ -3,7 +3,7 @@ from setuptools import setup
 
 
 setup(
-    name="simulator",
+    name="sid",
     version="0.0.1",
     description=("Simulate the spread of covid-19 with different policies."),
     license="MIT",

@@ -1,4 +1,4 @@
-def get_contacts(model_spec, states, params):
+def get_contacts(contact_models, states, params):
     """Calculate number of contacts of different types.
 
     Args:
