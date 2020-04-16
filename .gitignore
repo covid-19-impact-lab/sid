@@ -132,3 +132,5 @@ dmypy.json
 *.sublime-workspace
 
 notebooks/
+
+example/*.pickle

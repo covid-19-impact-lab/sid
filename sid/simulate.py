@@ -64,7 +64,8 @@ def _process_assort_by(assort_by, states):
 
 
 def _process_states(states, assort_by):
-    states = states.copy()
+    # reset the index because having a sorted range index could speed up things
+    states = states.sample(frac=1, replace=False).reset_index(drop=True)
 
     for col in BOOLEAN_STATE_COLUMNS:
         if col not in states.columns:
