@@ -9,12 +9,11 @@ if __name__ == "__main__":
     initial_infections = pd.Series([True] * 5 + [False] * 10)
     cm = {
         "contact_type": "standard",
-        "id": "work_contacts",
         "loc": params.index,
         "model": "meet_two_people",
     }
-    contact_models = [cm]
-    policies = []
+    contact_models = {"work_contacts": cm}
+    policies = {}
     n_periods = 5
     assort_by = ["age_group", "region"]
 

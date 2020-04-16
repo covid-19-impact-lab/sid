@@ -30,7 +30,7 @@ def simulate(
             "id" or "period" because those are used internally.
         initial_infectios (pd.Series): Series with the same index as states with
             initial infections.
-        contact_models (list): List of dictionaries where each dictionary describes a
+        contact_models (dict): List of dictionaries where each dictionary describes a
             channel by which contacts can be formed. See :ref:`contact_models`.
         policies (list): List of dictionaries with contact and testing policies. See
             :ref:`policies`
@@ -45,7 +45,16 @@ def simulate(
             infections. The index has two levels. The first is period. The second is id.
             Id is the index of initial_states.
     """
-    assort_by = _process_assort_by(assort_by, initial_states)
+    assort_by = [] if assort_by is None else assort_by
+    _check_inputs(
+        params,
+        initial_states,
+        initial_infections,
+        contact_models,
+        policies,
+        n_periods,
+        assort_by,
+    )
     states = _process_states(initial_states, assort_by)
     states = draw_course_of_disease(states, params)
     states = update_states(states, initial_infections, params)
@@ -68,10 +77,58 @@ def simulate(
     return simulation_results
 
 
-def _process_assort_by(assort_by, states):
-    assort_by = ["region", "age_group"] if assort_by is None else assort_by
-    assort_by = [var for var in assort_by if var in states.columns]
-    return assort_by
+def _check_inputs(
+    params,
+    initial_states,
+    initial_infections,
+    contact_models,
+    policies,
+    n_periods,
+    assort_by,
+):
+    if not isinstance(params, pd.DataFrame):
+        raise ValueError("params must be a DataFrame")
+
+    if list(params.index.names) != ["category", "name"]:
+        raise ValueError("params must have an index with levels 'category' and 'name'")
+
+    if not isinstance(initial_states, pd.DataFrame):
+        raise ValueError("initial_states must be a DataFrame")
+
+    if initial_states.index.nlevels != 1:
+        raise ValueError("initial_states cannot have a MultiIndex")
+
+    if not isinstance(initial_infections, pd.Series):
+        raise ValueError("initial_infections must be a pandas Series.")
+
+    if not initial_infections.index.equals(initial_states.index):
+        raise ValueError("initial_states and initial_infections must have same index.")
+
+    if not isinstance(contact_models, dict):
+        raise ValueError("contact_models must be a dictionary.")
+
+    for cm_name, cm in contact_models.items():
+        if not isinstance(cm, dict):
+            raise ValueError(f"Each contact model must be a dictionary: {cm_name}")
+
+    if not isinstance(policies, dict):
+        raise ValueError("policies must be a dictionary.")
+
+    for pol_name, pol in policies.items():
+        if not isinstance(pol, dict):
+            raise ValueError(f"Each policy must be a dictionary: {pol_name}")
+
+    if not set(policies).issubset(contact_models.keys()):
+        raise ValueError(
+            "The keys of policies must be a subset of the keys of contact_models."
+        )
+
+    if not isinstance(n_periods, int) or n_periods <= 0:
+        raise ValueError("n_periods must be a strictly positive integer.")
+
+    for var in assort_by:
+        if var not in initial_states.columns:
+            raise KeyError(f"assort_by variable is not in initial states: {var}")
 
 
 def _process_states(states, assort_by):

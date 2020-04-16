@@ -25,9 +25,11 @@ def calculate_contacts(contact_models, states, params, period):
 
 
     """
-    contact_types = sorted(set([mod["contact_type"] for mod in contact_models]))
+    contact_types = sorted(
+        set([mod["contact_type"] for mod in contact_models.values()])
+    )
     contacts = pd.DataFrame(data=0, index=states.index, columns=contact_types)
-    for model in contact_models:
+    for model_name, model in contact_models.items():
         if isinstance(model["model"], str):
             func = getattr(contact_models_module, model["model"])
         else:
