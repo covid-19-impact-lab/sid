@@ -41,6 +41,8 @@ COUNTDOWNS = {
             "needs_icu": False,
             "knows": False,
             "cd_immune_false": -1,
+            # cd_infectious_false is set to 0 instead of -1 because this is needed
+            # for the calculation of r_zero
             "cd_infectious_false": 0,
             "cd_symptoms_false": -1,
             "cd_needs_icu_false": -1,
@@ -52,6 +54,8 @@ COUNTDOWNS = {
             "symptoms": False,
             "infectious": False,
             "knows": False,
+            # cd_infectious_false is set to 0 instead of -1 because this is needed
+            # for the calculation of r_zero
             "cd_infectious_false": 0,
         }
     },
