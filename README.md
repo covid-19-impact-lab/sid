@@ -4,5 +4,6 @@ Simulate the spread of covid-19 with different policies.
 
 # Installation (for now)
 
-- Activate covid-main environment
-- Install locally with `pip install -e .`
+- Create the sid environment: `conda env create -f environmnent.yml`
+- Activate it: `conda activate sid`
+- Install locally into the sid environment: `pip install -e .`
