@@ -81,9 +81,9 @@ def calculate_infections(states, contacts, params, indexer, group_probs):
     infected_sr = pd.Series(index=states.index, data=0)
 
     for contact_type in contacts.columns:
-        cont = contacts[contact_type].to_numpy(copy=True)
+        cont = contacts[contact_type].to_numpy()
         infect_prob = params.loc[("infection_prob", contact_type), "value"]
-        infected, infection_counter, immune = _calculate_infections_numba(
+        infected, infection_counter, immune, missed = _calculate_infections_numba(
             cont,
             infectious,
             immune,
@@ -95,6 +95,7 @@ def calculate_infections(states, contacts, params, indexer, group_probs):
         )
         infected_sr += infected
         states["infection_counter"] += infection_counter
+        states[f"missed_{contact_type}"] = missed
 
     states["immune"] = immune
     infected_sr = infected_sr.astype(bool)
@@ -129,12 +130,15 @@ def _calculate_infections_numba(
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
 
     Returns:
-        infected (np.ndarray): 1-D boolean array that is True for individuals who got
+        infected (np.ndarray): 1d boolean array that is True for individuals who got
             newly infected.
-        infection_counter (np.ndarray): 1-D integer array
+        infection_counter (np.ndarray): 1d integer array
         immune (np.ndarray):
+        missed (np.ndarray): 1d integer array with missed contacts. Same
+            length as contacts.
 
     """
+    contacts = contacts.copy()
     immune = immune.copy()
     infected = np.zeros(len(contacts))
     infection_counter = np.zeros_like(contacts)
@@ -184,7 +188,9 @@ def _calculate_infections_numba(
                         infected[i] = 1
                         immune[i] = True
 
-    return infected, infection_counter, immune
+    missed = contacts
+
+    return infected, infection_counter, immune, missed
 
 
 @njit

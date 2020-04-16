@@ -1,6 +1,5 @@
 import numpy as np
 
-from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import COUNTDOWNS
 
 
