@@ -25,7 +25,7 @@ def update_states(states, new_infections, params):
 
     # make changes where the countdown is zero
     for countdown, info in COUNTDOWNS.items():
-        locs = states.query(f"{countdown} == 0").index
+        locs = states.index[states[countdown] == 0]
         for to_change, new_val in info["changes"].items():
             states.loc[locs, to_change] = new_val
 
@@ -43,7 +43,7 @@ def update_states(states, new_infections, params):
     # kill people over icu_limit
     rel_limit = params.loc[("health_system", "icu_limit_relative"), "value"]
     abs_limit = rel_limit * len(states)
-    need_icu_locs = states.query("needs_icu").index
+    need_icu_locs = states.index[states["needs_icu"]]
     if abs_limit < len(need_icu_locs):
         excess = len(need_icu_locs) - abs_limit
         to_kill = np.random.choice(need_icu_locs, size=excess, replace=False)
