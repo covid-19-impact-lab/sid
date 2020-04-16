@@ -24,6 +24,7 @@ dependencies:
   - bokeh>=2.0
   - numba>=0.48.0
   - estimagic>=0.0.29
+  - pytest
   - pip:
     - black
     - blackcellmagic
