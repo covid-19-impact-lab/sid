@@ -17,8 +17,9 @@ def simulate(
     initial_states,
     initial_infections,
     contact_models,
-    policies,
     n_periods,
+    contact_policies=None,
+    testing_policies=None,
     assort_by=None,
 ):
     """Simulate the spread of covid-19.
@@ -32,8 +33,8 @@ def simulate(
             initial infections.
         contact_models (dict): List of dictionaries where each dictionary describes a
             channel by which contacts can be formed. See :ref:`contact_models`.
-        policies (list): List of dictionaries with contact and testing policies. See
-            :ref:`policies`
+        contact_policies (dict): Dict of dicts with contact. See :ref:`policies`.
+        testing_policies (dict): Dict of dicts with testing policies. See :ref:`policies`.
         n_periods (int): Number of periods to simulate.
         assort_by (list, optional): List of variable names. Contacts are assortative by
             these variables.
@@ -46,24 +47,33 @@ def simulate(
             Id is the index of initial_states.
     """
     assort_by = [] if assort_by is None else assort_by
+    contact_policies = {} if contact_policies is None else contact_policies
+    testing_policies = {} if testing_policies is None else testing_policies
+
     _check_inputs(
         params,
         initial_states,
         initial_infections,
         contact_models,
-        policies,
+        contact_policies,
+        testing_policies,
         n_periods,
         assort_by,
     )
     states = _process_states(initial_states, assort_by)
     states = draw_course_of_disease(states, params)
+    contact_policies = {
+        key: _process_pol_dict(val, n_periods) for key, val in contact_policies.items()
+    }
     states = update_states(states, initial_infections, params)
     indexer = create_group_indexer(states, assort_by)
     first_probs = create_group_transition_probs(states, assort_by, params)
 
     to_concat = []
     for period in range(n_periods):
-        contacts = calculate_contacts(contact_models, states, params, period)
+        contacts = calculate_contacts(
+            contact_models, contact_policies, states, params, period
+        )
         infections, states = calculate_infections(
             states, contacts, params, indexer, first_probs
         )
@@ -82,7 +92,8 @@ def _check_inputs(
     initial_states,
     initial_infections,
     contact_models,
-    policies,
+    contact_policies,
+    testing_policies,
     n_periods,
     assort_by,
 ):
@@ -111,17 +122,15 @@ def _check_inputs(
         if not isinstance(cm, dict):
             raise ValueError(f"Each contact model must be a dictionary: {cm_name}")
 
-    if not isinstance(policies, dict):
+    if not isinstance(contact_policies, dict):
         raise ValueError("policies must be a dictionary.")
 
-    for pol_name, pol in policies.items():
+    for pol_name, pol in contact_policies.items():
         if not isinstance(pol, dict):
             raise ValueError(f"Each policy must be a dictionary: {pol_name}")
 
-    if not set(policies).issubset(contact_models.keys()):
-        raise ValueError(
-            "The keys of policies must be a subset of the keys of contact_models."
-        )
+    if testing_policies != {}:
+        raise NotImplementedError
 
     if not isinstance(n_periods, int) or n_periods <= 0:
         raise ValueError("n_periods must be a strictly positive integer.")
@@ -129,6 +138,15 @@ def _check_inputs(
     for var in assort_by:
         if var not in initial_states.columns:
             raise KeyError(f"assort_by variable is not in initial states: {var}")
+
+
+def _process_pol_dict(pol_dict, n_periods):
+    default = {
+        "start": 0,
+        "end": n_periods,
+        "is_active": lambda: True,
+    }
+    return default.update(pol_dict)
 
 
 def _process_states(states, assort_by):

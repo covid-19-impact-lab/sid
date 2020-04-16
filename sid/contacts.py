@@ -9,13 +9,14 @@ from numba.typed import List as numba_list
 from sid import contact_models as contact_models_module
 
 
-def calculate_contacts(contact_models, states, params, period):
+def calculate_contacts(contact_models, contact_policies, states, params, period):
     """Calculate number of contacts of different types.
 
     # this is mainly a placeholder and has no support for policies yet.
 
     Args:
         contact_models (list): See :ref:`contact_models`
+        contact_policies (dict): See :ref:`policies`
         states (pd.DataFrame): See :ref:`states`
         params (pd.DataFrame): See :ref:`params`
         period (int): Period of the model
@@ -30,13 +31,24 @@ def calculate_contacts(contact_models, states, params, period):
     )
     contacts = pd.DataFrame(data=0, index=states.index, columns=contact_types)
     for model_name, model in contact_models.items():
+        loc = model.get("loc", params.index)
         if isinstance(model["model"], str):
             func = getattr(contact_models_module, model["model"])
         else:
             func = model["model"]
-        cont = func(states, params, period)
-        # apply policies
-        contacts[model["contact_type"]] = cont
+        cont = func(states, params.loc[loc], period)
+
+        if model_name in contact_policies:
+            cp = contact_policies[model_name]
+            if cp["start"] <= period <= cp["end"] and cp["is_active"](states):
+                cont *= cp["multiplier"]
+
+        contacts[model["contact_type"]] += cont
+
+    for contact_type in contact_types:
+        contacts[contact_type] = _sum_preserving_round(
+            contacts[contact_type].to_numpy()
+        ).astype(np.uint32)
 
     return contacts
 
@@ -47,6 +59,18 @@ def calculate_infections(states, contacts, params, indexer, group_probs):
     This function mainly converts the relevant parts from states and contacts into
     numpy arrays or other objects that are supported in numba nopython mode and
     then calls ``calculate_infections_numba``.
+
+    Args:
+        states (pd.DataFrame): see :ref:`states`.
+        contacts (pd.DataFrame): One column per contact_type. Same index as states.
+        params (pd.DataFrame): See :ref:`params`.
+        indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
+        group_probs (np.ndarray): group_probs (np.ndarray): Array of shape n_group, n_groups. probs[i, j] is the
+            probability that an individual from group i meets someone from group j.
+
+    Returns:
+        infected_sr (pd.Series): Boolean Series that is True for newly infected people.
+        states (pd.DataFrame): Copy of states with updated immune column.
 
     """
     states = states.copy()
@@ -257,3 +281,32 @@ def _get_group_list(states, assort_by):
 def get_group_to_code(states, assort_by):
     group_list = _get_group_list(states, assort_by)
     return {str(group_tup): index for index, group_tup in enumerate(group_list)}
+
+
+@njit
+def _sum_preserving_round(arr):
+    """Round values in an array, preserving the sum as good as possible.
+
+    Args:
+        arr (np.ndarray): 1d numpy array.
+
+    Returns
+        np.ndarray
+
+    Example:
+
+    >>> _sum_preserving_round(np.array([5.2] * 10))
+    array([5., 6., 5., 5., 5., 6., 5., 5., 5., 5.])
+
+    """
+    arr = arr.copy()
+    deviation = 0
+    for i in range(len(arr)):
+        old_val = arr[i]
+        if deviation >= 0:
+            new_val = np.floor(old_val)
+        else:
+            new_val = np.ceil(old_val)
+        deviation += new_val - old_val
+        arr[i] = new_val
+    return arr

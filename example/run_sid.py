@@ -13,7 +13,6 @@ if __name__ == "__main__":
         "model": "meet_two_people",
     }
     contact_models = {"work_contacts": cm}
-    policies = {}
     n_periods = 5
     assort_by = ["age_group", "region"]
 
@@ -23,7 +22,6 @@ if __name__ == "__main__":
         initial_states=initial_states,
         initial_infections=initial_infections,
         contact_models=contact_models,
-        policies=policies,
         n_periods=n_periods,
         assort_by=assort_by,
     )

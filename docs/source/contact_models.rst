@@ -1,8 +1,8 @@
 .. _contact_models:
 
-==================
-``contact_models``
-==================
+================
+`contact_models`
+================
 
 
 Motivation
@@ -31,7 +31,7 @@ A string with the name of the contact type. Examples could be "close" or "distan
 ---------
 
 Expression to select a subset of ``params``. This is mostly relevant if pre-implemented
-contact models are used (e.g. ``linear_contact_model``) and the params can be used to select covariates from ``states``.
+contact models are used (e.g. ``linear_contact_model``) and the params can be used to select covariates from ``states``. Optional.
 
 ``"model"``
 -----------
