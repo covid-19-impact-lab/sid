@@ -45,6 +45,7 @@ def simulate(
             contains the states of each period (see :ref:`states`) and a column called
             infections. The index has two levels. The first is period. The second is id.
             Id is the index of initial_states.
+
     """
     assort_by = [] if assort_by is None else assort_by
     contact_policies = {} if contact_policies is None else contact_policies
@@ -60,6 +61,7 @@ def simulate(
         n_periods,
         assort_by,
     )
+
     states = _process_states(initial_states, assort_by)
     states = draw_course_of_disease(states, params)
     contact_policies = {
@@ -84,6 +86,7 @@ def simulate(
         to_concat.append(period_res.copy(deep=True))
 
     simulation_results = pd.concat(to_concat).set_index(["period", "id"])
+
     return simulation_results
 
 

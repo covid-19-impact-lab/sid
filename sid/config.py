@@ -31,7 +31,7 @@ COUNTDOWNS = {
         "changes": {"symptoms": False, "infectious": False, "knows": False}
     },
     "cd_needs_icu_true": {
-        "changes": {"icu": True, "cd_symptoms_false": -1},
+        "changes": {"needs_icu": True, "cd_symptoms_false": -1},
         "starts": ["cd_dead", "cd_needs_icu_false"],
     },
     "cd_dead": {
@@ -50,7 +50,7 @@ COUNTDOWNS = {
     },
     "cd_needs_icu_false": {
         "changes": {
-            "icu": False,
+            "needs_icu": False,
             "symptoms": False,
             "infectious": False,
             "knows": False,
