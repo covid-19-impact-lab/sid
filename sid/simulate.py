@@ -26,7 +26,8 @@ def simulate(
     Args:
         params (pd.DataFrame): DataFrame with parameters that influence the number of
             contacts, contagiousness and dangerousness of the disease, ...
-        initial_states (pd.DataFrame): See :ref:`states`
+        initial_states (pd.DataFrame): See :ref:`states`. Cannot contain the columnns
+            "id" or "period" because those are used internally.
         initial_infectios (pd.Series): Series with the same index as states with
             initial infections.
         contact_models (list): List of dictionaries where each dictionary describes a
@@ -37,6 +38,12 @@ def simulate(
         assort_by (list, optional): List of variable names. Contacts are assortative by
             these variables.
 
+
+    Returns:
+        pd.DataFrame: The simulation results in form of a long DataFrame. The DataFrame
+            contains the states of each period (see :ref:`states`) and a column called
+            infections. The index has two levels. The first is period. The second is id.
+            Id is the index of initial_states.
     """
     assort_by = _process_assort_by(assort_by, initial_states)
     states = _process_states(initial_states, assort_by)
@@ -45,16 +52,20 @@ def simulate(
     indexer = create_group_indexer(states, assort_by)
     first_probs = create_group_transition_probs(states, assort_by, params)
 
-    statistics = []
+    to_concat = []
     for period in range(n_periods):
         contacts = calculate_contacts(contact_models, states, params, period)
         infections, states = calculate_infections(
             states, contacts, params, indexer, first_probs
         )
         states = update_states(states, infections, params)
-        statistics.append(calculate_statistics(states, infections))
+        period_res = states.copy()
+        period_res["period"] = period
+        period_res["infections"] = infections
+        to_concat.append(period_res.copy(deep=True))
 
-    return statistics
+    simulation_results = pd.concat(to_concat).set_index(["period", "id"])
+    return simulation_results
 
 
 def _process_assort_by(assort_by, states):
@@ -65,7 +76,9 @@ def _process_assort_by(assort_by, states):
 
 def _process_states(states, assort_by):
     # reset the index because having a sorted range index could speed up things
-    states = states.sample(frac=1, replace=False).reset_index(drop=True)
+    states = states.copy()
+    states.index.name = "id"
+    states = states.sample(frac=1, replace=False).reset_index(drop=False)
 
     for col in BOOLEAN_STATE_COLUMNS:
         if col not in states.columns:
@@ -85,21 +98,3 @@ def _process_states(states, assort_by):
     )
 
     return states
-
-
-def calculate_statistics(states, infections):
-    """extract the following information from states"""
-    infections = infections.copy()
-    infections.name = "infections"
-    df = pd.concat([states, infections], axis=1)
-    gb = ["age_group", "region"]
-
-    df["died"] = df["cd_dead"] == 0
-    df["recovered"] = df["cd_infectious_false"] == 0
-
-    stats = {}
-    for var in ["infections", "recovered", "died"]:
-        stats[f"abs_{var}"] = df.groupby(gb)[var].sum()
-        stats[f"rel_{var}"] = df.groupby(gb)[var].mean()
-
-    return stats

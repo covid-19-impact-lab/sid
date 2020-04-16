@@ -6,7 +6,7 @@ from sid import simulate
 if __name__ == "__main__":
     params = pd.read_csv("../sid/params.csv").set_index(["category", "name"])
     initial_states = pd.read_csv("initial_states.csv")
-    initial_infections = pd.Series([True, True] + [False] * 12)
+    initial_infections = pd.Series([True] * 5 + [False] * 10)
     cm = {
         "contact_type": "standard",
         "id": "work_contacts",
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     assort_by = ["age_group", "region"]
 
     np.random.seed(123)
-    stats = simulate(
+    res = simulate(
         params=params,
         initial_states=initial_states,
         initial_infections=initial_infections,
@@ -29,4 +29,4 @@ if __name__ == "__main__":
         assort_by=assort_by,
     )
 
-    pd.to_pickle(stats, "stats.pickle")
+    pd.to_pickle(res, "res.pickle")
