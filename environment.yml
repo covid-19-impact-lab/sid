@@ -26,6 +26,7 @@ dependencies:
   - estimagic>=0.0.29
   - pytest
   - utilities>=0.2.6
+  - snakeviz
   - pip:
     - black
     - blackcellmagic
