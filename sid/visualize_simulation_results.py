@@ -1,18 +1,18 @@
-import numpy as np
 import pandas as pd
 from bokeh.plotting import figure, save, show
 from utilities.colors import get_colors
 from bokeh.models import Column, Div
-from bokeh.io import output_file
+from bokeh.io import output_file, export_png
+from pathlib import Path
+import os
 
 
 def visualize_simulation_results(
-    data_path, groupby_var="age_group", outdir_path=None, show=False, title=None
+    data_path, groupby_var="age_group", outdir_path=None, show_layout=False, title=None
 ):
     title = "Visualization of the Simulation Results" if title is None else title
     data = pd.read_pickle(data_path)
     data["symptomatic_among_infectious"] = data["symptoms"].where(data["infectious"])
-    colors = get_colors("categorical", 12)
     infection_vars = [
         "ever_infected",
         "infectious",
@@ -23,15 +23,33 @@ def visualize_simulation_results(
     ]
 
     inf_rates = _plot_infection_rates(
-        data=data, infection_vars=infection_vars, colors=colors
+        data=data, infection_vars=infection_vars, colors=get_colors("categorical", 12)
     )
-    gb_rates = _plot_rates_by_group(
-        data=data, groupby_var=groupby_var, infection_vars=infection_vars, colors=colors
-    )
-    r_zeros = _plot_r_zeros(data=data, groupby_var=groupby_var, colors=colors)
 
-    # export plots as png.
-    # create tex and pdf
+    gb_rates = _plot_rates_by_group(
+        data=data, groupby_var=groupby_var, infection_vars=infection_vars,
+        colors=get_colors("categorical", 12)
+    )
+
+    r_colors = ["black"]
+    n_categories = len(data[groupby_var].cat.categories)
+    if data[groupby_var].cat.ordered:
+        r_colors += get_colors("red", n_categories)
+    else:
+        r_colors += get_colors("categorical", n_categories)
+    r_zeros = _plot_r_zeros(data=data, groupby_var=groupby_var, colors=r_colors)
+
+    if outdir_path is not None:
+        # export plots as png.
+        output_file(outdir_path)
+        if not os.path.exists(outdir_path / "incidences"):
+            os.mkdir(outdir_path / "incidences")
+        export_png(inf_rates, filename=outdir_path / "incidences" / "general_population.png")
+        for var_name, plot in zip(infection_vars, gb_rates):
+            export_png(plot, filename=outdir_path / "incidences" / f"{var_name}_rates_by_{groupby_var}.png")
+        export_png(r_zeros, filename=outdir_path / "r_zeros.png")
+
+        # create tex and pdf
 
     style = {"font-size": "150%"}  # , "color": "#808080"}
     inf_title = "Infection Related Rates in the Population"
@@ -47,7 +65,7 @@ def visualize_simulation_results(
         output_file(f"{outdir_path}/webpage.html")
         save(col, title=title)
 
-    if show is True:
+    if show_layout is True:
         show(col)
 
 
@@ -62,10 +80,14 @@ def _plot_infection_rates(data, infection_vars, colors):
 def _plot_rates_by_group(data, groupby_var, infection_vars, colors):
     gb = data.groupby(["period", groupby_var])
     plots = []
-    for var in infection_vars:
+    ordered = data[groupby_var].cat.ordered
+    n_categories = len(data[groupby_var].cat.categories)
+    str_for_ordered = ["red", "blue", "yellow", "purple", "orange", "green"]
+    for i, var in enumerate(infection_vars):
+        plot_colors = get_colors(str_for_ordered[i], n_categories) if ordered else colors
         means = gb[var].mean().unstack()
         title = f"{_nice_str(var)} Rates by {_nice_str(groupby_var)}"
-        plots.append(_plot_rates(means=means, colors=colors, title=title))
+        plots.append(_plot_rates(means=means, colors=plot_colors, title=title))
     return plots
 
 
@@ -74,6 +96,7 @@ def _plot_r_zeros(data, colors, groupby_var=None):
     overall_r_zeros = gb.apply(_calc_r_zero).to_frame(name="overall")
     gb = data.groupby(["period", groupby_var])
     group_r_zeros = gb.apply(_calc_r_zero).unstack()
+
     to_plot = pd.merge(
         overall_r_zeros, group_r_zeros, left_index=True, right_index=True
     )
