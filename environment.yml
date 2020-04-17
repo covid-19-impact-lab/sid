@@ -26,6 +26,11 @@ dependencies:
   - estimagic>=0.0.29
   - pytest
   - utilities>=0.2.6
+  # for bokeh png export
+  - selenium
+  - geckodriver
+  - firefox
+
   - pip:
     - black
     - blackcellmagic
