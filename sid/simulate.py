@@ -158,9 +158,9 @@ def _process_pol_dict(pol_dict, n_periods):
 
 
 def _process_states(states, assort_by):
-    # reset the index because having a sorted range index could speed up things
     states = states.copy()
     states.index.name = "id"
+    # reset the index because having a sorted range index could speed up things
     states = states.sample(frac=1, replace=False).reset_index(drop=False)
 
     for col in BOOLEAN_STATE_COLUMNS:

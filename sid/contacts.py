@@ -230,15 +230,14 @@ def create_group_indexer(states, assort_by):
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
 
     """
-    states = states.copy()
-    states["indices"] = np.arange(len(states))
+    states = states.reset_index(drop=True)
 
     indexer = numba_list()
+    group_indices_dict = states.groupby(assort_by).groups
     for group in _get_group_list(states, assort_by):
-        df = states
-        for var, val in zip(assort_by, group):
-            df = df.query(f"{var} == '{val}'")
-        indexer.append(df["indices"].to_numpy(dtype=np.uint32))
+        indexer.append(
+            group_indices_dict.get(group, pd.Series([])).to_numpy(dtype=np.uint32)
+        )
     return indexer
 
 
