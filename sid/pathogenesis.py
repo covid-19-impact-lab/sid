@@ -78,7 +78,12 @@ def _age_varying_two_stage_sampling(states, probs, val):
 
     """
     sr = pd.Series(-1, index=states.index, dtype=np.int32)
-    for age_group, prob in probs.items():
+    # extract age groups from states instead of from probs and then look up the probs,
+    # so we get a key error for missing parameters due to typos in the params index.
+    # otherwise it would fail silently.
+    age_groups = states["age_group"].unique().tolist()
+    for age_group in age_groups:
+        prob = probs[age_group]
         locs = states.query(f"age_group == '{age_group}'").index
         sr.loc[locs] = _two_stage_sampling(prob, val, len(locs))
     return sr

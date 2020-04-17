@@ -25,6 +25,7 @@ dependencies:
   - numba>=0.48.0
   - estimagic>=0.0.29
   - pytest
+  - utilities>=0.2.6
   - pip:
     - black
     - blackcellmagic

@@ -134,3 +134,4 @@ dmypy.json
 notebooks/
 
 example/*.pickle
+example/initial_states.pkl
