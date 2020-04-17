@@ -1,15 +1,76 @@
 import pandas as pd
 from bokeh.plotting import figure, save, show
 from utilities.colors import get_colors
-from bokeh.models import Column, Div
+from bokeh.models import Column, Div, Row
 from bokeh.io import output_file, export_png
 import os
 from shutil import rmtree
 from pandas.api.types import is_categorical
+from pathlib import Path
+
+
+def visualize_and_compare_models(
+    data_paths,
+    outdir_path,
+    background_vars=["age_group", "sector"],
+    show_layout=False,
+):
+    # clean up folder
+    if os.path.exists(outdir_path):
+        rmtree(outdir_path)
+    os.mkdir(outdir_path)
+
+    model_to_elements = {}
+    first = True
+    for model_name, data_p in data_paths:
+        title = f"Visualization of the Simulation Results of {_nice_str(model_name)}"
+        os.mkdir(outdir_path / model_name)
+        model_elements = visualize_simulation_results(
+            data_path=data_p,
+            background_vars=background_vars,
+            outdir_path=outdir_path / model_name,
+            show_layout=False,
+            title=title)
+        model_to_elements[model_name] = model_elements
+        plot_names = [elem.name for elem in model_elements if elem.name.startswith("plot_")]
+        if first:
+            to_compare = set(plot_names)
+            first = False
+        else:
+            to_compare = to_compare.intersection(plot_names)
+
+    # create folders
+    os.mkdir(outdir_path / "comparison")
+    os.mkdir(outdir_path / "comparison" / "incidences")
+    for var in background_vars:
+        os.mkdir(outdir_path / "comparison" / "incidences" / var)
+    os.mkdir(outdir_path / "comparison" / "r_zeros")
+
+    comparison_layout = []
+    for plot_name in sorted(to_compare):
+        plots = []
+        for model_name, elements in model_to_elements.items():
+            matched = [el for el in elements if el.name == plot_name]
+            assert len(matched) == 1, \
+                f"More than one matched for {plot_name} in {model_name}"
+            p = matched[0]
+            p.title.text = _nice_str(f"{plot_name[5:]} in {model_name}")
+            plots.append(p)
+        row = Row(*plots)
+        comparison_layout.append(row)
+        export_png(row, filename=outdir_path / "comparison" / f"{plot_name[5:]}.png")
+
+    ### column = Column(*comparison_layout)
+    ### output_file(f"{outdir_path}/comparison.html")
+    ### save(column, title=f"Comparisons")
 
 
 def visualize_simulation_results(
-    data_path, background_vars=["age_group", "sector"], outdir_path=None, show_layout=False, title=None
+    data_path,
+    outdir_path=None,
+    background_vars=["age_group", "sector"],
+    show_layout=False,
+    title=None,
 ):
     if isinstance(background_vars, str):
         background_vars = [background_vars]
@@ -42,11 +103,13 @@ def visualize_simulation_results(
     col = Column(*plots_and_divs)
 
     if outdir_path is not None:
-        output_file(f"{outdir_path}/webpage.html")
+        output_file(f"{outdir_path}/overview.html")
         save(col, title=title)
 
     if show_layout is True:
         show(col)
+
+    return plots_and_divs
 
 
 def _create_plots_and_divs(data, background_vars):
@@ -73,8 +136,10 @@ def _create_plots_and_divs(data, background_vars):
         gb_title = f"Infection Related Rates by {_nice_str(groupby_var)}"
         gb_title = Div(text=gb_title, style=style, name=f"div_{groupby_var}_inf_title")
         gb_rates = _plot_rates_by_group(
-            data=data, groupby_var=groupby_var, infection_vars=infection_vars,
-            colors=get_colors("categorical", 12)
+            data=data,
+            groupby_var=groupby_var,
+            infection_vars=infection_vars,
+            colors=get_colors("categorical", 12),
         )
         elements += [gb_title, *gb_rates]
 
@@ -105,7 +170,9 @@ def _plot_rates_by_group(data, groupby_var, infection_vars, colors):
         ordered = False
     str_for_ordered = ["red", "blue", "yellow", "purple", "orange", "green"]
     for i, var in enumerate(infection_vars):
-        plot_colors = get_colors(str_for_ordered[i], n_categories) if ordered else colors
+        plot_colors = (
+            get_colors(str_for_ordered[i], n_categories, skip_bright=3) if ordered else colors
+        )
         means = gb[var].mean().unstack()
         title = f"{_nice_str(var)} Rates by {_nice_str(groupby_var)}"
         p = _plot_rates(means=means, colors=plot_colors, title=title)
