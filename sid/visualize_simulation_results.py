@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 from bokeh.plotting import figure, save, show
 from utilities.colors import get_colors
@@ -7,7 +6,7 @@ from bokeh.io import output_file
 
 
 def visualize_simulation_results(
-    data_path, groupby_var="age_group", outdir_path=None, show=False, title=None
+    data_path, groupby_var="age_group", outdir_path=None, show_layout=False, title=None
 ):
     title = "Visualization of the Simulation Results" if title is None else title
     data = pd.read_pickle(data_path)
@@ -25,8 +24,10 @@ def visualize_simulation_results(
     inf_rates = _plot_infection_rates(
         data=data, infection_vars=infection_vars, colors=colors
     )
+
     gb_rates = _plot_rates_by_group(
-        data=data, groupby_var=groupby_var, infection_vars=infection_vars, colors=colors
+        data=data, groupby_var=groupby_var, infection_vars=infection_vars,
+        colors=colors
     )
     r_zeros = _plot_r_zeros(data=data, groupby_var=groupby_var, colors=colors)
 
@@ -47,7 +48,7 @@ def visualize_simulation_results(
         output_file(f"{outdir_path}/webpage.html")
         save(col, title=title)
 
-    if show is True:
+    if show_layout is True:
         show(col)
 
 
@@ -62,10 +63,14 @@ def _plot_infection_rates(data, infection_vars, colors):
 def _plot_rates_by_group(data, groupby_var, infection_vars, colors):
     gb = data.groupby(["period", groupby_var])
     plots = []
-    for var in infection_vars:
+    ordered = data[groupby_var].cat.ordered
+    n_categories = len(data[groupby_var].cat.categories)
+    str_for_ordered = ["red", "blue", "yellow", "purple", "orange", "green"]
+    for i, var in enumerate(infection_vars):
+        plot_colors = get_colors(str_for_ordered[i], n_categories) if ordered else colors
         means = gb[var].mean().unstack()
         title = f"{_nice_str(var)} Rates by {_nice_str(groupby_var)}"
-        plots.append(_plot_rates(means=means, colors=colors, title=title))
+        plots.append(_plot_rates(means=means, colors=plot_colors, title=title))
     return plots
 
 
