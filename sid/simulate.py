@@ -128,9 +128,13 @@ def _check_inputs(
     if not isinstance(contact_policies, dict):
         raise ValueError("policies must be a dictionary.")
 
-    for pol_name, pol in contact_policies.items():
+    for name, pol in contact_policies.items():
         if not isinstance(pol, dict):
-            raise ValueError(f"Each policy must be a dictionary: {pol_name}")
+            raise ValueError(f"Each policy must be a dictionary: {name}")
+        if name not in contact_models:
+            raise KeyError(
+                f"contact_policy refers to non existent contact model: {name}"
+            )
 
     if testing_policies != {}:
         raise NotImplementedError
