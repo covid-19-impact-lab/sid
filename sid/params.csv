@@ -1,4 +1,4 @@
-category,name,value,Note,source
+category,name,value,note,source
 assortative_matching,age_group,0.5,"Probability of meeting someone from the own age group, conditional on meeting someone. Rest of probability mass is split equally across other age groups. ",
 assortative_matching,region,0.9,Probability of meeting someone from the own region conditional on meeting someone. Rest of probability mass is split equally across other regions. ,
 prob_icu_given_symptoms,0 - 9,5E-05,,https://towardsdatascience.com/agent-based-simulation-of-covid-19-health-and-economical-effects-6aa4ae0ff397
