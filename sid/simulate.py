@@ -151,9 +151,10 @@ def _process_pol_dict(pol_dict, n_periods):
     default = {
         "start": 0,
         "end": n_periods,
-        "is_active": lambda: True,
+        "is_active": lambda states: True,
     }
-    return default.update(pol_dict)
+    default.update(pol_dict)
+    return default
 
 
 def _process_states(states, assort_by):
