@@ -1,3 +1,6 @@
+import numpy as np
+
+
 BOOLEAN_STATE_COLUMNS = [
     "ever_infected",
     "immune",
@@ -23,7 +26,7 @@ COUNTDOWNS = {
     "cd_immune_false": {"changes": {"immune": False}},
     "cd_symptoms_true": {
         "changes": {"symptoms": True, "cd_infectious_false": -1},
-        "starts": ["cd_symptoms_false", "cd_needs_icu_true",],
+        "starts": ["cd_symptoms_false", "cd_needs_icu_true"],
     },
     # will be overriden if a person needs icu. In that case symptoms
     # end with need for icu.
@@ -61,3 +64,16 @@ COUNTDOWNS = {
     },
     "cd_knows_true": {"changes": {"knows": True}},
 }
+
+
+DTYPE_COUNTER = np.int32
+"""Dtype for the counters.
+
+The dtype has to be signed integer because `-1` is assigned to counters which have not
+been started.
+
+"""
+DTYPE_GROUP_CODE = np.uint16
+
+
+STATES_INDEX_DEFAULT_NAME = "id"

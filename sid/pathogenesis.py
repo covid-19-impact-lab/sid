@@ -9,6 +9,23 @@ import pandas as pd
 
 
 def draw_course_of_disease(states, params):
+    """Draw course of the disease.
+
+    The course of disease is drawn before the actual simulation and samples for each
+    individual the length of the countdown.
+
+    Countdowns govern the transition from being infectious to having symptoms,
+    potentially needing icu and maybe even dying.
+
+    Args:
+        states (pandas.DataFrame): The initial states.
+        params (pandas.DataFrame): DataFrame with parameters that influence the number
+            of contacts, contagiousness and dangerousness of the disease, ... .
+
+    Returns:
+        states (pandas.DataFrame): The initial states extended with countdown lengths.
+
+    """
     states = states.copy()
 
     # time of immunity
@@ -69,15 +86,18 @@ def _two_stage_sampling(prob, val, size):
 
 
 def _age_varying_two_stage_sampling(states, probs, val):
-    """
+    """Sample probability by age groups.
 
     Args:
-        probs (pd.Series): Index contains age groups in same codes as "age_group"
+        probs (pandas.Series): Index contains age groups in same codes as "age_group"
             column in states.
-        val (int)
+        val (int): The sampled value is either this value or -1.
+
+    Returns: s (pandas.Series): Series containing the sampled values with age-varying
+        distributions.
 
     """
-    sr = pd.Series(-1, index=states.index, dtype=np.int32)
+    s = pd.Series(-1, index=states.index, dtype=np.int32)
     # extract age groups from states instead of from probs and then look up the probs,
     # so we get a key error for missing parameters due to typos in the params index.
     # otherwise it would fail silently.
@@ -85,5 +105,6 @@ def _age_varying_two_stage_sampling(states, probs, val):
     for age_group in age_groups:
         prob = probs[age_group]
         locs = states.query(f"age_group == '{age_group}'").index
-        sr.loc[locs] = _two_stage_sampling(prob, val, len(locs))
-    return sr
+        s.loc[locs] = _two_stage_sampling(prob, val, len(locs))
+
+    return s
