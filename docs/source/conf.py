@@ -8,7 +8,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # -- Project information -----------------------------------------------------
 
-project = "Covid-19 Impact Lab Simulator"
+project = "sid - A simulator for infectious diseases"
 copyright = "2020, Janos Gabler, Tobias Raabe, Klara Röhrl"  # noqa: A001
 author = "Janos Gabler, Tobias Raabe, Klara Röhrl"
 
