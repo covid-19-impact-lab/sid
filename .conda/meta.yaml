@@ -34,7 +34,7 @@ test:
     - pytest-xdist
   source_files:
     - tox.ini
-    - sid/tests
+    - sid
   commands:
     - pytest
 

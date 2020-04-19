@@ -12,6 +12,7 @@ dependencies:
 
   - anaconda-client
   - conda-build
+  - conda-verify
 
   - bokeh>=2
   - jupyterlab

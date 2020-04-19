@@ -12,11 +12,11 @@ def calculate_contacts(contact_models, contact_policies, states, params, period)
     """Calculate number of contacts of different types.
 
     Args:
-        contact_models (dict): See :ref:`contact_models`
-        contact_policies (dict): See :ref:`policies`
-        states (pandas.DataFrame): See :ref:`states`
-        params (pandas.DataFrame): See :ref:`params`
-        period (int): Period of the model
+        contact_models (dict): See :ref:`contact_models`.
+        contact_policies (dict): See :ref:`policies`.
+        states (pandas.DataFrame): See :ref:`states`.
+        params (pandas.DataFrame): See :ref:`params`.
+        period (int): Period of the model.
 
     Returns:
         contacts (pandas.DataFrame): DataFrame with one column per contact type.
@@ -111,9 +111,9 @@ def _calculate_infections_numba(
         infected (numpy.ndarray): 1d boolean array that is True for individuals who got
             newly infected.
         infection_counter (numpy.ndarray): 1d integer array
-        immune (numpy.ndarray):
-        missed (numpy.ndarray): 1d integer array with missed contacts. Same
-            length as contacts.
+        immune (numpy.ndarray)
+        missed (numpy.ndarray): 1d integer array with missed contacts. Same length as
+            contacts.
 
     """
     contacts = contacts.copy()
@@ -126,8 +126,8 @@ def _calculate_infections_numba(
     infection_events = np.array([True, False])
     infection_prob = np.array([infection_prob, 1 - infection_prob])
 
-    # it is important not to loop over contact directly, because contacts is changed
-    # in place during the loop
+    # it is important not to loop over contact directly, because contacts is changed in
+    # place during the loop
     for i in range(n_obs):
         n_contacts = contacts[i]
         group_i = group_codes[i]
@@ -184,12 +184,11 @@ def _choose_one_element(a, weights):
         weights (numpy.ndarray): 1d array of weights.
 
     Returns:
-        choice: An element of a.
+        choice (int): An element of a.
 
     Example:
-
-    >>> chosen = _choose_one_element(np.arange(3), np.array([0.2, 0.3, 0.5]))
-    >>> assert isinstance(chosen, int)
+        >>> chosen = _choose_one_element(np.arange(3), np.array([0.2, 0.3, 0.5]))
+        >>> assert isinstance(chosen, int)
 
     """
     cdf = weights.cumsum()
@@ -288,14 +287,13 @@ def _sum_preserving_round(arr):
         numpy.ndarray
 
     Example:
+        >>> arr = np.full(10, 5.2)
+        >>> _sum_preserving_round(arr)
+        array([5., 5., 6., 5., 5., 5., 5., 6., 5., 5.])
 
-    >>> arr = np.full(10, 5.2)
-    >>> _sum_preserving_round(arr)
-    array([5., 5., 6., 5., 5., 5., 5., 6., 5., 5.])
-
-    >>> arr = np.full(2, 1.9)
-    >>> _sum_preserving_round(arr)
-    array([2., 2.])
+        >>> arr = np.full(2, 1.9)
+        >>> _sum_preserving_round(arr)
+        array([2., 2.])
 
     """
     arr = arr.copy()
