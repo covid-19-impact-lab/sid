@@ -122,9 +122,6 @@ def _check_inputs(
     if not isinstance(initial_states, pd.DataFrame):
         raise ValueError("initial_states must be a DataFrame.")
 
-    if initial_states.index.nlevels != 1:
-        raise ValueError("initial_states cannot have a MultiIndex.")
-
     if not isinstance(initial_infections, pd.Series):
         raise ValueError("initial_infections must be a pandas Series.")
 
