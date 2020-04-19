@@ -1,5 +1,4 @@
 # Configuration file for the Sphinx documentation builder.
-#
 # This file only contains a selection of the most common options. For a full
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
@@ -7,14 +6,14 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import sys
+
+sys.path.append("../..")
+
 # -- Project information -----------------------------------------------------
 
-project = "Covid-19 Impact Lab Simulator"
-copyright = "2020, Janos Gabler, Tobias Raabe, Klara Röhrl"
+project = "sid - A simulator for infectious diseases"
+copyright = "2020, Janos Gabler, Tobias Raabe, Klara Röhrl"  # noqa: A001
 author = "Janos Gabler, Tobias Raabe, Klara Röhrl"
 
 
@@ -35,25 +34,6 @@ extensions = [
     "nbsphinx",
 ]
 
-autodoc_member_order = "bysource"
-
-autodoc_mock_imports = [
-    "bokeh",
-    "cloudpickle",
-    "fuzzywuzzy",
-    "joblib",
-    "numba",
-    "numdifftools",
-    "numpy",
-    "pandas",
-    "pytest",
-    "pygmo",
-    "scipy",
-    "sqlalchemy",
-    "tornado",
-    "petsc4py",
-]
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
@@ -61,6 +41,30 @@ templates_path = ["_templates"]
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
+
+
+# -- Package configuration ---------------------------------------------------
+
+autodoc_member_order = "bysource"
+
+autodoc_mock_imports = [
+    "bokeh",
+    "numba",
+    "numpy",
+    "pandas",
+    "utilities",
+]
+
+extlinks = {
+    "ghuser": ("https://github.com/%s", "@"),
+    "gh": ("https://github.com/covid-19-impact-lab/sid/pulls/%s", "#"),
+}
+
+intersphinx_mapping = {
+    "numpy": ("https://docs.scipy.org/doc/numpy", None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
+    "python": ("https://docs.python.org/3.7", None),
+}
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -73,4 +77,4 @@ html_theme = "alabaster"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+# html_static_path = ["_static"]  # noqa: E800

@@ -1,0 +1,40 @@
+{% set data = load_setup_py_data() %}
+
+package:
+  name: sid
+  version: {{ data.get('version') }}
+
+source:
+  # git_url is nice in that it won't capture devenv stuff.  However, it only captures
+  # committed code, so pay attention.
+  git_url: ../
+
+build:
+  noarch: python
+  number: 0
+
+requirements:
+  build:
+    - python
+    - setuptools
+  host:
+    - python >=3.6,<3.8
+
+  run:
+    - python >=3.6,<3.8
+    - bokeh
+    - numba >=0.48
+    - numpy
+    - pandas >=1
+    - utilities
+
+test:
+  source_files:
+    - tox.ini
+  commands:
+    - pytest
+
+about:
+  home: https://github.com/covid-19-impact-lab/sid
+  license: None
+  summary: Simulate the spread of COVID-19 with different policies.

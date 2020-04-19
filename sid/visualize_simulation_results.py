@@ -1,17 +1,25 @@
-import pandas as pd
-from bokeh.plotting import figure, save, show
-from utilities.colors import get_colors
-from bokeh.models import Column, Div, Row
-from bokeh.io import output_file, export_png
 import os
 from shutil import rmtree
+
+import pandas as pd
+from bokeh.io import export_png
+from bokeh.io import output_file
+from bokeh.models import Column
+from bokeh.models import Div
+from bokeh.models import Row
+from bokeh.plotting import figure
+from bokeh.plotting import save
+from bokeh.plotting import show
 from pandas.api.types import is_categorical
-from pathlib import Path
+from utilities.colors import get_colors
 
 
 def visualize_and_compare_models(
     data_paths, outdir_path, background_vars=["age_group", "sector"], show_layout=False,
 ):
+    if background_vars is None:
+        background_vars = ["age_group", "sector"]
+
     # clean up folder
     if os.path.exists(outdir_path):
         rmtree(outdir_path)
@@ -61,20 +69,19 @@ def visualize_and_compare_models(
         comparison_layout.append(row)
         export_png(row, filename=outdir_path / "comparison" / f"{plot_name[5:]}.png")
 
-    ### column = Column(*comparison_layout)
-    ### output_file(f"{outdir_path}/comparison.html")
-    ### save(column, title=f"Comparisons")
+    # column = Column(*comparison_layout)
+    # output_file(f"{outdir_path}/comparison.html")
+    # save(column, title=f"Comparisons")
 
 
 def visualize_simulation_results(
-    data_path,
-    outdir_path=None,
-    background_vars=["age_group", "sector"],
-    show_layout=False,
-    title=None,
+    data_path, outdir_path=None, background_vars=None, show_layout=False, title=None,
 ):
-    if isinstance(background_vars, str):
+    if background_vars is None:
+        background_vars = ["age_group", "sector"]
+    elif isinstance(background_vars, str):
         background_vars = [background_vars]
+
     title = "Visualization of the Simulation Results" if title is None else title
     data = pd.read_pickle(data_path)
     data["symptomatic_among_infectious"] = data["symptoms"].where(data["infectious"])

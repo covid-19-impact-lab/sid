@@ -1,41 +1,32 @@
-import itertools
-from inspect import getmembers
-
 import numpy as np
 import pandas as pd
 from numba import njit
-from numba.typed import List as numba_list
+from numba.typed import List as NumbaList
 
-from sid import contact_models as contact_models_module
+from sid.config import DTYPE_INDEX
+from sid.config import DTYPE_N_CONTACTS
+from sid.shared import factorize_assortative_variables
 
 
 def calculate_contacts(contact_models, contact_policies, states, params, period):
     """Calculate number of contacts of different types.
 
-    # this is mainly a placeholder and has no support for policies yet.
-
     Args:
-        contact_models (list): See :ref:`contact_models`
+        contact_models (dict): See :ref:`contact_models`
         contact_policies (dict): See :ref:`policies`
-        states (pd.DataFrame): See :ref:`states`
-        params (pd.DataFrame): See :ref:`params`
+        states (pandas.DataFrame): See :ref:`states`
+        params (pandas.DataFrame): See :ref:`params`
         period (int): Period of the model
 
     Returns:
-        contacts (pd.DataFrame): DataFrame with one column per contact type.
-
+        contacts (pandas.DataFrame): DataFrame with one column per contact type.
 
     """
-    contact_types = sorted(
-        set([mod["contact_type"] for mod in contact_models.values()])
-    )
+    contact_types = sorted({mod["contact_type"] for mod in contact_models.values()})
     contacts = pd.DataFrame(data=0, index=states.index, columns=contact_types)
     for model_name, model in contact_models.items():
         loc = model.get("loc", params.index)
-        if isinstance(model["model"], str):
-            func = getattr(contact_models_module, model["model"])
-        else:
-            func = model["model"]
+        func = model["model"]
         cont = func(states, params.loc[loc], period)
 
         if model_name in contact_policies:
@@ -48,7 +39,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, period)
     for contact_type in contact_types:
         contacts[contact_type] = _sum_preserving_round(
             contacts[contact_type].to_numpy()
-        ).astype(np.uint32)
+        ).astype(DTYPE_N_CONTACTS)
 
     return contacts
 
@@ -61,16 +52,17 @@ def calculate_infections(states, contacts, params, indexer, group_probs):
     then calls ``calculate_infections_numba``.
 
     Args:
-        states (pd.DataFrame): see :ref:`states`.
-        contacts (pd.DataFrame): One column per contact_type. Same index as states.
-        params (pd.DataFrame): See :ref:`params`.
+        states (pandas.DataFrame): see :ref:`states`.
+        contacts (pandas.DataFrame): One column per contact_type. Same index as states.
+        params (pandas.DataFrame): See :ref:`params`.
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
-        group_probs (np.ndarray): group_probs (np.ndarray): Array of shape n_group, n_groups. probs[i, j] is the
-            probability that an individual from group i meets someone from group j.
+        group_probs (numpy.ndarray): group_probs (numpy.ndarray): Array of shape
+            n_group, n_groups. probs[i, j] is the probability that an individual from
+            group i meets someone from group j.
 
     Returns:
         infected_sr (pd.Series): Boolean Series that is True for newly infected people.
-        states (pd.DataFrame): Copy of states with updated immune column.
+        states (pandas.DataFrame): Copy of states with updated immune column.
 
     """
     states = states.copy()
@@ -84,14 +76,7 @@ def calculate_infections(states, contacts, params, indexer, group_probs):
         cont = contacts[contact_type].to_numpy()
         infect_prob = params.loc[("infection_prob", contact_type), "value"]
         infected, infection_counter, immune, missed = _calculate_infections_numba(
-            cont,
-            infectious,
-            immune,
-            group_codes,
-            infect_prob,
-            group_probs,
-            indexer,
-            infect_prob,
+            cont, infectious, immune, group_codes, group_probs, indexer, infect_prob,
         )
         infected_sr += infected
         states["infection_counter"] += infection_counter
@@ -105,36 +90,29 @@ def calculate_infections(states, contacts, params, indexer, group_probs):
 
 @njit
 def _calculate_infections_numba(
-    contacts,
-    infectious,
-    immune,
-    group_codes,
-    infect_prob,
-    group_probs,
-    indexer,
-    infection_prob,
+    contacts, infectious, immune, group_codes, group_probs, indexer, infection_prob,
 ):
     """Match people, draw if they get infected and record who infected whom.
 
     Args:
-        contacts (np.ndarray): 1-D integer array with number of contacts per individual.
-            This is only for one contact type.
-        infectious (np.ndarray): 1-D boolean array that indicates if a person is
+        contacts (numpy.ndarray): 1-D integer array with number of contacts per
+            individual. This is only for one contact type.
+        infectious (numpy.ndarray): 1-D boolean array that indicates if a person is
             infectious. This is not changed after an infection.
-        immune (np.ndarray): 1-D boolean array that indicates if a person is immune.
-        group_codes (np.ndarray): 1-D integer array with the index of the group used
+        immune (numpy.ndarray): 1-D boolean array that indicates if a person is immune.
+        group_codes (numpy.ndarray): 1-D integer array with the index of the group used
             in the first stage of matching.
-        infect_prob (float): Probability of infection for the contact type.
-        group_probs (np.ndarray): Array of shape n_group, n_groups. probs[i, j] is the
-            probability that an individual from group i meets someone from group j.
+        group_probs (numpy.ndarray): Array of shape n_group, n_groups. probs[i, j] is
+            the probability that an individual from group i meets someone from group j.
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
+        infection_prob (float): Probability of infection for the contact type.
 
     Returns:
-        infected (np.ndarray): 1d boolean array that is True for individuals who got
+        infected (numpy.ndarray): 1d boolean array that is True for individuals who got
             newly infected.
-        infection_counter (np.ndarray): 1d integer array
-        immune (np.ndarray):
-        missed (np.ndarray): 1d integer array with missed contacts. Same
+        infection_counter (numpy.ndarray): 1d integer array
+        immune (numpy.ndarray):
+        missed (numpy.ndarray): 1d integer array with missed contacts. Same
             length as contacts.
 
     """
@@ -197,48 +175,64 @@ def _calculate_infections_numba(
 def _choose_one_element(a, weights):
     """Return an element of choices.
 
+    This function does the same as :func:`numpy.random.choice`, but is way faster.
+
+    :func:`numpy.argmax` returns the first index for multiple maximum values.
+
     Args:
-        a (np.ndarray): 1d array of choices
-        weights (np.ndarrray): 1d array of weights.
+        a (numpy.ndarray): 1d array of choices
+        weights (numpy.ndarray): 1d array of weights.
 
     Returns:
         choice: An element of a.
 
-    """
+    Example:
 
+    >>> chosen = _choose_one_element(np.arange(3), np.array([0.2, 0.3, 0.5]))
+    >>> assert isinstance(chosen, int)
+
+    """
     cdf = weights.cumsum()
     u = np.random.uniform(0, 1)
-    # Note that :func:`np.argmax` returns the first index for multiple maximum values.
     index = (u < cdf).argmax()
+
     return a[index]
 
 
 def create_group_indexer(states, assort_by):
-    """Map group number to indices of group members in the states DataFrame.
+    """Create the group indexer.
 
-    Groups are defined by the assort_by variables. People who have the same value in
-    all assort_by variables belong to the same group.
+    The indexer is a list where the positions correspond to the group number defined by
+    assortative variables. The values inside the list are one-dimensional integer arrays
+    containing the indices of states belonging to the group.
+
+    If there are no assortative variables, all individuals are assigned to a single
+    group with code 0 and the indexer is a list where the first position contains all
+    indices of states.
 
     For efficiency reasons, we assign each group a number instead of identifying by
     the values of the assort_by variables directly.
 
     Args:
-        states (pd.DataFrame): See :ref:`states`
+        states (pandas.DataFrame): See :ref:`states`
         assort_by (list): List of variables that influence matching probabilities.
 
     Returns:
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
 
     """
-    states = states.copy()
-    states["indices"] = np.arange(len(states))
+    if assort_by:
+        groups = states.groupby(assort_by).groups
+        _, group_codes_values = factorize_assortative_variables(states, assort_by)
 
-    indexer = numba_list()
-    for group in _get_group_list(states, assort_by):
-        df = states
-        for var, val in zip(assort_by, group):
-            df = df.query(f"{var} == '{val}'")
-        indexer.append(df["indices"].to_numpy(dtype=np.uint32))
+        indexer = NumbaList()
+        for group in group_codes_values:
+            indexer.append(groups[group].to_numpy(dtype=DTYPE_INDEX))
+
+    else:
+        indexer = NumbaList()
+        indexer.append(states.index.to_numpy(DTYPE_INDEX))
+
     return indexer
 
 
@@ -246,73 +240,79 @@ def create_group_transition_probs(states, assort_by, params):
     """Create a transition matrix for groups.
 
     Args:
-        states (pd.DataFrame): see :ref:`states`
+        states (pandas.DataFrame): see :ref:`states`
         assort_by (list): List of variables that influence matching probabilities.
-        params (pd.DataFrame): See :ref:`params`
+        params (pandas.DataFrame): See :ref:`params`
 
     Returns
-        probs (np.ndarray): Array of shape n_group, n_groups. probs[i, j] is the
+        probs (numpy.ndarray): Array of shape n_group, n_groups. probs[i, j] is the
             probability that an individual from group i meets someone from group j.
 
     """
-    groups = _get_group_list(states, assort_by)
-    same_probs = []
-    other_probs = []
-    for var in assort_by:
-        p = params.loc[("assortative_matching", var), "value"]
-        n_vals = len(states[var].unique())
-        same_probs.append(p)
-        other_probs.append((1 - p) / (n_vals - 1))
+    _, group_codes_values = factorize_assortative_variables(states, assort_by)
+    probs = np.ones((len(group_codes_values), len(group_codes_values)))
 
-    probs = np.ones((len(groups), len(groups)))
+    if assort_by:
+        same_probs = []
+        other_probs = []
+        for var in assort_by:
+            p = params.loc[("assortative_matching", var), "value"]
+            n_vals = len(states[var].unique())
+            same_probs.append(p)
+            other_probs.append((1 - p) / (n_vals - 1))
 
-    for i, g_from in enumerate(groups):
-        for j, g_to in enumerate(groups):
-            for v, (val1, val2) in enumerate(zip(g_from, g_to)):
-                if val1 == val2:
-                    probs[i, j] *= same_probs[v]
-                else:
-                    probs[i, j] *= other_probs[v]
+        for i, g_from in enumerate(group_codes_values):
+            for j, g_to in enumerate(group_codes_values):
+                for v, (val1, val2) in enumerate(zip(g_from, g_to)):
+                    if val1 == val2:
+                        probs[i, j] *= same_probs[v]
+                    else:
+                        probs[i, j] *= other_probs[v]
+
     return probs
-
-
-def _get_group_list(states, assort_by):
-    assort_values = []
-    for var in assort_by:
-        assort_values.append(sorted(states[var].unique().tolist()))
-
-    return list(itertools.product(*assort_values))
-
-
-def get_group_to_code(states, assort_by):
-    group_list = _get_group_list(states, assort_by)
-    return {str(group_tup): index for index, group_tup in enumerate(group_list)}
 
 
 @njit
 def _sum_preserving_round(arr):
     """Round values in an array, preserving the sum as good as possible.
 
-    Args:
-        arr (np.ndarray): 1d numpy array.
+    The function loops over the elements of an array and collects the deviations to the
+    nearest downward adjusted integer. Whenever the collected deviations reach a
+    predefined threshold, +1 is added to the current element and the collected
+    deviations are reduced by 1.
 
-    Returns
-        np.ndarray
+    Args:
+        arr (numpy.ndarray): 1d numpy array.
+
+    Returns:
+        numpy.ndarray
 
     Example:
 
-    >>> _sum_preserving_round(np.array([5.2] * 10))
-    array([5., 6., 5., 5., 5., 6., 5., 5., 5., 5.])
+    >>> arr = np.full(10, 5.2)
+    >>> _sum_preserving_round(arr)
+    array([5., 5., 6., 5., 5., 5., 5., 6., 5., 5.])
+
+    >>> arr = np.full(2, 1.9)
+    >>> _sum_preserving_round(arr)
+    array([2., 2.])
 
     """
     arr = arr.copy()
+
+    threshold = 0.5
     deviation = 0
+
     for i in range(len(arr)):
-        old_val = arr[i]
-        if deviation >= 0:
-            new_val = np.floor(old_val)
+
+        floor_value = int(arr[i])
+        deviation += arr[i] - floor_value
+
+        if deviation >= threshold:
+            arr[i] = floor_value + 1
+            deviation -= 1
+
         else:
-            new_val = np.ceil(old_val)
-        deviation += new_val - old_val
-        arr[i] = new_val
+            arr[i] = floor_value
+
     return arr

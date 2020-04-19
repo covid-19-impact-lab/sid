@@ -1,9 +1,12 @@
-Welcome to SID
+==============
+Welcome to Sid
 ==============
 
-SID is a **S**\ imulator for **I**\ nfectious **D**\ iseases. It combines features of a prototypical Susceptible-Exposed-Infected-Recovered (SEIR) model and an agent based simulation model to analyze the spread of covid-19.
+SID is a **S**\ imulator for **I**\ nfectious **D**\ iseases. It combines features of a
+prototypical Susceptible-Exposed-Infected-Recovered (SEIR) model and an agent based
+simulation model to analyze the spread of covid-19.
 
-SID has only one public function:
+Sid has only one public function:
 
 
 .. automodule:: sid.simulate

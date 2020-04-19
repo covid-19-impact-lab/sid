@@ -136,3 +136,6 @@ notebooks/
 example/*.pickle
 example/initial_states.pkl
 benchmark/
+
+# PyCharm
+.idea/
