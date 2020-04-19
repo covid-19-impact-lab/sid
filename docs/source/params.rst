@@ -13,3 +13,11 @@ before you continue.
 
 `params` has a two level index. The first level is a category, the second is a name.
 Currently, we have the following categories:
+
+- `assortative_matching`
+- `prob_icu_given_symptoms`
+- `prob_dead_given_icu`
+- `prob_symptoms_given_infection`
+- `countdown_length`
+- `health_system`
+- `infection_prob`

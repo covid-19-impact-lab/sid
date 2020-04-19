@@ -5,7 +5,7 @@ Policies
 ========
 
 The most general way of implementing policies is to modify :ref:`contact_models`.
-However, this can be rather cumbersome. Therefore we offer a quick way of implementing
+However, this can be rather cumbersome. Therefore, we offer a quick way of implementing
 policies that modify contact models or implement testing strategies.
 
 
@@ -33,9 +33,9 @@ or when the ``states`` fulfills some condition. Here is an example:
 
 ``"work_close"`` is the name of the contact model the policies refers to. ``"start"``
 and ``"end"`` define the periods in which the policy is active. They are optional.
-``"multiplier"`` will be multiplied with the number of contact. It is no problem if the
+``"multiplier"`` will be multiplied with the number of contacts. It is no problem if the
 multiplication leads to non-integer number of contacts. We will automatically round them
-in a way that preserves the total number of contacts. as good as possible.
+in a way that preserves the total number of contacts as well as possible.
 ``"is_active"`` is a function that returns a bool. This is also optional.
 
 

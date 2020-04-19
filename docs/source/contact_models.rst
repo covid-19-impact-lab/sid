@@ -1,7 +1,7 @@
 .. _contact_models:
 
 ================
-`contact_models`
+Contact Models
 ================
 
 Motivation
