@@ -10,10 +10,7 @@ from pathlib import Path
 
 
 def visualize_and_compare_models(
-    data_paths,
-    outdir_path,
-    background_vars=["age_group", "sector"],
-    show_layout=False,
+    data_paths, outdir_path, background_vars=["age_group", "sector"], show_layout=False,
 ):
     # clean up folder
     if os.path.exists(outdir_path):
@@ -30,9 +27,12 @@ def visualize_and_compare_models(
             background_vars=background_vars,
             outdir_path=outdir_path / model_name,
             show_layout=False,
-            title=title)
+            title=title,
+        )
         model_to_elements[model_name] = model_elements
-        plot_names = [elem.name for elem in model_elements if elem.name.startswith("plot_")]
+        plot_names = [
+            elem.name for elem in model_elements if elem.name.startswith("plot_")
+        ]
         if first:
             to_compare = set(plot_names)
             first = False
@@ -51,8 +51,9 @@ def visualize_and_compare_models(
         plots = []
         for model_name, elements in model_to_elements.items():
             matched = [el for el in elements if el.name == plot_name]
-            assert len(matched) == 1, \
-                f"More than one matched for {plot_name} in {model_name}"
+            assert (
+                len(matched) == 1
+            ), f"More than one matched for {plot_name} in {model_name}"
             p = matched[0]
             p.title.text = _nice_str(f"{plot_name[5:]} in {model_name}")
             plots.append(p)
@@ -116,7 +117,7 @@ def _create_plots_and_divs(data, background_vars):
     infection_vars = [
         "ever_infected",
         "infectious",
-        "symptomatic_among_infectious",
+        # "symptomatic_among_infectious",
         "needs_icu",
         "dead",
         "immune",
@@ -168,10 +169,11 @@ def _plot_rates_by_group(data, groupby_var, infection_vars, colors):
         n_categories = len(data[groupby_var].cat.categories)
     else:
         ordered = False
-    str_for_ordered = ["red", "blue", "yellow", "purple", "orange", "green"]
     for i, var in enumerate(infection_vars):
         plot_colors = (
-            get_colors(str_for_ordered[i], n_categories, skip_bright=3) if ordered else colors
+            get_colors(f"blue-red", n_categories)
+            if ordered
+            else colors
         )
         means = gb[var].mean().unstack()
         title = f"{_nice_str(var)} Rates by {_nice_str(groupby_var)}"
