@@ -28,7 +28,9 @@ following problematic cases can arise:
 
 1. The first and second person are the same
 
-2. The sampled group does not contain individuals with scheduled contacts In both cases
-   we will simply not have a contact. More sophisticated solutions are possible, but
-   since the number of contacts has a large random component anyways, they are probably
-   not necessary.
+2. The sampled group does not contain individuals with scheduled contacts
+
+In both cases we will simply not have a contact.
+More sophisticated solutions are possible,
+but since the number of contacts has a large random component anyways,
+they are probably not necessary.

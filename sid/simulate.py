@@ -33,6 +33,7 @@ def simulate(
             of contacts, contagiousness and dangerousness of the disease, ... .
         initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the
             columnns "id" or "period" because those are used internally.
+            The index of initial_states will be used as "id".
         initial_infections (pandas.Series): Series with the same index as states with
             initial infections.
         contact_models (dict): List of dictionaries where each dictionary describes a
@@ -54,7 +55,7 @@ def simulate(
     if assort_by is None:
         warnings.warn(
             "Specifying no variables in 'assort_by' significantly raises runtime. "
-            "Silence this warning setting 'assort_by' to False."
+            "You can silence this warning by setting 'assort_by' to False."
         )
 
     assort_by = [] if not assort_by else assort_by

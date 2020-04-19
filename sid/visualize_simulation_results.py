@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from shutil import rmtree
 
 import pandas as pd
@@ -15,8 +16,12 @@ from utilities.colors import get_colors
 
 
 def visualize_and_compare_models(
-    data_paths, outdir_path, background_vars=["age_group", "sector"], show_layout=False,
+    data_paths, outdir_path, background_vars=None, show_layout=False,
 ):
+    background_vars = (
+        ["age_group", "sector"] if background_vars is None else background_vars
+    )
+    outdir_path = Path(outdir_path)
     if background_vars is None:
         background_vars = ["age_group", "sector"]
 
@@ -176,12 +181,8 @@ def _plot_rates_by_group(data, groupby_var, infection_vars, colors):
         n_categories = len(data[groupby_var].cat.categories)
     else:
         ordered = False
-    for i, var in enumerate(infection_vars):
-        plot_colors = (
-            get_colors(f"blue-red", n_categories)
-            if ordered
-            else colors
-        )
+    for var in infection_vars:
+        plot_colors = get_colors(f"blue-red", n_categories) if ordered else colors
         means = gb[var].mean().unstack()
         title = f"{_nice_str(var)} Rates by {_nice_str(groupby_var)}"
         p = _plot_rates(means=means, colors=plot_colors, title=title)
