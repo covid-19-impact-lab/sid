@@ -38,6 +38,11 @@ jobs:
           tox -e pytest -- --cov=sid
           coverage xml --ignore-errors
 
+      - name: Validate codecov.yml
+        if: runner.os == 'Linux' && matrix.python-version == '3.7'
+        shell: bash -l {0}
+        run: cat codecov.yml | curl --data-binary @- https://codecov.io/validate
+
       - name: Upload coverage report.
         if: runner.os == 'Linux' && matrix.python-version == '3.7'
         uses: codecov/codecov-action@v1

@@ -1,15 +1,15 @@
-import itertools
-
 import numpy as np
 import pandas as pd
 from numba import njit
 from numba.typed import List as NumbaList
 
+from sid.shared import factorize_assortative_variables
+
 
 def calculate_contacts(contact_models, contact_policies, states, params, period):
     """Calculate number of contacts of different types.
 
-    # this is mainly a placeholder and has no support for policies yet.
+    This is mainly a placeholder and has no support for policies yet.
 
     Args:
         contact_models (list): See :ref:`contact_models`
@@ -200,10 +200,15 @@ def _choose_one_element(a, weights):
 
 
 def create_group_indexer(states, assort_by):
-    """Map group number to indices of group members in the states DataFrame.
+    """Create the group indexer.
 
-    Groups are defined by the assort_by variables. People who have the same value in
-    all assort_by variables belong to the same group.
+    The indexer is a list where the positions correspond to the group number defined by
+    assortative variables. The values inside the list are one-dimensional integer arrays
+    containing the indices of states belonging to the group.
+
+    If there are no assortative variables, all individuals are assigned to a single
+    group with code 0 and the indexer is a list where the first position contains all
+    indices of states.
 
     For efficiency reasons, we assign each group a number instead of identifying by
     the values of the assort_by variables directly.
@@ -216,16 +221,18 @@ def create_group_indexer(states, assort_by):
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
 
     """
-    states = states.reset_index(drop=True)
+    if assort_by:
+        groups = states.groupby(assort_by).groups
+        _, group_codes_values = factorize_assortative_variables(states, assort_by)
 
-    indexer = NumbaList()
-    group_indices_dict = states.groupby(assort_by).groups
-    for group in _get_group_list(states, assort_by):
-        indexer.append(
-            group_indices_dict.get(group, pd.Series([], dtype=np.uint32)).to_numpy(
-                dtype=np.uint32
-            )
-        )
+        indexer = NumbaList()
+        for group in group_codes_values:
+            indexer.append(groups[group].to_numpy(dtype=np.uint32))
+
+    else:
+        indexer = NumbaList()
+        indexer.append(states.index.to_numpy(np.uint32))
+
     return indexer
 
 
@@ -242,7 +249,8 @@ def create_group_transition_probs(states, assort_by, params):
             probability that an individual from group i meets someone from group j.
 
     """
-    groups = _get_group_list(states, assort_by)
+    _, group_codes_values = factorize_assortative_variables(states, assort_by)
+
     same_probs = []
     other_probs = []
     for var in assort_by:
@@ -251,29 +259,17 @@ def create_group_transition_probs(states, assort_by, params):
         same_probs.append(p)
         other_probs.append((1 - p) / (n_vals - 1))
 
-    probs = np.ones((len(groups), len(groups)))
+    probs = np.ones((len(group_codes_values), len(group_codes_values)))
 
-    for i, g_from in enumerate(groups):
-        for j, g_to in enumerate(groups):
+    for i, g_from in enumerate(group_codes_values):
+        for j, g_to in enumerate(group_codes_values):
             for v, (val1, val2) in enumerate(zip(g_from, g_to)):
                 if val1 == val2:
                     probs[i, j] *= same_probs[v]
                 else:
                     probs[i, j] *= other_probs[v]
+
     return probs
-
-
-def _get_group_list(states, assort_by):
-    assort_values = []
-    for var in assort_by:
-        assort_values.append(sorted(states[var].unique().tolist()))
-
-    return list(itertools.product(*assort_values))
-
-
-def get_group_to_code(states, assort_by):
-    group_list = _get_group_list(states, assort_by)
-    return {str(group_tup): index for index, group_tup in enumerate(group_list)}
 
 
 @njit

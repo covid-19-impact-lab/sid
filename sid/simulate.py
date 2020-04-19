@@ -1,16 +1,16 @@
+import numpy as np
 import pandas as pd
 
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import COUNTDOWNS
 from sid.config import DTYPE_COUNTER
-from sid.config import DTYPE_GROUP_CODE
 from sid.config import STATES_INDEX_DEFAULT_NAME
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections
 from sid.contacts import create_group_indexer
 from sid.contacts import create_group_transition_probs
-from sid.contacts import get_group_to_code
 from sid.pathogenesis import draw_course_of_disease
+from sid.shared import factorize_assortative_variables
 from sid.update_states import update_states
 
 
@@ -177,6 +177,9 @@ def _process_initial_states(states, assort_by):
     """
     states = states.copy()
 
+    if np.any(states.isna()):
+        raise ValueError("'initial_states' are not allowed to contain NaNs.")
+
     states = states.sort_index()
     if isinstance(states.index, pd.MultiIndex):
         index_names = states.index.names
@@ -185,8 +188,9 @@ def _process_initial_states(states, assort_by):
             states.index.name = STATES_INDEX_DEFAULT_NAME
         index_names = [states.index.name]
 
-    # reset the index because having a sorted range index could speed up things
-    states = states.sample(frac=1, replace=False).reset_index(drop=False)
+    # Shuffle the states and reset the index because having a sorted range index could
+    # speed up things.
+    states = states.sample(frac=1, replace=False).reset_index()
 
     for col in BOOLEAN_STATE_COLUMNS:
         if col not in states.columns:
@@ -198,12 +202,8 @@ def _process_initial_states(states, assort_by):
         states[col] = states[col].astype(DTYPE_COUNTER)
 
     states["infection_counter"] = 0
-    group_to_code = get_group_to_code(states, assort_by)
-    states["group_codes"] = list(map(tuple, states[assort_by].to_numpy().tolist()))
-    states["group_codes"] = states["group_codes"].astype(str)
-    states["group_codes"] = (
-        states["group_codes"].replace(group_to_code).astype(DTYPE_GROUP_CODE)
-    )
+
+    states["group_codes"], _ = factorize_assortative_variables(states, assort_by)
 
     return states, index_names
 

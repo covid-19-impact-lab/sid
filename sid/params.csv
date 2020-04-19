@@ -19,7 +19,7 @@ prob_dead_given_icu,50 - 59,0.482160077145612,,https://towardsdatascience.com/ag
 prob_dead_given_icu,60 - 69,0.483686571101926,,https://towardsdatascience.com/agent-based-simulation-of-covid-19-health-and-economical-effects-6aa4ae0ff397
 prob_dead_given_icu,70 - 79,0.485825331504344,,https://towardsdatascience.com/agent-based-simulation-of-covid-19-health-and-economical-effects-6aa4ae0ff397
 prob_dead_given_icu,80 - 100,0.480478618701468,,https://towardsdatascience.com/agent-based-simulation-of-covid-19-health-and-economical-effects-6aa4ae0ff397
-prob_symptoms_given_infection,all,0.75,Also called “Manifestationsindex” in German,https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Steckbrief.html
+prob_symptoms_given_infection,all,0.75,Also called “Manifestationsindex” in Germany,https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Steckbrief.html
 countdown_length,cd_infectious_true,3,,https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Steckbrief.html
 countdown_length,cd_infectious_false,8,This is infectiousness of people who don’t get symptoms,https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Steckbrief.html
 countdown_length,cd_immune_false,365,This is just a guess,https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Steckbrief.html
