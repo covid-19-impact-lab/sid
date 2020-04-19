@@ -29,8 +29,12 @@ requirements:
     - utilities
 
 test:
+  requires:
+    - pytest
+    - pytest-xdist
   source_files:
     - tox.ini
+    - sid
   commands:
     - pytest
 
