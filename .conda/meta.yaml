@@ -32,8 +32,7 @@ test:
   source_files:
     - tox.ini
   commands:
-    - sid --version
-    - sid --help
+    - pytest
 
 about:
   home: https://github.com/covid-19-impact-lab/sid

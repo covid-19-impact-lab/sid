@@ -1,5 +1,5 @@
 ===
-Sid
+sid
 ===
 
 .. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/version.svg
@@ -21,11 +21,14 @@ Sid
     :target: https://github.com/psf/black
 
 
-Simulate the spread of COVID-19 with different policies.
+**sid** is a package to simulate the spread of infectious diseases like COVID-19.
+
 
 Installation
 ------------
 
-- Create the sid environment: `conda env create -f environmnent.yml`
-- Activate it: `conda activate sid`
-- Install locally into the sid environment: `pip install -e .`
+To install **sid**, type
+
+.. code-block:: bash
+
+    $ conda install -c covid-19-impact-lab sid
