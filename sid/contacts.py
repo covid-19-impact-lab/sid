@@ -3,13 +3,13 @@ import pandas as pd
 from numba import njit
 from numba.typed import List as NumbaList
 
+from sid.config import DTYPE_INDEX
+from sid.config import DTYPE_N_CONTACTS
 from sid.shared import factorize_assortative_variables
 
 
 def calculate_contacts(contact_models, contact_policies, states, params, period):
     """Calculate number of contacts of different types.
-
-    This is mainly a placeholder and has no support for policies yet.
 
     Args:
         contact_models (list): See :ref:`contact_models`
@@ -39,7 +39,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, period)
     for contact_type in contact_types:
         contacts[contact_type] = _sum_preserving_round(
             contacts[contact_type].to_numpy()
-        ).astype(np.uint32)
+        ).astype(DTYPE_N_CONTACTS)
 
     return contacts
 
@@ -227,11 +227,11 @@ def create_group_indexer(states, assort_by):
 
         indexer = NumbaList()
         for group in group_codes_values:
-            indexer.append(groups[group].to_numpy(dtype=np.uint32))
+            indexer.append(groups[group].to_numpy(dtype=DTYPE_INDEX))
 
     else:
         indexer = NumbaList()
-        indexer.append(states.index.to_numpy(np.uint32))
+        indexer.append(states.index.to_numpy(DTYPE_INDEX))
 
     return indexer
 
@@ -249,9 +249,10 @@ def create_group_transition_probs(states, assort_by, params):
             probability that an individual from group i meets someone from group j.
 
     """
-    if assort_by:
-        _, group_codes_values = factorize_assortative_variables(states, assort_by)
+    _, group_codes_values = factorize_assortative_variables(states, assort_by)
+    probs = np.ones((len(group_codes_values), len(group_codes_values)))
 
+    if assort_by:
         same_probs = []
         other_probs = []
         for var in assort_by:
@@ -260,8 +261,6 @@ def create_group_transition_probs(states, assort_by, params):
             same_probs.append(p)
             other_probs.append((1 - p) / (n_vals - 1))
 
-        probs = np.ones((len(group_codes_values), len(group_codes_values)))
-
         for i, g_from in enumerate(group_codes_values):
             for j, g_to in enumerate(group_codes_values):
                 for v, (val1, val2) in enumerate(zip(g_from, g_to)):
@@ -269,9 +268,6 @@ def create_group_transition_probs(states, assort_by, params):
                         probs[i, j] *= same_probs[v]
                     else:
                         probs[i, j] *= other_probs[v]
-
-    else:
-        probs = np.array([[1]])
 
     return probs
 

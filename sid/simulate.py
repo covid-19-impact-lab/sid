@@ -84,6 +84,8 @@ def simulate(
 
     to_concat = []
     for period in range(n_periods):
+        states["period"] = period
+
         contacts = calculate_contacts(
             contact_models, contact_policies, states, params, period
         )
@@ -91,10 +93,9 @@ def simulate(
             states, contacts, params, indexer, first_probs
         )
         states = update_states(states, infections, params)
-        period_res = states.copy()
-        period_res["period"] = period
-        period_res["infections"] = infections
-        to_concat.append(period_res.copy(deep=True))
+
+        states["infections"] = infections
+        to_concat.append(states.copy(deep=True))
 
     simulation_results = _process_simulation_results(to_concat, index_names)
 
