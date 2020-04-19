@@ -33,7 +33,7 @@ def simulate(
             of contacts, contagiousness and dangerousness of the disease, ... .
         initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the
             columnns "id" or "period" because those are used internally.
-        initial_infectios (pandas.Series): Series with the same index as states with
+        initial_infections (pandas.Series): Series with the same index as states with
             initial infections.
         contact_models (dict): List of dictionaries where each dictionary describes a
             channel by which contacts can be formed. See :ref:`contact_models`.

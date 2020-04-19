@@ -12,7 +12,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, period)
     """Calculate number of contacts of different types.
 
     Args:
-        contact_models (list): See :ref:`contact_models`
+        contact_models (dict): See :ref:`contact_models`
         contact_policies (dict): See :ref:`policies`
         states (pandas.DataFrame): See :ref:`states`
         params (pandas.DataFrame): See :ref:`params`
