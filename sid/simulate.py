@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -49,7 +51,13 @@ def simulate(
             The second is the id. Id is the index of initial_states.
 
     """
-    assort_by = [] if assort_by is None else assort_by
+    if assort_by is None:
+        warnings.warn(
+            "Specifying no variables in 'assort_by' significantly raises runtime. "
+            "Silence this warning setting 'assort_by' to False."
+        )
+
+    assort_by = [] if not assort_by else assort_by
     contact_policies = {} if contact_policies is None else contact_policies
     testing_policies = {} if testing_policies is None else testing_policies
 

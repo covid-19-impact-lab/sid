@@ -17,7 +17,7 @@ from sid.shared import factorize_assortative_variables
                 ("Under 50", "c"),
             ],
         ),
-        ([], [0]),
+        ([], [(0,)]),
     ],
 )
 def test_factorize_assortative_variables(initial_states, assort_by, expected):

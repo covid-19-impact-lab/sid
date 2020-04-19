@@ -249,25 +249,29 @@ def create_group_transition_probs(states, assort_by, params):
             probability that an individual from group i meets someone from group j.
 
     """
-    _, group_codes_values = factorize_assortative_variables(states, assort_by)
+    if assort_by:
+        _, group_codes_values = factorize_assortative_variables(states, assort_by)
 
-    same_probs = []
-    other_probs = []
-    for var in assort_by:
-        p = params.loc[("assortative_matching", var), "value"]
-        n_vals = len(states[var].unique())
-        same_probs.append(p)
-        other_probs.append((1 - p) / (n_vals - 1))
+        same_probs = []
+        other_probs = []
+        for var in assort_by:
+            p = params.loc[("assortative_matching", var), "value"]
+            n_vals = len(states[var].unique())
+            same_probs.append(p)
+            other_probs.append((1 - p) / (n_vals - 1))
 
-    probs = np.ones((len(group_codes_values), len(group_codes_values)))
+        probs = np.ones((len(group_codes_values), len(group_codes_values)))
 
-    for i, g_from in enumerate(group_codes_values):
-        for j, g_to in enumerate(group_codes_values):
-            for v, (val1, val2) in enumerate(zip(g_from, g_to)):
-                if val1 == val2:
-                    probs[i, j] *= same_probs[v]
-                else:
-                    probs[i, j] *= other_probs[v]
+        for i, g_from in enumerate(group_codes_values):
+            for j, g_to in enumerate(group_codes_values):
+                for v, (val1, val2) in enumerate(zip(g_from, g_to)):
+                    if val1 == val2:
+                        probs[i, j] *= same_probs[v]
+                    else:
+                        probs[i, j] *= other_probs[v]
+
+    else:
+        probs = np.array([[1]])
 
     return probs
 

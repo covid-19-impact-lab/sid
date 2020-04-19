@@ -33,7 +33,7 @@ def factorize_assortative_variables(states, assort_by):
         group_codes = group_codes.astype(DTYPE_GROUP_CODE)
 
     else:
-        group_codes = np.zeros(len(states))
-        group_codes_values = [0]
+        group_codes = np.zeros(len(states), dtype=np.uint8)
+        group_codes_values = [(0,)]
 
     return group_codes, group_codes_values
