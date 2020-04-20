@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 
-def draw_course_of_disease(states, params):
+def draw_course_of_disease(states, params, seed):
     """Draw course of the disease.
 
     The course of disease is drawn before the actual simulation and samples for each
@@ -21,11 +21,14 @@ def draw_course_of_disease(states, params):
         states (pandas.DataFrame): The initial states.
         params (pandas.DataFrame): DataFrame with parameters that influence the number
             of contacts, contagiousness and dangerousness of the disease, ... .
+        seed (itertools.count): Seed counter to control randomness.
 
     Returns:
         states (pandas.DataFrame): The initial states extended with countdown lengths.
 
     """
+    np.random.seed(next(seed))
+
     states = states.copy()
 
     # time of immunity

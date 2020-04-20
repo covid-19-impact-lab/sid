@@ -1,4 +1,5 @@
 import warnings
+from itertools import count
 
 import numpy as np
 import pandas as pd
@@ -25,6 +26,7 @@ def simulate(
     contact_policies=None,
     testing_policies=None,
     assort_by=None,
+    seed=None,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -44,6 +46,8 @@ def simulate(
         n_periods (int): Number of periods to simulate.
         assort_by (list, optional): List of variable names. Contacts are assortative by
             these variables.
+        seed (int, optional): Seed is used as the starting point of a sequence of seeds
+            used to control randomness internally.
 
     Returns:
         pandas.DataFrame: The simulation results in form of a long DataFrame. The
@@ -61,6 +65,7 @@ def simulate(
     assort_by = [] if not assort_by else assort_by
     contact_policies = {} if contact_policies is None else contact_policies
     testing_policies = {} if testing_policies is None else testing_policies
+    seed = count(np.random.randint(0, 1_000_000)) if seed is None else count(seed)
 
     _check_inputs(
         params,
@@ -74,12 +79,12 @@ def simulate(
     )
 
     states, index_names = _process_initial_states(initial_states, assort_by)
-    states = draw_course_of_disease(states, params)
+    states = draw_course_of_disease(states, params, seed)
     contact_policies = {
         key: _add_defaults_to_policy_dict(val, n_periods)
         for key, val in contact_policies.items()
     }
-    states = update_states(states, initial_infections, params)
+    states = update_states(states, initial_infections, params, seed)
     indexer = create_group_indexer(states, assort_by)
     first_probs = create_group_transition_probs(states, assort_by, params)
 
@@ -91,10 +96,12 @@ def simulate(
             contact_models, contact_policies, states, params, period
         )
         infections, states = calculate_infections(
-            states, contacts, params, indexer, first_probs
+            states, contacts, params, indexer, first_probs, seed,
         )
-        states = update_states(states, infections, params)
+        states = update_states(states, infections, params, seed)
 
+        for contact_type in contacts.columns:
+            states[contact_type] = contacts[contact_type]
         states["infections"] = infections
         to_concat.append(states.copy(deep=True))
 

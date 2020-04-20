@@ -30,7 +30,6 @@ following problematic cases can arise:
 
 2. The sampled group does not contain individuals with scheduled contacts
 
-In both cases we will simply not have a contact.
-More sophisticated solutions are possible,
-but since the number of contacts has a large random component anyways,
-they are probably not necessary.
+In both cases we will simply not have a contact. More sophisticated solutions are
+possible, but since the number of contacts has a large random component anyways, they
+are probably not necessary.
