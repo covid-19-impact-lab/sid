@@ -26,11 +26,14 @@ requirements:
     - numba >=0.48
     - numpy
     - pandas >=1
+    - pytest
+    - pytest-regressions
     - utilities
 
 test:
   requires:
     - pytest
+    - pytest-regressions
     - pytest-xdist
   source_files:
     - tox.ini

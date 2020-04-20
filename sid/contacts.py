@@ -44,7 +44,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, period)
     return contacts
 
 
-def calculate_infections(states, contacts, params, indexer, group_probs):
+def calculate_infections(states, contacts, params, indexer, group_probs, seed):
     """Calculate infections from contacts.
 
     This function mainly converts the relevant parts from states and contacts into
@@ -59,6 +59,7 @@ def calculate_infections(states, contacts, params, indexer, group_probs):
         group_probs (numpy.ndarray): group_probs (numpy.ndarray): Array of shape
             n_group, n_groups. probs[i, j] is the probability that an individual from
             group i meets someone from group j.
+        seed (itertools.count): Seed counter to control randomness.
 
     Returns:
         infected_sr (pd.Series): Boolean Series that is True for newly infected people.
@@ -66,17 +67,24 @@ def calculate_infections(states, contacts, params, indexer, group_probs):
 
     """
     states = states.copy()
-    infectious = states["infectious"].to_numpy()
-    immune = states["immune"].to_numpy()
+    infectious = states["infectious"].to_numpy(copy=True)
+    immune = states["immune"].to_numpy(copy=True)
     group_codes = states["group_codes"].to_numpy()
 
     infected_sr = pd.Series(index=states.index, data=0)
 
     for contact_type in contacts.columns:
-        cont = contacts[contact_type].to_numpy()
+        cont = contacts[contact_type].to_numpy(copy=True)
         infect_prob = params.loc[("infection_prob", contact_type), "value"]
         infected, infection_counter, immune, missed = _calculate_infections_numba(
-            cont, infectious, immune, group_codes, group_probs, indexer, infect_prob,
+            cont,
+            infectious,
+            immune,
+            group_codes,
+            group_probs,
+            indexer,
+            infect_prob,
+            next(seed),
         )
         infected_sr += infected
         states["infection_counter"] += infection_counter
@@ -90,7 +98,14 @@ def calculate_infections(states, contacts, params, indexer, group_probs):
 
 @njit
 def _calculate_infections_numba(
-    contacts, infectious, immune, group_codes, group_probs, indexer, infection_prob,
+    contacts,
+    infectious,
+    immune,
+    group_codes,
+    group_probabilities,
+    indexer,
+    infection_prob,
+    seed,
 ):
     """Match people, draw if they get infected and record who infected whom.
 
@@ -102,53 +117,66 @@ def _calculate_infections_numba(
         immune (numpy.ndarray): 1-D boolean array that indicates if a person is immune.
         group_codes (numpy.ndarray): 1-D integer array with the index of the group used
             in the first stage of matching.
-        group_probs (numpy.ndarray): Array of shape n_group, n_groups. probs[i, j] is
-            the probability that an individual from group i meets someone from group j.
+        group_probabilities (numpy.ndarray): Array of shape n_group, n_groups. probs[i,
+            j] is the probability that an individual from group i meets someone from
+            group j.
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
         infection_prob (float): Probability of infection for the contact type.
+        seed (int): Seed value to control randomness.
 
     Returns:
         infected (numpy.ndarray): 1d boolean array that is True for individuals who got
             newly infected.
         infection_counter (numpy.ndarray): 1d integer array
-        immune (numpy.ndarray)
+        immune (numpy.ndarray): 1-D boolean array that indicates if a person is immune.
         missed (numpy.ndarray): 1d integer array with missed contacts. Same length as
             contacts.
 
     """
-    contacts = contacts.copy()
-    immune = immune.copy()
-    infected = np.zeros(len(contacts))
+    np.random.seed(seed)
+
+    n_observations = len(contacts)
+    infected = np.zeros_like(contacts)
     infection_counter = np.zeros_like(contacts)
-    n_obs = len(contacts)
-    groups = np.arange(len(group_probs))
+    groups = np.arange(len(group_probabilities))
 
     infection_events = np.array([True, False])
     infection_prob = np.array([infection_prob, 1 - infection_prob])
 
-    # it is important not to loop over contacts directly, because contacts is changed
-    # in place during the loop
-    for i in range(n_obs):
+    # Loop over each individual and get the probabilities for meeting another group
+    # which depend on the individual's group.
+    for i in range(n_observations):
         n_contacts = contacts[i]
         group_i = group_codes[i]
-        gp = group_probs[group_i]
+        group_probs_i = group_probabilities[group_i]
+
+        # Loop over each contact the individual has, sample the contact's group and
+        # compute the sum of possible contacts in this group.
         for _ in range(n_contacts):
             contact_takes_place = True
-            group_j = _choose_one_element(groups, weights=gp)
+            group_j = _choose_one_element(groups, weights=group_probs_i)
             choice_indices = indexer[group_j]
             contacts_j = contacts[choice_indices]
             contacts_sum_j = contacts_j.sum()
+
+            # If no individual in the contacted group can have another contact, no
+            # meeting takes place.
             if contacts_sum_j == 0:
                 contact_takes_place = False
+
+            # If a contact is possible, sample the index of the contact. If the contact
+            # is the individual itself, no contact takes place.
             else:
                 p = contacts_j / contacts_sum_j
                 j = _choose_one_element(choice_indices, weights=p)
                 if i == j:
                     contact_takes_place = False
 
+            # If a contact takes place, find out whether one individual got infected.
             if contact_takes_place:
                 contacts[i] -= 1
                 contacts[j] -= 1
+
                 if infectious[i] and not immune[j]:
                     is_infection = _choose_one_element(
                         infection_events, weights=infection_prob
@@ -157,6 +185,7 @@ def _calculate_infections_numba(
                         infection_counter[i] += 1
                         infected[j] = 1
                         immune[j] = True
+
                 elif infectious[j] and not immune[i]:
                     is_infection = _choose_one_element(
                         infection_events, weights=infection_prob
