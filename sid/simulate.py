@@ -36,14 +36,15 @@ def simulate(
             The index of initial_states will be used as "id".
         initial_infections (pandas.Series): Series with the same index as states with
             initial infections.
-        contact_models (dict): List of dictionaries where each dictionary describes a
-            channel by which contacts can be formed. See :ref:`contact_models`.
+        contact_models (dict): Dictionary of dictionaries where each dictionary
+            describes a channel by which contacts can be formed.
+            See :ref:`contact_models`.
         contact_policies (dict): Dict of dicts with contact. See :ref:`policies`.
         testing_policies (dict): Dict of dicts with testing policies. See
             :ref:`policies`.
         n_periods (int): Number of periods to simulate.
         assort_by (list, optional): List of variable names. Contacts are assortative by
-            these variables.
+            these variables. These variables must be in the initial_states.
 
     Returns:
         pandas.DataFrame: The simulation results in form of a long DataFrame. The

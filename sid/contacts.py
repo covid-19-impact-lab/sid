@@ -126,8 +126,8 @@ def _calculate_infections_numba(
     infection_events = np.array([True, False])
     infection_prob = np.array([infection_prob, 1 - infection_prob])
 
-    # it is important not to loop over contact directly, because contacts is changed in
-    # place during the loop
+    # it is important not to loop over contacts directly, because contacts is changed
+    # in place during the loop
     for i in range(n_obs):
         n_contacts = contacts[i]
         group_i = group_codes[i]

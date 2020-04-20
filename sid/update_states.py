@@ -30,7 +30,7 @@ def update_states(states, new_infections, params):
         for new_countdown in info.get("starts", []):
             states.loc[locs, new_countdown] = states.loc[locs, f"{new_countdown}_draws"]
 
-    # Update states with new infections an add corresponding countdowns.
+    # Update states with new infections and add corresponding countdowns.
     locs = new_infections[new_infections].index
     states.loc[locs, "ever_infected"] = True
     states.loc[locs, "cd_immune_false"] = states.loc[locs, "cd_immune_false_draws"]
