@@ -46,17 +46,18 @@ select covariates from ``states``. Optional.
 ``"model"``
 ^^^^^^^^^^^
 
-Either the name of a function defined in ``sid.contact_models`` or a function that takes
-states, params and period as arguments and returns a series of contacts that has the
-same index as states. An example is:
+A function that takes states, params and period as arguments and returns a series that
+has the same index as states. The values of the Series are numbers of contacts.
+An example is:
 
 .. code-block:: python
 
-    def some_contact_model(states, params, period):
-        # calculate a pd.Series with contacts for each row in the states DataFrame
-        return series
+    def meet_two_people(states, params, period):
+        return pd.Series(index=states.index, data=2)
 
-The function can depend on period in order to implement policies.
+The function can depend on period in order to implement policies. The values can be
+floating point numbers. In that case they will be automatically rounded to integers in
+a way that preserves the total number of contacts.
 
 
 Combining Contact Models

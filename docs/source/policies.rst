@@ -36,7 +36,8 @@ and ``"end"`` define the periods in which the policy is active. They are optiona
 ``"multiplier"`` will be multiplied with the number of contacts. It is no problem if the
 multiplication leads to non-integer number of contacts. We will automatically round them
 in a way that preserves the total number of contacts as well as possible.
-``"is_active"`` is a function that returns a bool. This is also optional.
+``"is_active"`` is a function that returns a bool. This is also optional. A policy is
+only active is ``is_active & pol["start"] <= period <= pol["end"]``.
 
 
 ``testing_policies``
@@ -66,5 +67,6 @@ implemented yet, but will be a dict of dicts of the following form:
 define the periods in which the policy is active. They are optional. ``"query"`` selects
 the people who get the test. We will handle the case where individuals are selected by
 multiple testing policies automatically and test them just once. ``"probability"`` can
-be used to incorporate randomness in the testing policy. It is optional. ``"is_active"``
+be used to incorporate randomness in the testing policy. This is the probability that
+the test takes place, not that it is correct. It is optional. ``"is_active"``
 is a function that returns a bool. This is also optional.

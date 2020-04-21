@@ -66,14 +66,14 @@ COUNTDOWNS = {
 }
 
 
-DTYPE_COUNTER = np.int32
+DTYPE_COUNTER = np.int16
 """Dtype for the counters.
 
 The dtype has to be signed integer because `-1` is assigned to counters which have not
 been started.
 
 """
-DTYPE_GROUP_CODE = np.uint16
+DTYPE_GROUP_CODE = np.uint32
 DTYPE_INDEX = np.uint32
 DTYPE_N_CONTACTS = np.uint32
 
