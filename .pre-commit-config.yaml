@@ -5,8 +5,13 @@ repos:
     -   id: check-merge-conflict
     -   id: debug-statements
     -   id: end-of-file-fixer
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v2.2.0
+    hooks:
+    -   id: pyupgrade
+        args: [--py36-plus]
 -   repo: https://github.com/asottile/reorder_python_imports
-    rev: v2.0.0
+    rev: v2.2.0
     hooks:
     -   id: reorder-python-imports
         types: [python]
@@ -15,3 +20,27 @@ repos:
     hooks:
     -   id: black
         types: [python]
+-   repo: https://github.com/asottile/blacken-docs
+    rev: v1.6.0
+    hooks:
+    -   id: blacken-docs
+        additional_dependencies: [black]
+-   repo: https://gitlab.com/pycqa/flake8
+    rev: 3.7.9
+    hooks:
+    -   id: flake8
+        types: [python]
+        additional_dependencies: [
+            flake8-alfred, flake8-bugbear, flake8-builtins, flake8-comprehensions,
+            flake8-docstrings, flake8-eradicate, flake8-print, flake8-todo,
+            flake8-unused-arguments, pep8-naming, pydocstyle, Pygments,
+        ]
+-   repo: https://github.com/PyCQA/doc8
+    rev: 0.8.1rc3
+    hooks:
+        -   id: doc8
+-   repo: meta
+    hooks:
+    -   id: check-hooks-apply
+    -   id: check-useless-excludes
+    # -   id: identity  # Prints all files passed to pre-commits. Debugging.

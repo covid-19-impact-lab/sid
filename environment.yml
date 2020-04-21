@@ -1,0 +1,42 @@
+name: sid
+
+channels:
+  - conda-forge
+  - defaults
+  - opensourceeconomics
+
+dependencies:
+
+  - python=3.7
+  - pip
+
+  - anaconda-client
+  - conda-build
+  - conda-verify
+
+  - bokeh>=2
+  - jupyterlab
+  - nbsphinx
+  - numba>=0.48
+  - numpy
+  - pandas>=1
+  - panel>=0.9.2
+  - pdbpp
+  - pytest
+  - pytest-regressions
+  - pytest-xdist
+  - scipy
+  - seaborn>=0.10
+  - sphinx
+  - utilities>=0.2.6
+
+  # for bokeh png export
+  - selenium
+  - geckodriver
+  - firefox
+
+  - snakeviz
+  - pip:
+    - black
+    - blackcellmagic
+    - pre-commit
