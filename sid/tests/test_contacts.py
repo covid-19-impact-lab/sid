@@ -1,3 +1,5 @@
+import itertools
+
 import numpy as np
 import pytest
 from numba.typed import List as NumbaList
@@ -59,6 +61,8 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
         group_probabilities,
         indexer,
         infection_prob,
+        is_meet_group,
+        loop_order,
     ) = _sample_data_for_calculate_infections_numba(n_individuals=100, seed=seed)
 
     infected, infection_counter, immune, missed = _calculate_infections_numba(
@@ -70,6 +74,8 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
         indexer,
         infection_prob,
         seed,
+        is_meet_group,
+        loop_order,
     )
 
     num_regression.check(
@@ -77,7 +83,7 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
             "infected": infected.astype("float"),
             "infection_counter": infection_counter.astype("float"),
             "immune": immune.astype("float"),
-            "missed": missed.astype("float"),
+            "missed": missed[:, 0].astype("float"),
         },
     )
 
@@ -126,20 +132,32 @@ def _sample_data_for_calculate_infections_numba(
         group_probabilities = group_probabilities / group_probabilities.sum(
             axis=1, keepdims=True
         )
+    group_probs_list = NumbaList()
+    group_probs_list.append(group_probabilities)
 
     indexer = NumbaList()
     for group in range(n_groups):
         indexer.append(np.where(group_codes == group)[0])
 
+    indexers_list = NumbaList()
+    indexers_list.append(indexer)
+
     if infection_prob is None:
-        infection_prob = np.random.uniform()
+        ip = np.random.uniform()
+        infection_prob = np.array([[ip, 1 - ip]])
+
+    is_meet_group = np.array([False])
+
+    loop_order = np.array(list(itertools.product(range(n_individuals), range(1))))
 
     return (
-        contacts,
+        contacts.reshape(-1, 1),
         infectious,
         immune,
-        group_codes,
-        group_probabilities,
-        indexer,
+        group_codes.reshape(-1, 1),
+        group_probs_list,
+        indexers_list,
         infection_prob,
+        is_meet_group,
+        loop_order,
     )

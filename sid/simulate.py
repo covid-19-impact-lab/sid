@@ -84,9 +84,10 @@ def simulate(
     first_probs = {}
     for model_name, assort_by in assort_bys.items():
         indexers[model_name] = create_group_indexer(states, assort_by)
-        first_probs[model_name] = create_group_transition_probs(
-            states, assort_by, params
-        )
+        if contact_models[model_name]["model"] != "meet_group":
+            first_probs[model_name] = create_group_transition_probs(
+                states, assort_by, params
+            )
 
     to_concat = []
     for period in range(n_periods):
