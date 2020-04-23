@@ -111,7 +111,7 @@ def simulate(
         states["infections"] = infections
         to_concat.append(states.copy(deep=True))
 
-    simulation_results = _process_simulation_results(to_concat, index_names)
+    simulation_results = _process_simulation_results(to_concat, index_names, duration)
 
     return simulation_results
 
@@ -224,8 +224,8 @@ def _process_initial_states(states, assort_by):
     return states, index_names
 
 
-def _process_simulation_results(to_concat, index_names):
+def _process_simulation_results(to_concat, index_names, duration):
     """Process the simulation results."""
-    df = pd.concat(to_concat).set_index(["period"] + index_names)
+    df = pd.concat(to_concat).set_index([duration["column_name"]] + index_names)
 
     return df
