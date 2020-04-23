@@ -54,8 +54,9 @@ def calculate_infections(states, contacts, params, indexer, group_probs, seed):
         states (pandas.DataFrame): see :ref:`states`.
         contacts (pandas.DataFrame): One column per contact_model. Same index as states.
         params (pandas.DataFrame): See :ref:`params`.
-        indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
-        group_probs (numpy.ndarray): group_probs (numpy.ndarray): Array of shape
+        indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
+            indices of the i_th group.
+        group_probs (dict): dict of arrays of shape
             n_group, n_groups. probs[i, j] is the probability that an individual from
             group i meets someone from group j.
         seed (itertools.count): Seed counter to control randomness.
@@ -68,20 +69,20 @@ def calculate_infections(states, contacts, params, indexer, group_probs, seed):
     states = states.copy()
     infectious = states["infectious"].to_numpy(copy=True)
     immune = states["immune"].to_numpy(copy=True)
-    group_codes = states["group_codes"].to_numpy()
 
     infected_sr = pd.Series(index=states.index, data=0)
 
     for contact_model in contacts.columns:
         cont = contacts[contact_model].to_numpy(copy=True)
+        group_codes = states[f"group_codes_{contact_model}"].to_numpy()
         infect_prob = params.loc[("infection_prob", contact_model), "value"]
         infected, infection_counter, immune, missed = _calculate_infections_numba(
             cont,
             infectious,
             immune,
             group_codes,
-            group_probs,
-            indexer,
+            group_probs[contact_model],
+            indexer[contact_model],
             infect_prob,
             next(seed),
         )

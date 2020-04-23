@@ -57,13 +57,7 @@ def simulate(
             The second is the id. Id is the index of initial_states.
 
     """
-    if assort_by is None:
-        warnings.warn(
-            "Specifying no variables in 'assort_by' significantly raises runtime. "
-            "You can silence this warning by setting 'assort_by' to False."
-        )
 
-    assort_by = [] if not assort_by else assort_by
     contact_policies = {} if contact_policies is None else contact_policies
     testing_policies = {} if testing_policies is None else testing_policies
     seed = count(np.random.randint(0, 1_000_000)) if seed is None else count(seed)
@@ -76,18 +70,23 @@ def simulate(
         contact_policies,
         testing_policies,
         n_periods,
-        assort_by,
     )
 
-    states, index_names = _process_initial_states(initial_states, assort_by)
+    assort_bys = _process_assort_bys(contact_models)
+    states, index_names = _process_initial_states(initial_states, assort_bys)
     states = draw_course_of_disease(states, params, seed)
     contact_policies = {
         key: _add_defaults_to_policy_dict(val, n_periods)
         for key, val in contact_policies.items()
     }
     states = update_states(states, initial_infections, params, seed)
-    indexer = create_group_indexer(states, assort_by)
-    first_probs = create_group_transition_probs(states, assort_by, params)
+    indexers = {}
+    first_probs = {}
+    for model_name, assort_by in assort_bys.items():
+        indexers[model_name] = create_group_indexer(states, assort_by)
+        first_probs[model_name] = create_group_transition_probs(
+            states, assort_by, params
+        )
 
     to_concat = []
     for period in range(n_periods):
@@ -97,7 +96,7 @@ def simulate(
             contact_models, contact_policies, states, params, period
         )
         infections, states = calculate_infections(
-            states, contacts, params, indexer, first_probs, seed,
+            states, contacts, params, indexers, first_probs, seed,
         )
         states = update_states(states, infections, params, seed)
 
@@ -111,6 +110,21 @@ def simulate(
     return simulation_results
 
 
+def _process_assort_bys(contact_models):
+    assort_bys = {}
+    for model_name, model in contact_models.items():
+        assort_by = model.get("assortative_by", None)
+        if assort_by is None:
+            warnings.warn(
+                "Not specifying 'assortative_by' significantly raises runtime. "
+                "You can silence this warning by setting 'assortative_by' to False."
+            )
+        assort_by = [] if assort_by in [None, False] else assort_by
+        assort_bys[model_name] = assort_by
+
+    return assort_bys
+
+
 def _check_inputs(
     params,
     initial_states,
@@ -119,7 +133,6 @@ def _check_inputs(
     contact_policies,
     testing_policies,
     n_periods,
-    assort_by,
 ):
     """Check the user inputs."""
     if not isinstance(params, pd.DataFrame):
@@ -161,10 +174,6 @@ def _check_inputs(
     if not isinstance(n_periods, int) or n_periods <= 0:
         raise ValueError("n_periods must be a strictly positive integer.")
 
-    for var in assort_by:
-        if var not in initial_states.columns:
-            raise KeyError(f"assort_by variable is not in initial states: {var}.")
-
 
 def _add_defaults_to_policy_dict(pol_dict, n_periods):
     """Add defaults to a policy dictionary."""
@@ -178,7 +187,7 @@ def _add_defaults_to_policy_dict(pol_dict, n_periods):
     return default
 
 
-def _process_initial_states(states, assort_by):
+def _process_initial_states(states, assort_bys):
     """Process the initial states given by the user.
 
     Args:
@@ -218,7 +227,10 @@ def _process_initial_states(states, assort_by):
 
     states["infection_counter"] = 0
 
-    states["group_codes"], _ = factorize_assortative_variables(states, assort_by)
+    for model_name, assort_by in assort_bys.items():
+        states[f"group_codes_{model_name}"], _ = factorize_assortative_variables(
+            states, assort_by
+        )
 
     return states, index_names
 
