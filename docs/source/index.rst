@@ -6,22 +6,12 @@ SID is a **S**\ imulator for **I**\ nfectious **D**\ iseases. It combines featur
 prototypical Susceptible-Exposed-Infected-Recovered (SEIR) model and an agent based
 simulation model to analyze the spread of covid-19.
 
-Sid has only one public function:
-
-
-.. automodule:: sid.simulate
-    :members: simulate
-
-
 The arguments of the function are explained in more detail in the reference guide:
 
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Reference Guide:
+   :maxdepth: 2
+   :caption: Table of Contents
 
-   states
-   contact_models
-   policies
-   params
-   caveats
+   tutorials/index
+   reference_guides/index

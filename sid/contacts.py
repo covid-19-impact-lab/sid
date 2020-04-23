@@ -5,6 +5,7 @@ from numba.typed import List as NumbaList
 
 from sid.config import DTYPE_INDEX
 from sid.config import DTYPE_N_CONTACTS
+from sid.parse_model import parse_period_or_date
 from sid.shared import factorize_assortative_variables
 
 
@@ -31,7 +32,9 @@ def calculate_contacts(contact_models, contact_policies, states, params, period)
 
         if model_name in contact_policies:
             cp = contact_policies[model_name]
-            if cp["start"] <= period <= cp["end"] and cp["is_active"](states):
+            policy_start = parse_period_or_date(cp["start"])
+            policy_end = parse_period_or_date(cp["end"])
+            if policy_start <= period <= policy_end and cp["is_active"](states):
                 cont *= cp["multiplier"]
 
         contacts[model["contact_type"]] += cont

@@ -12,6 +12,7 @@ from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections
 from sid.contacts import create_group_indexer
 from sid.contacts import create_group_transition_probs
+from sid.parse_model import parse_duration
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
 from sid.update_states import update_states
@@ -22,7 +23,7 @@ def simulate(
     initial_states,
     initial_infections,
     contact_models,
-    n_periods,
+    duration,
     contact_policies=None,
     testing_policies=None,
     assort_by=None,
@@ -44,17 +45,20 @@ def simulate(
         contact_policies (dict): Dict of dicts with contact. See :ref:`policies`.
         testing_policies (dict): Dict of dicts with testing policies. See
             :ref:`policies`.
-        n_periods (int): Number of periods to simulate.
+        duration (int or dict): Duration can be an integer which will simulate data for
+            `range(0, duration)` periods. It can also be a dictionary containing kwargs
+            for :func:`pandas.date_range`.
         assort_by (list, optional): List of variable names. Contacts are assortative by
             these variables. These variables must be in the initial_states.
         seed (int, optional): Seed is used as the starting point of a sequence of seeds
             used to control randomness internally.
 
     Returns:
-        pandas.DataFrame: The simulation results in form of a long DataFrame. The
-            DataFrame contains the states of each period (see :ref:`states`) and a
-            column called infections. The index has two levels. The first is the period.
-            The second is the id. Id is the index of initial_states.
+        simulation_results (pandas.DataFrame): The simulation results in form of a long
+            DataFrame. The DataFrame contains the states of each period (see
+            :ref:`states`) and a column called infections. The index has two levels. The
+            first is the period. The second is the id. Id is the index of
+            initial_states.
 
     """
     if assort_by is None:
@@ -75,14 +79,15 @@ def simulate(
         contact_models,
         contact_policies,
         testing_policies,
-        n_periods,
         assort_by,
     )
+
+    duration = parse_duration(duration)
 
     states, index_names = _process_initial_states(initial_states, assort_by)
     states = draw_course_of_disease(states, params, seed)
     contact_policies = {
-        key: _add_defaults_to_policy_dict(val, n_periods)
+        key: _add_defaults_to_policy_dict(val, duration)
         for key, val in contact_policies.items()
     }
     states = update_states(states, initial_infections, params, seed)
@@ -90,8 +95,8 @@ def simulate(
     first_probs = create_group_transition_probs(states, assort_by, params)
 
     to_concat = []
-    for period in range(n_periods):
-        states["period"] = period
+    for period in duration["iterable"]:
+        states[duration["column_name"]] = period
 
         contacts = calculate_contacts(
             contact_models, contact_policies, states, params, period
@@ -118,7 +123,6 @@ def _check_inputs(
     contact_models,
     contact_policies,
     testing_policies,
-    n_periods,
     assort_by,
 ):
     """Check the user inputs."""
@@ -158,19 +162,16 @@ def _check_inputs(
     if testing_policies != {}:
         raise NotImplementedError
 
-    if not isinstance(n_periods, int) or n_periods <= 0:
-        raise ValueError("n_periods must be a strictly positive integer.")
-
     for var in assort_by:
         if var not in initial_states.columns:
             raise KeyError(f"assort_by variable is not in initial states: {var}.")
 
 
-def _add_defaults_to_policy_dict(pol_dict, n_periods):
+def _add_defaults_to_policy_dict(pol_dict, duration):
     """Add defaults to a policy dictionary."""
     default = {
-        "start": 0,
-        "end": n_periods,
+        "start": duration["start"],
+        "end": duration["end"],
         "is_active": lambda states: True,
     }
     default.update(pol_dict)
