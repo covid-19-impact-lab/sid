@@ -7,76 +7,10 @@ from bokeh.io import export_png
 from bokeh.io import output_file
 from bokeh.models import Column
 from bokeh.models import Div
-from bokeh.models import Row
 from bokeh.plotting import figure
 from bokeh.plotting import save
 from pandas.api.types import is_categorical
 from utilities.colors import get_colors
-
-
-def visualize_and_compare_models(data_paths, outdir_path, background_vars=None):
-    """Visualize each model and arrange the results next to each other.
-
-    ToDo: Instead for each plot, plot all models.
-    ToDo: Support many
-
-    Args:
-        data_paths (dict): keys are model names, values are paths to the model's
-            simulation results.
-        outdir_path (Path): directory where to save the output
-        background_vars (list): list of background variables by whose value to group
-            the results. Have to be present in all simulation results.
-
-    """
-    outdir_path, background_vars = _input_processing(outdir_path, background_vars)
-
-    model_to_elements = {}
-    first = True
-    for model_name, data_p in data_paths:
-        title = f"Visualization of the Simulation Results of {_nice_str(model_name)}"
-        os.mkdir(outdir_path / model_name)
-        model_elements = visualize_simulation_results(
-            data_path=data_p,
-            background_vars=background_vars,
-            outdir_path=outdir_path / model_name,
-            show_layout=False,
-            title=title,
-        )
-        model_to_elements[model_name] = model_elements
-        plot_names = [
-            elem.name for elem in model_elements if elem.name.startswith("plot_")
-        ]
-        if first:
-            to_compare = set(plot_names)
-            first = False
-        else:
-            to_compare = to_compare.intersection(plot_names)
-
-    # create folders
-    os.mkdir(outdir_path / "comparison")
-    os.mkdir(outdir_path / "comparison" / "incidences")
-    for var in background_vars:
-        os.mkdir(outdir_path / "comparison" / "incidences" / var)
-    os.mkdir(outdir_path / "comparison" / "r_zeros")
-
-    comparison_layout = []
-    for plot_name in sorted(to_compare):
-        plots = []
-        for model_name, elements in model_to_elements.items():
-            matched = [el for el in elements if el.name == plot_name]
-            assert (
-                len(matched) == 1
-            ), f"More than one matched for {plot_name} in {model_name}"
-            p = matched[0]
-            p.title.text = _nice_str(f"{plot_name[5:]} in {model_name}")
-            plots.append(p)
-        row = Row(*plots)
-        comparison_layout.append(row)
-        export_png(row, filename=outdir_path / "comparison" / f"{plot_name[5:]}.png")
-
-    # column = Column(*comparison_layout)
-    # output_file(f"{outdir_path}/comparison.html")
-    # save(column, title=f"Comparisons")
 
 
 def visualize_simulation_results(
