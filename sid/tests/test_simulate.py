@@ -19,7 +19,9 @@ def test_process_data_w_index():
     for period in range(2):
         to_concat.append(states.copy().assign(period=period))
 
-    simulation_results = _process_simulation_results(to_concat, index_names)
+    simulation_results = _process_simulation_results(
+        to_concat, index_names, {"column_name": "period"}
+    )
 
     assert simulation_results.index.names == ["period", "index"]
 
@@ -38,6 +40,8 @@ def test_process_data_w_multiindex():
     for period in range(2):
         to_concat.append(states.copy().assign(period=period))
 
-    simulation_results = _process_simulation_results(to_concat, index_names)
+    simulation_results = _process_simulation_results(
+        to_concat, index_names, {"column_name": "period"}
+    )
 
     assert simulation_results.index.names == ["period", "index_a", "index_b"]
