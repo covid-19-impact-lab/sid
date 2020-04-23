@@ -177,7 +177,24 @@ def _calculate_infections_numba(
     for k in range(len(loop_order)):
         i, cm = loop_order[k]
         if is_meet_group[cm]:
-            pass
+            # We only check if i gets infected by someone else from his group. Whether
+            # he infects some j is only checked, when the main loop arrives at j.
+            group_i = group_codes[i, cm]
+            if not immune[i] or group_i < 0:
+                others = indexers_list[cm][group_i]
+                # we don't have to handle the case where j == i because if i is
+                # infectious he is also immune, if he is not infectious, nothing
+                # happens anyways.
+                for j in others:
+                    if infectious[j]:
+                        is_infection = _choose_one_element(
+                            infection_events, weights=infection_probs[cm]
+                        )
+                        if is_infection:
+                            infection_counter[j] += 1
+                            infected[i] = 1
+                            immune[i] = True
+
         else:
             # get the probabilities for meeting another group which depend on the
             # individual's group.
