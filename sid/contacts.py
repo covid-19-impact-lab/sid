@@ -88,9 +88,12 @@ def calculate_infections(states, contacts, params, indexers, group_probs, seed):
         indexers_list.append(ind)
 
     np.random.seed(next(seed))
-    loop_order = np.array(
+    loop_entries = np.array(
         list(itertools.product(range(len(states)), range(len(indexers))))
     )
+
+    indices = np.random.choice(len(loop_entries), replace=False, size=len(loop_entries))
+    loop_order = loop_entries[indices]
 
     infected, infection_counter, immune, missed = _calculate_infections_numba(
         contacts,

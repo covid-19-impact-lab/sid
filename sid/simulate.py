@@ -246,9 +246,8 @@ def _process_initial_states(states, assort_bys):
             states.index.name = STATES_INDEX_DEFAULT_NAME
         index_names = [states.index.name]
 
-    # Shuffle the states and reset the index because having a sorted range index could
-    # speed up things.
-    states = states.sample(frac=1, replace=False).reset_index()
+    # reset the index because having a sorted range index could speed up things.
+    states = states.reset_index()
 
     for col in BOOLEAN_STATE_COLUMNS:
         if col not in states.columns:
