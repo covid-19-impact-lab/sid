@@ -4,8 +4,8 @@ The method of simulated moments is developed by [1], [2], and [3] and an estimat
 technique where the distance between the moments of the actual data and the moments
 implied by the model parameters is minimized.
 
-References
-----------
+References:
+
 .. [1] McFadden, D. (1989). A method of simulated moments for estimation of discrete
        response models without numerical integration. Econometrica: Journal of the
        Econometric Society, 995-1026.
@@ -26,9 +26,9 @@ import pandas as pd
 def get_msm_func(
     simulate,
     calc_moments,
-    replace_nans,
     empirical_moments,
-    weighting_matrix,
+    replace_nans,
+    weighting_matrix=None,
     return_scalar=True,
 ):
     """Get the msm function.
@@ -41,21 +41,18 @@ def get_msm_func(
             is a list of pandas.DataFrames, calc_moments must be a list of the same
             length containing functions that correspond to the moments in
             empirical_moments.
-        replace_nans (callable or list): Functions(s) specifying how to handle missings
-            in simulated_moments. Must match structure of empirical_moments. Exception:
-            If only one replacement function is specified, it will be used on all sets
-            of simulated moments.
         empirical_moments (pandas.DataFrame or pandas.Series or dict or list): Contains
             the empirical moments calculated for the observed data. Moments should be
             saved to pandas.DataFrame or pandas.Series that can either be passed to the
             function directly or as items of a list or dictionary. Index of
             pandas.DataFrames can be of type MultiIndex, but columns cannot.
+        replace_nans (callable or list): Functions(s) specifying how to handle missings
+            in simulated_moments. Must match structure of empirical_moments. Exception:
+            If only one replacement function is specified, it will be used on all sets
+            of simulated moments.
         weighting_matrix (numpy.ndarray): Square matrix of dimension (NxN) with N
             denoting the number of empirical_moments. Used to weight squared moment
             errors.
-        n_simulation_periods (int, default None): Dictates the number of periods in the
-            simulated dataset. This option does not affect ``options["n_periods"]``
-            which controls the number of periods for which decision rules are computed.
         return_scalar (bool, default True): Indicates whether to return moment error
             vector (False) or weighted square product of moment error vector (True).
 
@@ -64,6 +61,9 @@ def get_msm_func(
             vector are set.
 
     """
+    if weighting_matrix is None:
+        weighting_matrix = get_diag_weighting_matrix(empirical_moments)
+
     empirical_moments = copy.deepcopy(empirical_moments)
 
     empirical_moments = _harmonize_input(empirical_moments)
@@ -99,8 +99,8 @@ def get_msm_func(
         _msm,
         simulate=simulate,
         calc_moments=calc_moments,
-        replace_nans=replace_nans,
         empirical_moments=empirical_moments,
+        replace_nans=replace_nans,
         weighting_matrix=weighting_matrix,
         return_scalar=return_scalar,
     )
@@ -112,8 +112,8 @@ def _msm(
     params,
     simulate,
     calc_moments,
-    replace_nans,
     empirical_moments,
+    replace_nans,
     weighting_matrix,
     return_scalar,
 ):
