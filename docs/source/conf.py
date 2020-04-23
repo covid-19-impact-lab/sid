@@ -6,9 +6,10 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
+import os
 import sys
 
-sys.path.append("../..")
+sys.path.insert(0, os.path.abspath("../.."))
 
 # -- Project information -----------------------------------------------------
 
@@ -24,13 +25,14 @@ author = "Janos Gabler, Tobias Raabe, Klara Röhrl"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.todo",
+    "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
-    "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
+    "sphinx.ext.todo",
+    "sphinx.ext.viewcode",
     "nbsphinx",
 ]
 
@@ -54,6 +56,9 @@ autodoc_mock_imports = [
     "pandas",
     "utilities",
 ]
+
+# Configuration for autodoc
+autosummary_generate = True
 
 extlinks = {
     "ghuser": ("https://github.com/%s", "@"),
