@@ -87,6 +87,7 @@ def calculate_infections(states, contacts, params, indexers, group_probs, seed):
     for ind in indexers.values():
         indexers_list.append(ind)
 
+    np.random.seed(next(seed))
     loop_order = np.array(
         list(itertools.product(range(len(states)), range(len(indexers))))
     )
