@@ -71,7 +71,7 @@ def simulate(
         testing_policies,
         n_periods,
     )
-
+    contact_models = _sort_contact_models(contact_models)
     assort_bys = _process_assort_bys(contact_models)
     states, index_names = _process_initial_states(initial_states, assort_bys)
     states = draw_course_of_disease(states, params, seed)
@@ -110,7 +110,40 @@ def simulate(
     return simulation_results
 
 
+def _sort_contact_models(contact_models):
+    """Sort the contact_models.
+
+    First we have the contact models where model["model"] != "meet_group" in
+    alphabetical order. Then the ones where model["model"] == "meet_group" in
+    alphabetical order.
+
+    Args:
+        contact_models (dict): see :ref:`contact_models`
+
+    Returns:
+        dict: sorted copy of contact_models.
+
+    """
+    sorted_ = sorted(
+        name for name, mod in contact_models.items() if mod["model"] != "meet_group"
+    )
+    sorted_ += sorted(
+        name for name, mod in contact_models.items() if mod["model"] == "meet_group"
+    )
+    return {name: contact_models[name] for name in sorted_}
+
+
 def _process_assort_bys(contact_models):
+    """Set default values for assortative_by variables and extract them into a dict.
+
+    Args:
+        contact_models (dict): see :ref:`contact_models`
+
+    Returns:
+        assort_bys (dict): Keys are names of contact models, values are lists with the
+            assortative_by variables of the model.
+
+    """
     assort_bys = {}
     for model_name, model in contact_models.items():
         assort_by = model.get("assortative_by", None)
