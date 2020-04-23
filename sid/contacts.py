@@ -22,8 +22,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, period)
         contacts (pandas.DataFrame): DataFrame with one column per contact type.
 
     """
-    contact_types = sorted({mod["contact_type"] for mod in contact_models.values()})
-    contacts = pd.DataFrame(data=0, index=states.index, columns=contact_types)
+    to_concat = []
     for model_name, model in contact_models.items():
         loc = model.get("loc", params.index)
         func = model["model"]
@@ -34,12 +33,12 @@ def calculate_contacts(contact_models, contact_policies, states, params, period)
             if cp["start"] <= period <= cp["end"] and cp["is_active"](states):
                 cont *= cp["multiplier"]
 
-        contacts[model["contact_type"]] += cont
+        ind = cont.index
+        cont = _sum_preserving_round(cont.to_numpy()).astype(DTYPE_N_CONTACTS)
+        cont = pd.Series(cont, index=ind, name=model_name)
+        to_concat.append(cont)
 
-    for contact_type in contact_types:
-        contacts[contact_type] = _sum_preserving_round(
-            contacts[contact_type].to_numpy()
-        ).astype(DTYPE_N_CONTACTS)
+    contacts = pd.concat(to_concat, axis=1)
 
     return contacts
 
@@ -53,7 +52,7 @@ def calculate_infections(states, contacts, params, indexer, group_probs, seed):
 
     Args:
         states (pandas.DataFrame): see :ref:`states`.
-        contacts (pandas.DataFrame): One column per contact_type. Same index as states.
+        contacts (pandas.DataFrame): One column per contact_model. Same index as states.
         params (pandas.DataFrame): See :ref:`params`.
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
         group_probs (numpy.ndarray): group_probs (numpy.ndarray): Array of shape
@@ -73,9 +72,9 @@ def calculate_infections(states, contacts, params, indexer, group_probs, seed):
 
     infected_sr = pd.Series(index=states.index, data=0)
 
-    for contact_type in contacts.columns:
-        cont = contacts[contact_type].to_numpy(copy=True)
-        infect_prob = params.loc[("infection_prob", contact_type), "value"]
+    for contact_model in contacts.columns:
+        cont = contacts[contact_model].to_numpy(copy=True)
+        infect_prob = params.loc[("infection_prob", contact_model), "value"]
         infected, infection_counter, immune, missed = _calculate_infections_numba(
             cont,
             infectious,
@@ -88,7 +87,7 @@ def calculate_infections(states, contacts, params, indexer, group_probs, seed):
         )
         infected_sr += infected
         states["infection_counter"] += infection_counter
-        states[f"missed_{contact_type}"] = missed
+        states[f"missed_{contact_model}"] = missed
 
     states["immune"] = immune
     infected_sr = infected_sr.astype(bool)

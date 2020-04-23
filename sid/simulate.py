@@ -101,8 +101,8 @@ def simulate(
         )
         states = update_states(states, infections, params, seed)
 
-        for contact_type in contacts.columns:
-            states[contact_type] = contacts[contact_type]
+        for contact_model in contacts.columns:
+            states[contact_model] = contacts[contact_model]
         states["infections"] = infections
         to_concat.append(states.copy(deep=True))
 

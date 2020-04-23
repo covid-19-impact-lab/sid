@@ -28,13 +28,6 @@ Specifying One Contact Model
 
 One contact model is a dictionary with the following entries:
 
-``"contact_type"``
-^^^^^^^^^^^^^^^^^^
-
-A string with the name of the contact type. Examples could be "close" or "distant". It
-is possible to have any number of contact types. If several contact models have the same
-type, they get added. Different contact_types have different probabilities of contagion.
-
 
 ``"loc"``
 ^^^^^^^^^
@@ -46,9 +39,9 @@ select covariates from ``states``. Optional.
 ``"model"``
 ^^^^^^^^^^^
 
-A function that takes states, params and period as arguments and returns a series that
-has the same index as states. The values of the Series are numbers of contacts.
-An example is:
+Either ``"meet_group"`` or a function that takes states, params and period as arguments
+and returns a series that has the same index as states. The values of the Series are
+numbers of contacts. An example is:
 
 .. code-block:: python
 
@@ -58,6 +51,31 @@ An example is:
 The function can depend on period in order to implement policies. The values can be
 floating point numbers. In that case they will be automatically rounded to integers in
 a way that preserves the total number of contacts.
+
+If the model is ``"meet_group"``, the matching is fully assortative and exhaustive. I.e.
+each individual meets all others who have the exact same value in all ``assortative_by``
+variables. This can be used to model recurrent contacts inside a household, a school
+class or at the workplace.
+
+``"assortative_by"``
+^^^^^^^^^^^^^^^^^^^^
+
+A single variable or list of variables according to which the matching is assortative.
+All assortative_by variables must be categorical. Individuals who have the same value
+in all assortative_by variables belong to one group. The ``params`` DataFrame contains
+entries that govern the probability of meeting people from the own group. The index
+entry of that parameter values is ``("assortative_matching", "name_of_contact_model")``.
+
+The remaining probability mass is spread on all other groups, adjusting for group sizes
+and number of planned contacts in each group.
+
+If the model is ``"meet_group"`` there must be exactly one ``assortative_by`` variable.
+
+``assortative_by`` variables must not contain missings, unless the ``model`` is
+``meet_group``. If the model is ``meet_group``, a missing in the ``assortaive_by``
+variable indicate that this person does not have contacts in the corresponding contact
+model. This can for example be used to model school classes. Individuals that do not
+go to school, have a missing in the school class variable.
 
 
 Combining Contact Models
