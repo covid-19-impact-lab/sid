@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from shutil import rmtree
 
-import bokeh.plotting
 import numpy as np
 import pandas as pd
 from bokeh.io import export_png
@@ -45,14 +44,7 @@ def visualize_simulation_results(
         )
         data_dict[path.name.replace(".pkl", "")] = data.sort_index()
 
-    # create folders
-    if os.path.exists(outdir_path):
-        rmtree(outdir_path)
-    os.mkdir(outdir_path)
-    os.mkdir(outdir_path / "incidences")
-    os.mkdir(outdir_path / "r_zeros")
-    for var in ["general"] + background_vars:
-        os.mkdir(outdir_path / "incidences" / var)
+    _create_folders(outdir_path, background_vars)
 
     _create_plots_and_titles(
         data_dict=data_dict,
@@ -84,7 +76,6 @@ def _create_plots_and_titles(data_dict, background_vars, colors, outdir_path):
     ]
     style = {"font-size": "150%"}
 
-    # infection rates in the general population
     inf_title = "Infection Related Rates in the Population"
     inf_title = Div(text=inf_title, style=style, name="div_inf_title")
     inf_rates = _plot_infection_rates(
@@ -93,9 +84,12 @@ def _create_plots_and_titles(data_dict, background_vars, colors, outdir_path):
         colors=colors,
         outdir_path=outdir_path,
     )
-    elements = [inf_title, *inf_rates]
+    elements = [inf_title, *inf_rates]  # noqa
 
-    # infection rates in subpopulations
+    layout = Column(inf_title, *inf_rates)
+    output_file(outdir_path / "infection_rates.html")
+    save(layout)
+
     for groupby_var in background_vars:
         gb_title = f"Infection Related Rates by {_nice_str(groupby_var)}"
         gb_title = Div(text=gb_title, style=style, name=f"div_{groupby_var}_inf_title")
@@ -107,11 +101,22 @@ def _create_plots_and_titles(data_dict, background_vars, colors, outdir_path):
             outdir_path=outdir_path,
         )
         elements += [gb_title, *gb_rates]
-    #     # r zeros
-    #     r_title = f"Basic Replication Rate Overall and by {_nice_str(groupby_var)}"
-    #     r_title = Div(text=r_title, style=style, name="div_r_title")
-    #     r_zeros = _plot_r_zeros(data=data, groupby_var=groupby_var)
-    #     elements += [r_title, r_zeros]
+
+        layout = Column(gb_title, *gb_rates)
+        output_file(outdir_path / f"{groupby_var}.html")
+        save(layout)
+
+    # r zeros
+    r_title = f"Basic Replication Rate Overall and by {_nice_str(groupby_var)}"
+    r_title = Div(text=r_title, style=style, name="div_r_title")
+    r_zeros = _plot_r_zeros(
+        data_dict=data_dict, groupby_var=groupby_var, outdir_path=outdir_path
+    )
+    elements += [r_title, r_zeros]
+
+    layout = Column(r_title, r_zeros)
+    output_file(outdir_path / "r_zeros.html")
+    save(layout)
 
 
 def _plot_infection_rates(data_dict, infection_vars, colors, outdir_path, legend=False):
@@ -137,11 +142,6 @@ def _plot_infection_rates(data_dict, infection_vars, colors, outdir_path, legend
         if overall_means.min().min() < overall_means.max().max():
             title = f"{_nice_str(inf_var)} Rates in the General Population"
             p = _plot_rates(means=overall_means, colors=colors[i], title=title)
-            # confidence band
-            q5 = overall_means.apply(lambda x: np.percentile(a=x, q=5), axis=1)
-            q95 = overall_means.apply(lambda x: np.percentile(a=x, q=95), axis=1)
-            p.varea(x=q5.index, y1=q95, y2=q5, alpha=0.2, color=colors[i])
-
             p.name = f"plot_incidences/general/{inf_var}"
             p.legend.visible = legend
 
@@ -149,9 +149,6 @@ def _plot_infection_rates(data_dict, infection_vars, colors, outdir_path, legend
             export_png(p, filename=outpath / f"{inf_var}.png")
 
             plots.append(p)
-    col = Column(*plots)
-    save(col, filename="overview.html")
-    bokeh.plotting.reset_output()
     return plots
 
 
@@ -177,7 +174,7 @@ def _plot_rates_by_group(data_dict, groupby_var, infection_vars, colors, outdir_
         plots.append(var_div)
 
         gb = inf_data.groupby([groupby_var, "period"])
-        means = gb.mean().fillna(0)
+        means = gb.mean()
         min_ = means.min().min()
         max_ = means.max().max()
         if min_ < max_:
@@ -192,9 +189,6 @@ def _plot_rates_by_group(data_dict, groupby_var, infection_vars, colors, outdir_
                 )
 
                 # confidence band
-                q5 = means.loc[cat].apply(lambda x: np.percentile(a=x, q=5), axis=1)
-                q95 = means.loc[cat].apply(lambda x: np.percentile(a=x, q=95), axis=1)
-                p.varea(x=q5.index, y1=q95, y2=q5, alpha=0.2, color=colors[i])
                 p.name = f"plot_incidences/{groupby_var}/{var}_rate_{cat}"
                 p.legend.visible = False
                 outpath = outdir_path / "incidences" / groupby_var
@@ -220,9 +214,21 @@ def _plot_rates(means, title, colors, y_range=None):
     """
     if isinstance(colors, str):
         colors = [colors] * len(means.columns)
+        all_same = True
     else:
         colors = colors[: len(means.columns)]
+        all_same = False
     p = figure(tools=[], plot_height=300, plot_width=600, title=title, y_range=y_range)
+
+    if len(means) == 1:
+        alpha = 0.8
+    elif len(means) <= 5:
+        alpha = 0.6
+    elif len(means) <= 10:
+        alpha = 0.5
+    else:
+        alpha = 0.2
+
     for var, color in zip(means, colors):
         rates = means[var]
         p.line(
@@ -231,39 +237,65 @@ def _plot_rates(means, title, colors, y_range=None):
             line_width=2.0,
             legend_label=var,
             line_color=color,
-            alpha=0.5,
+            alpha=alpha,
         )
+
+    q5 = means.apply(lambda x: np.nanpercentile(a=x, q=5), axis=1)
+    q95 = means.apply(lambda x: np.nanpercentile(a=x, q=95), axis=1)
+
+    # make sure that we don't plot confidence bands where either percentile is zero
+    q5 = q5.where(q95.notnull())
+    q95 = q95.where(q5.notnull())
+    q5.fillna(0)
+    q95.fillna(0)
+    p.varea(x=q5.index, y1=q95, y2=q5, alpha=0.15, color=color if all_same else "gray")
+
     if means.columns.name is not None:
         p.legend.title = _nice_str(means.columns.name)
     p = _style(p)
     return p
 
 
-def _plot_r_zeros(data, groupby_var=None):
-    r_colors = ["black"]
-    if is_categorical(data[groupby_var]):
-        n_categories = len(data[groupby_var].cat.categories)
-        if data[groupby_var].cat.ordered:
-            r_colors += get_colors("red", n_categories)
+def _plot_r_zeros(data_dict, outdir_path, groupby_var=None, period=None):
+    sorted_keys = sorted(data_dict.keys())
+    sample_data = data_dict[sorted_keys[0]]
+
+    if is_categorical(sample_data[groupby_var]):
+        n_categories = len(sample_data[groupby_var].cat.categories)
+        if sample_data[groupby_var].cat.ordered:
+            r_colors = get_colors("red", n_categories)
         else:
-            r_colors += get_colors("categorical", n_categories)
+            r_colors = get_colors("categorical", n_categories)
     else:
-        r_colors += get_colors("categorical", 12)
+        r_colors = get_colors("categorical", 12)
 
-    gb = data.groupby("period")
-    overall_r_zeros = gb.apply(calculate_r_zero).to_frame(name="overall")
-    gb = data.groupby(["period", groupby_var])
-    group_r_zeros = gb.apply(calculate_r_zero).unstack()
+    to_concat = []
+    for name, data in data_dict.items():
+        overall_gb = data.groupby("period")
+        overall_r_zeros = overall_gb.apply(calculate_r_zero).to_frame(name=name)
+        to_concat.append(overall_r_zeros)
 
-    to_plot = pd.merge(
-        overall_r_zeros, group_r_zeros, left_index=True, right_index=True
-    )
+    overall_r_data = pd.concat(to_concat, axis=1)
+
     p = _plot_rates(
-        to_plot,
-        colors=r_colors,
+        overall_r_data,
+        colors=r_colors[0],  # "black",
         title=f"Basic Replication Rate by {_nice_str(groupby_var)}",
     )
-    p.name = f"plot_r_zeros/{groupby_var}"
+    p.name = f"plot_r_zeros/overall"
+    p.legend.visible = False
+
+    outpath = outdir_path / "r_zeros"
+    output_file(outpath)
+    export_png(p, filename=outpath / "overall.png")
+
+    # to_concat = []
+    # for name, data in data_dict.items():
+    #     gb = data.groupby(["period", groupby_var])
+    #     group_r_zeros = gb.apply(calculate_r_zero).unstack()
+    #     to_concat.append(group_r_zeros)
+    # group_r_data = pd.concat(to_concat, axis=1)
+
     return p
 
 
@@ -284,6 +316,16 @@ def _input_processing(outdir_path, background_vars):
     os.mkdir(outdir_path)
 
     return outdir_path, background_vars
+
+
+def _create_folders(outdir_path, background_vars):
+    if os.path.exists(outdir_path):
+        rmtree(outdir_path)
+    os.mkdir(outdir_path)
+    os.mkdir(outdir_path / "incidences")
+    os.mkdir(outdir_path / "r_zeros")
+    for var in ["general"] + background_vars:
+        os.mkdir(outdir_path / "incidences" / var)
 
 
 def _style(p):
