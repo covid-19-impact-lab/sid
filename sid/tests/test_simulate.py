@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+from sid.parse_model import parse_duration
 from sid.simulate import _process_initial_states
 from sid.simulate import _process_simulation_results
 
@@ -15,15 +16,15 @@ def test_process_data_w_index():
     assert isinstance(states.index, pd.RangeIndex)
     assert "index" in states
 
+    duration = parse_duration(None)
+
     to_concat = []
-    for period in range(2):
-        to_concat.append(states.copy().assign(period=period))
+    for period, date in enumerate(duration["dates"]):
+        to_concat.append(states.copy().assign(date=date, period=period))
 
-    simulation_results = _process_simulation_results(
-        to_concat, index_names, {"column_name": "period"}
-    )
+    simulation_results = _process_simulation_results(to_concat, index_names)
 
-    assert simulation_results.index.names == ["period", "index"]
+    assert simulation_results.index.names == ["date", "index"]
 
 
 def test_process_data_w_multiindex():
@@ -36,12 +37,11 @@ def test_process_data_w_multiindex():
     assert isinstance(states.index, pd.RangeIndex)
     assert all(col in states.columns for col in ["index_a", "index_b", "a"])
 
+    duration = parse_duration(None)
     to_concat = []
-    for period in range(2):
-        to_concat.append(states.copy().assign(period=period))
+    for period, date in enumerate(duration["dates"]):
+        to_concat.append(states.copy().assign(date=date, period=period))
 
-    simulation_results = _process_simulation_results(
-        to_concat, index_names, {"column_name": "period"}
-    )
+    simulation_results = _process_simulation_results(to_concat, index_names)
 
-    assert simulation_results.index.names == ["period", "index_a", "index_b"]
+    assert simulation_results.index.names == ["date", "index_a", "index_b"]

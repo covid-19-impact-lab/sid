@@ -168,8 +168,7 @@ def _create_plots_and_divs(data, background_vars):
 
 
 def _plot_infection_rates(data, infection_vars, colors):
-    period_or_date = "period" if "period" in data.columns else "date"
-    overall_gb = data.groupby(period_or_date)
+    overall_gb = data.groupby("date")
     overall_means = overall_gb[infection_vars].mean()
     title = "Infection Related Rates in the General Population"
     p = _plot_rates(means=overall_means, colors=colors, title=title)
@@ -178,8 +177,7 @@ def _plot_infection_rates(data, infection_vars, colors):
 
 
 def _plot_rates_by_group(data, groupby_var, infection_vars, colors):
-    period_or_date = "period" if "period" in data.columns else "date"
-    gb = data.groupby([period_or_date, groupby_var])
+    gb = data.groupby(["date", groupby_var])
     plots = []
     if is_categorical(data[groupby_var]):
         ordered = data[groupby_var].cat.ordered
@@ -207,10 +205,9 @@ def _plot_r_zeros(data, groupby_var=None):
     else:
         r_colors += get_colors("categorical", 12)
 
-    period_or_date = "period" if "period" in data.columns else "date"
-    gb = data.groupby(period_or_date)
+    gb = data.groupby("date")
     overall_r_zeros = gb.apply(_calc_r_zero).to_frame(name="overall")
-    gb = data.groupby([period_or_date, groupby_var])
+    gb = data.groupby(["date", groupby_var])
     group_r_zeros = gb.apply(_calc_r_zero).unstack()
 
     to_plot = pd.merge(

@@ -23,7 +23,7 @@ def simulate(
     initial_states,
     initial_infections,
     contact_models,
-    duration,
+    duration=None,
     contact_policies=None,
     testing_policies=None,
     assort_by=None,
@@ -35,8 +35,8 @@ def simulate(
         params (pandas.DataFrame): DataFrame with parameters that influence the number
             of contacts, contagiousness and dangerousness of the disease, ... .
         initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the
-            columnns "id" or "period" because those are used internally.
-            The index of initial_states will be used as "id".
+            columnns "id", "date" or "period" because those are used internally. The
+            index of initial_states will be used as "id".
         initial_infections (pandas.Series): Series with the same index as states with
             initial infections.
         contact_models (dict): Dictionary of dictionaries where each dictionary
@@ -45,9 +45,8 @@ def simulate(
         contact_policies (dict): Dict of dicts with contact. See :ref:`policies`.
         testing_policies (dict): Dict of dicts with testing policies. See
             :ref:`policies`.
-        duration (int or dict): Duration can be an integer which will simulate data for
-            `range(0, duration)` periods. It can also be a dictionary containing kwargs
-            for :func:`pandas.date_range`.
+        duration (dict or None): Duration is a dictionary containing kwargs for
+            :func:`pandas.date_range`.
         assort_by (list, optional): List of variable names. Contacts are assortative by
             these variables. These variables must be in the initial_states.
         seed (int, optional): Seed is used as the starting point of a sequence of seeds
@@ -95,11 +94,12 @@ def simulate(
     first_probs = create_group_transition_probs(states, assort_by, params)
 
     to_concat = []
-    for period in duration["iterable"]:
-        states[duration["column_name"]] = period
+    for period, date in enumerate(duration["dates"]):
+        states["date"] = date
+        states["period"] = period
 
         contacts = calculate_contacts(
-            contact_models, contact_policies, states, params, period
+            contact_models, contact_policies, states, params, date
         )
         infections, states = calculate_infections(
             states, contacts, params, indexer, first_probs, seed,
@@ -111,7 +111,7 @@ def simulate(
         states["infections"] = infections
         to_concat.append(states.copy(deep=True))
 
-    simulation_results = _process_simulation_results(to_concat, index_names, duration)
+    simulation_results = _process_simulation_results(to_concat, index_names)
 
     return simulation_results
 
@@ -224,8 +224,8 @@ def _process_initial_states(states, assort_by):
     return states, index_names
 
 
-def _process_simulation_results(to_concat, index_names, duration):
+def _process_simulation_results(to_concat, index_names):
     """Process the simulation results."""
-    df = pd.concat(to_concat).set_index([duration["column_name"]] + index_names)
+    df = pd.concat(to_concat).set_index(["date"] + index_names)
 
     return df
