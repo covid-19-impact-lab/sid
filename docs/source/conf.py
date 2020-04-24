@@ -25,13 +25,14 @@ author = "Janos Gabler, Tobias Raabe, Klara Röhrl"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.todo",
+    "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
-    "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
+    "sphinx.ext.todo",
+    "sphinx.ext.viewcode",
     "nbsphinx",
 ]
 
@@ -55,6 +56,9 @@ autodoc_mock_imports = [
     "pandas",
     "utilities",
 ]
+
+# Configuration for autodoc
+autosummary_generate = True
 
 extlinks = {
     "ghuser": ("https://github.com/%s", "@"),
