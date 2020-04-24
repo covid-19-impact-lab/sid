@@ -201,5 +201,7 @@ def test_calculate_infections():
     exp_infection_counter = pd.Series([3] + [0] * 7).astype(np.int32)
     exp_immune = pd.Series([True] * 4 + [False] * 4)
     assert calc_infected.equals(exp_infected)
-    assert calc_states["infection_counter"].equals(exp_infection_counter)
+    assert (
+        calc_states["infection_counter"].astype(np.int32).equals(exp_infection_counter)
+    )
     assert calc_states["immune"].equals(exp_immune)
