@@ -40,7 +40,10 @@ def calculate_contacts(contact_models, contact_policies, states, params, period)
             cont = _sum_preserving_round(cont.to_numpy()).astype(DTYPE_N_CONTACTS)
             columns.append(cont)
 
-    contacts = np.column_stack(columns)
+    if columns:
+        contacts = np.column_stack(columns)
+    else:
+        contacts = np.zeros((len(states), 0))
 
     return contacts
 
@@ -80,6 +83,9 @@ def calculate_infections(states, contacts, params, indexers, group_probs, seed):
     group_probs_list = NumbaList()
     for gp in group_probs.values():
         group_probs_list.append(gp)
+    # nopython mode fails, if we leave the list empty or put a 1d array inside the list.
+    if len(group_probs_list) == 0:
+        group_probs_list.append(np.zeros((0, 0)))
 
     indexers_list = NumbaList()
     for ind in indexers.values():
@@ -164,9 +170,8 @@ def _calculate_infections_numba(
     """
     np.random.seed(seed)
 
-    infected = np.zeros(len(contacts))
-    infection_counter = np.zeros(len(contacts))
-
+    infected = np.zeros(len(contacts), dtype=np.int32)
+    infection_counter = np.zeros(len(contacts), dtype=np.int32)
     groups_list = [np.arange(len(gp)) for gp in group_probs_list]
 
     # Loop over all individual-contact_model combinations

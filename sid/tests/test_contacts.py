@@ -1,10 +1,12 @@
 import itertools
 
 import numpy as np
+import pandas as pd
 import pytest
 from numba.typed import List as NumbaList
 
 from sid.contacts import _calculate_infections_numba
+from sid.contacts import calculate_infections
 from sid.contacts import create_group_indexer
 from sid.contacts import create_group_transition_probs
 
@@ -161,3 +163,43 @@ def _sample_data_for_calculate_infections_numba(
         is_meet_group,
         loop_order,
     )
+
+
+# test calculate_infections with only one recurrent contact model and very few states
+def test_calculate_infections():
+    # set up states
+    states = pd.DataFrame()
+    states["infectious"] = [True] + [False] * 7
+    states["immune"] = states["infectious"]
+    states["group_codes_households"] = [0] * 4 + [1] * 4
+    states["households"] = [0] * 4 + [1] * 4
+    states["infection_counter"] = 0
+    states["infection_counter"] = states["infection_counter"].astype(int)
+
+    contacts = np.zeros((len(states), 0))
+
+    params = pd.DataFrame(
+        columns=["value"],
+        data=1.0,
+        index=pd.MultiIndex.from_tuples([("infection_prob", "households")]),
+    )
+
+    indexers = {"households": create_group_indexer(states, ["households"])}
+
+    group_probs = {}
+
+    calc_infected, calc_states = calculate_infections(
+        states=states,
+        contacts=contacts,
+        params=params,
+        indexers=indexers,
+        group_probs=group_probs,
+        seed=itertools.count(),
+    )
+
+    exp_infected = pd.Series([False] + [True] * 3 + [False] * 4)
+    exp_infection_counter = pd.Series([3] + [0] * 7)
+    exp_immune = pd.Series([True] * 4 + [False] * 4)
+    assert calc_infected.equals(exp_infected)
+    assert calc_states["infection_counter"].equals(exp_infection_counter)
+    assert calc_states["immune"].equals(exp_immune)
