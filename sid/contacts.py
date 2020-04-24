@@ -73,11 +73,9 @@ def calculate_infections(states, contacts, params, indexers, group_probs, seed):
     infectious = states["infectious"].to_numpy(copy=True)
     immune = states["immune"].to_numpy(copy=True)
     group_codes = states[[f"group_codes_{cm}" for cm in indexers]].to_numpy()
-    infect_probs = np.zeros((len(indexers), 2))
-    infect_probs[:, 0] = [
-        params.loc[("infection_prob", cm), "value"] for cm in indexers
-    ]
-    infect_probs[:, 1] = 1 - infect_probs[:, 0]
+    infect_probs = np.array(
+        [params.loc[("infection_prob", cm), "value"] for cm in indexers]
+    )
 
     group_probs_list = NumbaList()
     for gp in group_probs.values():
@@ -148,9 +146,8 @@ def _calculate_infections_numba(
         indexers_list (numba.typed.List): Nested typed list. The i_th entry of the inner
             lists are the indices of the i_th group. There is one inner list per contact
             model.
-        infection_probs (numpy.ndarray): Array of shape (n_contact_models, 2). The first
-            column contains the probability of infection for each contact model. The
-            second column 1 minus that probability.
+        infection_probs (numpy.ndarray): 1d array of length n_contact_models with the
+            probability of infection for each contact model.
         seed (int): Seed value to control randomness.
         is_meet_group (numpy.ndarray): Boolean array of length n_contact_models.
         loop_orrder (np.ndarray): 2d numpy array with two columns. The first column
@@ -171,7 +168,6 @@ def _calculate_infections_numba(
     infection_counter = np.zeros(len(contacts))
 
     groups_list = [np.arange(len(gp)) for gp in group_probs_list]
-    infection_events = np.array([True, False])
 
     # Loop over all individual-contact_model combinations
     for k in range(len(loop_order)):
@@ -187,9 +183,7 @@ def _calculate_infections_numba(
                 # happens anyways.
                 for j in others:
                     if infectious[j]:
-                        is_infection = _choose_one_element(
-                            infection_events, weights=infection_probs[cm]
-                        )
+                        is_infection = _boolean_choice(infection_probs[cm])
                         if is_infection:
                             infection_counter[j] += 1
                             infected[i] = 1
@@ -221,18 +215,14 @@ def _calculate_infections_numba(
                     contacts[j, cm] -= 1
 
                     if infectious[i] and not immune[j]:
-                        is_infection = _choose_one_element(
-                            infection_events, weights=infection_probs[cm]
-                        )
+                        is_infection = _boolean_choice(infection_probs[cm])
                         if is_infection:
                             infection_counter[i] += 1
                             infected[j] = 1
                             immune[j] = True
 
                     elif infectious[j] and not immune[i]:
-                        is_infection = _choose_one_element(
-                            infection_events, weights=infection_probs[cm]
-                        )
+                        is_infection = _boolean_choice(infection_probs[cm])
                         if is_infection:
                             infection_counter[j] += 1
                             infected[i] = 1
@@ -309,6 +299,28 @@ def _choose_other_individual(a, weights):
         chosen = a[index]
 
     return chosen
+
+
+@njit
+def _boolean_choice(truth_prob):
+    """Return True with probability truth_prob.
+
+    Args:
+        truth_prob (float): Must be between 0 and 1.
+
+    Returns:
+        bool
+
+    Example:
+        >>> _boolean_choice(1)
+        True
+
+        >>> _boolean_choice(0)
+        False
+
+    """
+    u = np.random.uniform(0, 1)
+    return u <= truth_prob
 
 
 def create_group_indexer(states, assort_by):

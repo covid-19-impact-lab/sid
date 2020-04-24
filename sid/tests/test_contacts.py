@@ -144,7 +144,7 @@ def _sample_data_for_calculate_infections_numba(
 
     if infection_prob is None:
         ip = np.random.uniform()
-        infection_prob = np.array([[ip, 1 - ip]])
+        infection_prob = np.array([ip])
 
     is_meet_group = np.array([False])
 
