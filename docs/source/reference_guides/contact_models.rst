@@ -70,12 +70,9 @@ The remaining probability mass is spread on all other groups, adjusting for grou
 and number of planned contacts in each group.
 
 If the model is ``"meet_group"`` there must be exactly one ``assortative_by`` variable.
-
-``assortative_by`` variables must not contain missings, unless the ``model`` is
-``meet_group``. If the model is ``meet_group``, a missing in the ``assortaive_by``
-variable indicate that this person does not have contacts in the corresponding contact
-model. This can for example be used to model school classes. Individuals that do not
-go to school, have a missing in the school class variable.
+If a person has zero contacts in this contact model, it must have a unique value in the
+assort_by variable. Example: an individual who does not go to school needs a unique
+value in the variable that indicates school classes.
 
 
 Combining Contact Models
