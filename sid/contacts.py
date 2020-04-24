@@ -10,7 +10,7 @@ from sid.config import DTYPE_N_CONTACTS
 from sid.shared import factorize_assortative_variables
 
 
-def calculate_contacts(contact_models, contact_policies, states, params, period):
+def calculate_contacts(contact_models, contact_policies, states, params, date):
     """Calculate number of contacts of different types.
 
     Args:
@@ -18,7 +18,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, period)
         contact_policies (dict): See :ref:`policies`.
         states (pandas.DataFrame): See :ref:`states`.
         params (pandas.DataFrame): See :ref:`params`.
-        period (int): Period of the model.
+        date (datetime.date): The current date.
 
     Returns:
         contacts (np.ndarray): DataFrame with one column for each contact model that
@@ -30,11 +30,12 @@ def calculate_contacts(contact_models, contact_policies, states, params, period)
         if model["model"] != "meet_group":
             loc = model.get("loc", params.index)
             func = model["model"]
-            cont = func(states, params.loc[loc], period)
-
+            cont = func(states, params.loc[loc], date)
             if model_name in contact_policies:
                 cp = contact_policies[model_name]
-                if cp["start"] <= period <= cp["end"] and cp["is_active"](states):
+                policy_start = pd.to_datetime(cp["start"]).date()
+                policy_end = pd.to_datetime(cp["end"]).date()
+                if policy_start <= date <= policy_end and cp["is_active"](states):
                     cont *= cp["multiplier"]
 
             cont = _sum_preserving_round(cont.to_numpy()).astype(DTYPE_N_CONTACTS)

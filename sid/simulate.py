@@ -12,6 +12,7 @@ from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections
 from sid.contacts import create_group_indexer
 from sid.contacts import create_group_transition_probs
+from sid.parse_model import parse_duration
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
 from sid.update_states import update_states
@@ -22,10 +23,9 @@ def simulate(
     initial_states,
     initial_infections,
     contact_models,
-    n_periods,
+    duration=None,
     contact_policies=None,
     testing_policies=None,
-    assort_by=None,
     seed=None,
 ):
     """Simulate the spread of an infectious disease.
@@ -34,8 +34,8 @@ def simulate(
         params (pandas.DataFrame): DataFrame with parameters that influence the number
             of contacts, contagiousness and dangerousness of the disease, ... .
         initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the
-            columnns "id" or "period" because those are used internally.
-            The index of initial_states will be used as "id".
+            columnns "id", "date" or "period" because those are used internally. The
+            index of initial_states will be used as "id".
         initial_infections (pandas.Series): Series with the same index as states with
             initial infections.
         contact_models (dict): Dictionary of dictionaries where each dictionary
@@ -44,17 +44,19 @@ def simulate(
         contact_policies (dict): Dict of dicts with contact. See :ref:`policies`.
         testing_policies (dict): Dict of dicts with testing policies. See
             :ref:`policies`.
-        n_periods (int): Number of periods to simulate.
+        duration (dict or None): Duration is a dictionary containing kwargs for
+            :func:`pandas.date_range`.
         assort_by (list, optional): List of variable names. Contacts are assortative by
             these variables. These variables must be in the initial_states.
         seed (int, optional): Seed is used as the starting point of a sequence of seeds
             used to control randomness internally.
 
     Returns:
-        pandas.DataFrame: The simulation results in form of a long DataFrame. The
-            DataFrame contains the states of each period (see :ref:`states`) and a
-            column called infections. The index has two levels. The first is the period.
-            The second is the id. Id is the index of initial_states.
+        simulation_results (pandas.DataFrame): The simulation results in form of a long
+            DataFrame. The DataFrame contains the states of each period (see
+            :ref:`states`) and a column called infections. The index has two levels. The
+            first is the period. The second is the id. Id is the index of
+            initial_states.
 
     """
 
@@ -69,14 +71,16 @@ def simulate(
         contact_models,
         contact_policies,
         testing_policies,
-        n_periods,
     )
+
     contact_models = _sort_contact_models(contact_models)
     assort_bys = _process_assort_bys(contact_models)
     states, index_names = _process_initial_states(initial_states, assort_bys)
+    duration = parse_duration(duration)
+
     states = draw_course_of_disease(states, params, seed)
     contact_policies = {
-        key: _add_defaults_to_policy_dict(val, n_periods)
+        key: _add_defaults_to_policy_dict(val, duration)
         for key, val in contact_policies.items()
     }
     states = update_states(states, initial_infections, params, seed)
@@ -90,11 +94,12 @@ def simulate(
             )
 
     to_concat = []
-    for period in range(n_periods):
+    for period, date in enumerate(duration["dates"]):
+        states["date"] = date
         states["period"] = period
 
         contacts = calculate_contacts(
-            contact_models, contact_policies, states, params, period
+            contact_models, contact_policies, states, params, date
         )
         infections, states = calculate_infections(
             states, contacts, params, indexers, first_probs, seed,
@@ -175,7 +180,6 @@ def _check_inputs(
     contact_models,
     contact_policies,
     testing_policies,
-    n_periods,
 ):
     """Check the user inputs."""
     if not isinstance(params, pd.DataFrame):
@@ -214,15 +218,12 @@ def _check_inputs(
     if testing_policies != {}:
         raise NotImplementedError
 
-    if not isinstance(n_periods, int) or n_periods <= 0:
-        raise ValueError("n_periods must be a strictly positive integer.")
 
-
-def _add_defaults_to_policy_dict(pol_dict, n_periods):
+def _add_defaults_to_policy_dict(pol_dict, duration):
     """Add defaults to a policy dictionary."""
     default = {
-        "start": 0,
-        "end": n_periods,
+        "start": duration["start"],
+        "end": duration["end"],
         "is_active": lambda states: True,
     }
     default.update(pol_dict)
@@ -279,6 +280,6 @@ def _process_initial_states(states, assort_bys):
 
 def _process_simulation_results(to_concat, index_names):
     """Process the simulation results."""
-    df = pd.concat(to_concat).set_index(["period"] + index_names)
+    df = pd.concat(to_concat).set_index(["date"] + index_names)
 
     return df

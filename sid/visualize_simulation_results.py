@@ -80,7 +80,7 @@ def visualize_and_compare_models(
 
 
 def visualize_simulation_results(
-    data_path, outdir_path=None, background_vars=None, show_layout=False, title=None,
+    df_or_path, outdir_path=None, background_vars=None, show_layout=False, title=None,
 ):
     if background_vars is None:
         background_vars = ["age_group", "sector"]
@@ -88,7 +88,10 @@ def visualize_simulation_results(
         background_vars = [background_vars]
 
     title = "Visualization of the Simulation Results" if title is None else title
-    data = pd.read_pickle(data_path)
+    if isinstance(df_or_path, (Path, str)):
+        data = pd.read_pickle(df_or_path)
+    else:
+        data = df_or_path
     data["symptomatic_among_infectious"] = data["symptoms"].where(data["infectious"])
 
     plots_and_divs = _create_plots_and_divs(data=data, background_vars=background_vars)
@@ -165,7 +168,7 @@ def _create_plots_and_divs(data, background_vars):
 
 
 def _plot_infection_rates(data, infection_vars, colors):
-    overall_gb = data.groupby("period")
+    overall_gb = data.groupby("date")
     overall_means = overall_gb[infection_vars].mean()
     title = "Infection Related Rates in the General Population"
     p = _plot_rates(means=overall_means, colors=colors, title=title)
@@ -174,7 +177,7 @@ def _plot_infection_rates(data, infection_vars, colors):
 
 
 def _plot_rates_by_group(data, groupby_var, infection_vars, colors):
-    gb = data.groupby(["period", groupby_var])
+    gb = data.groupby(["date", groupby_var])
     plots = []
     if is_categorical(data[groupby_var]):
         ordered = data[groupby_var].cat.ordered
@@ -202,9 +205,9 @@ def _plot_r_zeros(data, groupby_var=None):
     else:
         r_colors += get_colors("categorical", 12)
 
-    gb = data.groupby("period")
+    gb = data.groupby("date")
     overall_r_zeros = gb.apply(_calc_r_zero).to_frame(name="overall")
-    gb = data.groupby(["period", groupby_var])
+    gb = data.groupby(["date", groupby_var])
     group_r_zeros = gb.apply(_calc_r_zero).unstack()
 
     to_plot = pd.merge(

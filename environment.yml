@@ -28,6 +28,7 @@ dependencies:
   - scipy
   - seaborn>=0.10
   - sphinx
+  - pydata-sphinx-theme
   - utilities>=0.2.6
 
   # for bokeh png export
