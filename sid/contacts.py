@@ -180,7 +180,7 @@ def _calculate_infections_numba(
             # We only check if i gets infected by someone else from his group. Whether
             # he infects some j is only checked, when the main loop arrives at j.
             group_i = group_codes[i, cm]
-            if not immune[i] or group_i < 0:
+            if not immune[i] and group_i >= 0:
                 others = indexers_list[cm][group_i]
                 # we don't have to handle the case where j == i because if i is
                 # infectious he is also immune, if he is not infectious, nothing
