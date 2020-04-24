@@ -153,7 +153,16 @@ def _process_assort_bys(contact_models):
                 "Not specifying 'assortative_by' significantly raises runtime. "
                 "You can silence this warning by setting 'assortative_by' to False."
             )
-        assort_by = [] if assort_by in [None, False] else assort_by
+            assort_by = []
+        elif not assort_by:
+            assort_by = []
+        elif isinstance(assort_by, str):
+            assort_by = [assort_by]
+        elif isinstance(assort_by, list):
+            pass
+        else:
+            raise ValueError()
+
         assort_bys[model_name] = assort_by
 
     return assort_bys

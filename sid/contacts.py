@@ -37,8 +37,8 @@ def calculate_contacts(contact_models, contact_policies, states, params, period)
                 if cp["start"] <= period <= cp["end"] and cp["is_active"](states):
                     cont *= cp["multiplier"]
 
-        cont = _sum_preserving_round(cont.to_numpy()).astype(DTYPE_N_CONTACTS)
-        columns.append(cont)
+            cont = _sum_preserving_round(cont.to_numpy()).astype(DTYPE_N_CONTACTS)
+            columns.append(cont)
 
     contacts = np.column_stack(columns)
 
@@ -351,6 +351,9 @@ def create_group_indexer(states, assort_by):
 
         indexer = NumbaList()
         for group in group_codes_values:
+            # the keys of groups are not tuples if there was just one assort_by variable
+            # but the group_codes_values are.
+            group = group[0] if len(group) == 1 else group
             indexer.append(groups[group].to_numpy(dtype=DTYPE_INDEX))
 
     else:
