@@ -209,20 +209,11 @@ def _calculate_infections_numba(
                 group_j = _choose_one_element(groups_list[cm], weights=group_probs_i)
                 choice_indices = indexers_list[cm][group_j]
                 contacts_j = contacts[choice_indices, cm]
-                contacts_sum_j = contacts_j.sum()
 
-                # If no individual in the contacted group can have another contact, no
-                # meeting takes place.
-                if contacts_sum_j == 0:
+                j = _choose_other_individual(choice_indices, weights=contacts_j)
+
+                if j < 0 or j == i:
                     contact_takes_place = False
-
-                # If a contact is possible, sample the index of the contact. If the
-                # contact is the individual itself, no contact takes place.
-                else:
-                    p = contacts_j / contacts_sum_j
-                    j = _choose_one_element(choice_indices, weights=p)
-                    if i == j:
-                        contact_takes_place = False
 
                 # If a contact takes place, find out if one individual got infected.
                 if contact_takes_place:
@@ -273,10 +264,51 @@ def _choose_one_element(a, weights):
 
     """
     cdf = weights.cumsum()
-    u = np.random.uniform(0, 1)
+    sum_of_weights = cdf[-1]
+    u = np.random.uniform(0, sum_of_weights)
     index = (u < cdf).argmax()
 
     return a[index]
+
+
+@njit
+def _choose_other_individual(a, weights):
+    """Return an element of a, if weights are not all zero, else return -1.
+
+    Implementation is similar to `_choose_one_element`.
+
+    :func:`numpy.argmax` returns the first index for multiple maximum values.
+
+    Args:
+        a (numpy.ndarray): 1d array of choices
+        weights (numpy.ndarray): 1d array of weights.
+
+    Returns:
+        choice (int or float): An element of a or -1
+
+    Example:
+        >>> _choose_other_individual(np.arange(3), np.array([0, 0, 5]))
+        2
+
+        >>> _choose_other_individual(np.arange(3), np.zeros(3))
+        -1
+
+
+        >>> chosen = _choose_other_individual(np.arange(3), np.array([0.1, 0.5, 0.7]))
+        >>> chosen in [0, 1, 2]
+        True
+
+    """
+    cdf = weights.cumsum()
+    sum_of_weights = cdf[-1]
+    if sum_of_weights == 0:
+        chosen = -1
+    else:
+        u = np.random.uniform(0, sum_of_weights)
+        index = (u < cdf).argmax()
+        chosen = a[index]
+
+    return chosen
 
 
 def create_group_indexer(states, assort_by):
