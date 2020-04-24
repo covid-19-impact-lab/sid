@@ -139,3 +139,6 @@ benchmark/
 
 # PyCharm
 .idea/
+
+# Sphinx
+docs/source/_generated/
