@@ -35,8 +35,6 @@ extensions = [
     "sphinx.ext.coverage",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
-    "IPython.sphinxext.ipython_console_highlighting",
-    "IPython.sphinxext.ipython_directive",
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
