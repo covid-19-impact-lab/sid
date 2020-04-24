@@ -7,17 +7,9 @@ prototypical Susceptible-Exposed-Infected-Recovered (SEIR) model and an agent ba
 simulation model to analyze the spread of COVID-19.
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Reference Guides
+   :maxdepth: 2
+   :caption: Table of Contents
 
-   states
-   contact_models
-   policies
-   params
-   caveats
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Additional Information
-
+   tutorials/index
+   reference_guides/index
    api
