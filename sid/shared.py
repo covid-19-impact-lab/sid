@@ -37,3 +37,9 @@ def factorize_assortative_variables(states, assort_by):
         group_codes_values = [(0,)]
 
     return group_codes, group_codes_values
+
+
+def calculate_r_zero(df, n_periods=7):
+    pop_of_interest = df[df["cd_infectious_false"].between(-n_periods, 0)]
+    r_zero = pop_of_interest["infection_counter"].mean()
+    return r_zero
