@@ -2,11 +2,11 @@
 sid
 ===
 
-.. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/version.svg
-    :target: https://anaconda.org/covid-19-impact-lab/sid
+.. .. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/version.svg
+..     :target: https://anaconda.org/covid-19-impact-lab/sid
 
-.. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/platforms.svg
-    :target: https://anaconda.org/covid-19-impact-lab/sid
+.. .. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/platforms.svg
+..     :target: https://anaconda.org/covid-19-impact-lab/sid
 
 .. image:: https://readthedocs.org/projects/sid-/badge/?version=latest
     :target: https://sid-.readthedocs.io/en/latest
