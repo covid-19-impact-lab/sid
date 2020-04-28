@@ -12,11 +12,12 @@ from bokeh.plotting import figure
 from bokeh.plotting import save
 from utilities.colors import get_colors
 
-# from sid.shared import calculate_r_zero
+from sid.shared import calculate_r_effective
+from sid.shared import calculate_r_zero
 
 
 def visualize_simulation_results(
-    data_paths, outdir_path, infection_vars, background_vars
+    data_paths, outdir_path, infection_vars, background_vars, window_length,
 ):
     """Visualize the results one or more simulation results.
 
@@ -35,71 +36,84 @@ def visualize_simulation_results(
 
     _create_folders(outdir_path, background_vars)
 
-    infection_rate_data = _calculate_infection_rates(
-        data_paths, infection_vars, background_vars
+    rates = _create_statistics(
+        data_paths, infection_vars, background_vars, window_length
     )
-
-    # plot all rates and save them.
     for bg_var in ["general"] + background_vars:
-        infection_plots = _create_rate_plots(
-            rates=infection_rate_data,
-            colors=colors,
-            bg_var=bg_var,
-            title="Rates in the General Population",
+        if bg_var == "general":
+            title = "Rates in the General Population"
+        else:
+            title = f"Rates According to {_nice_str(bg_var)}"  # noqa
+        rate_plots = _create_rate_plots(
+            rates=rates, colors=colors, bg_var=bg_var, title=title,
         )
         _export_plots_and_layout(
-            title=Div(
-                text="Rates in the General Population", style={"font-size": "150%"}
-            ),
-            plots=infection_plots,
-            outdir_path=outdir_path / "incidences",
+            title=Div(text=title, style={"font-size": "150%"}),
+            plots=rate_plots,
+            outdir_path=outdir_path,
         )
 
-    # plot replication rates
 
-
-def _calculate_infection_rates(data_paths, infection_vars, background_vars):
-    """Calculate the infection rates.
+def _create_statistics(data_paths, infection_vars, background_vars, window_length):
+    """Calculate the infection rates and reproduction numbers for each period.
 
     Args:
         data_paths (list): list of paths to the pickled simulation results
         infection_vars (list): list of infection rates to plot
         background_vars (list): list of background variables by whose value to group
             the results. Have to be present in all simulation results.
+        window_length (int): how many periods to use for the reproduction numbers.
 
     Returns:
-        infection_rates (pd.DataFrame): DataFrame with the periods as index.
+        rates (pd.DataFrame): DataFrame with the periods as index.
             The columns are a MultiIndex with four levels: The outermost is the
-            "Infection Variable". The next is the "Background Variable"
+            "Rate". The next is the "Background Variable"
             ("general" for the overall rate), "Background Value" and last "Data Name".
 
     """
+    vars_for_r_zero = ["immune", "infection_counter", "cd_infectious_false"]
+    keep_vars = sorted(set(infection_vars + background_vars + vars_for_r_zero))
     name_to_means = {}
     for path in data_paths:
-        data = pd.read_pickle(path)[infection_vars + background_vars]
+        data = pd.read_pickle(path)[keep_vars]
 
-        overall_means = data.groupby("period")[infection_vars].mean()
+        gb = data.groupby("period")
+        overall = gb.mean()[infection_vars]
+        overall["r_zero"] = gb.apply(calculate_r_zero, window_length=window_length)
+        overall["r_effective"] = gb.apply(
+            calculate_r_effective, window_length=window_length
+        )
+
         # make columns a multiindex that fits to the background variable datasets
-        overall_means.columns.name = "Infection Variable"
-        overall_means = pd.concat(
-            [overall_means], keys=["general"], names=["Background Value"], axis=1
+        overall.columns.name = "Rate"
+        overall = pd.concat(
+            [overall], keys=["general"], names=["Background Value"], axis=1
         )
-        overall_means = pd.concat(
-            [overall_means], keys=["general"], names=["Background Variable"], axis=1
+        overall = pd.concat(
+            [overall], keys=["general"], names=["Background Variable"], axis=1
         )
-        single_df_means = [overall_means]
+        single_df_means = [overall]
 
         for bg_var in background_vars:
-            gb = data.groupby([bg_var, "period"])[infection_vars]
-            period_as_index = gb.mean().unstack(level=0)
+            gb = data.groupby([bg_var, "period"])
+            period_as_index = gb.mean()[infection_vars].unstack(level=0)
+            r_zeros = gb.apply(calculate_r_zero, window_length=window_length)
+            r_zeros = r_zeros.unstack(level=0)
+            r_zeros = pd.concat([r_zeros], keys=["r_zero"], names=["Rate"], axis=1)
+            r_effectives = gb.apply(calculate_r_effective, window_length=window_length)
+            r_effectives = r_effectives.unstack(level=0)
+            r_effectives = pd.concat(
+                [r_effectives], keys=["r_effective"], names=["Rate"], axis=1
+            )
+            both_rs = pd.concat([r_zeros, r_effectives], axis=1)
+            period_as_index = pd.concat([period_as_index, both_rs], axis=1)
+            period_as_index.columns.names = ["Rate", "Background Value"]
+
             # adjust multiindex columns
-            period_as_index.columns.names = ["Infection Variable", "Background Value"]
             right_columns = pd.concat(
                 [period_as_index], keys=[bg_var], names=["Background Variable"], axis=1
             )
-            right_columns = right_columns.swaplevel(
-                "Infection Variable", "Background Value", axis=1
-            )
+            right_columns = right_columns.swaplevel("Rate", "Background Value", axis=1)
             single_df_means.append(right_columns)
 
         means = pd.concat(single_df_means, axis=1)
@@ -107,7 +121,7 @@ def _calculate_infection_rates(data_paths, infection_vars, background_vars):
 
     infection_rates = pd.concat(name_to_means, axis=1, names=["Data Name"])
     order = [
-        "Infection Variable",
+        "Rate",
         "Background Variable",
         "Background Value",
         "Data Name",
@@ -130,22 +144,54 @@ def _create_rate_plots(rates, bg_var, colors, title):
         plots (list): list of bokeh plots.
 
     """
-    infection_vars = rates.columns.levels[0]
+    vars_to_plot = rates.columns.levels[0]
     plots = []
-    for var, color in zip(infection_vars, colors):
-        title = f"{_nice_str(var)} {title}"  # noqa
+    for var, color in zip(vars_to_plot, colors):
         full_range_vars = ["ever_infected", "immune", "symptomatic_among_infectious"]
         y_range = (0, 1) if var in full_range_vars else None
         background_values = rates[var][bg_var].columns.unique().levels[0]
         for bg_val in background_values:
             to_plot = rates[var][bg_var][bg_val]
-            p = _plot_rates(to_plot, title, color, y_range)
+            plot_title = f"{_nice_str(var)} {title}"
+            if bg_val != "general":
+                plot_title += f": {bg_val}"  # noqa
+            p = _plot_rates(to_plot, plot_title, color, y_range)
             if bg_var == "general":
                 p.name = var
             else:
-                p.name = f"{bg_var}/{var}_{bg_val}"
+                p.name = f"{bg_var}/{var}_{bg_val.replace(' ', '')}"
             plots.append(p)
     return plots
+
+
+def _plot_rates(rates, title, color, y_range):
+    """Plot the rates over time.
+
+    Args:
+        rates (DataFrame): the index are the x values, the values the y values.
+            Every column is plotted as a separate line.
+        color (str): color.
+        title (str): plot title.
+        y_range (tuple or None): range of the y axis.
+
+    Returns:
+        p (bokeh figure)
+
+    """
+    xs = rates.index
+    p = figure(tools=[], plot_height=400, plot_width=800, title=title, y_range=y_range)
+
+    for var in rates:
+        p.line(x=xs, y=rates[var], line_width=1, line_color=color, alpha=0.3)
+
+    p.line(x=xs, y=rates.median(axis=1), alpha=1, line_width=2.75, line_color=color)
+
+    q5 = rates.apply(np.nanpercentile, q=5, axis=1)
+    q95 = rates.apply(np.nanpercentile, q=95, axis=1)
+    p.varea(x=xs, y1=q95, y2=q5, alpha=0.2, color=color)
+
+    p = _style(p)
+    return p
 
 
 def _export_plots_and_layout(title, plots, outdir_path):
@@ -166,36 +212,6 @@ def _export_plots_and_layout(title, plots, outdir_path):
     save(Column(title, *plots))
 
 
-def _plot_rates(means, title, color, y_range):
-    """Plot the rates over time.
-
-    Args:
-        means (DataFrame): the index are the x values, the values the y values.
-            Every column is plotted as a separate line.
-        color (str): color.
-        title (str): plot title.
-        y_range (tuple or None): range of the y axis.
-
-    Returns:
-        p (bokeh figure)
-
-    """
-    xs = means.index
-    p = figure(tools=[], plot_height=400, plot_width=800, title=title, y_range=y_range)
-
-    for var in means:
-        p.line(x=xs, y=means[var], line_width=1, line_color=color, alpha=0.3)
-
-    p.line(x=xs, y=means.median(axis=1), alpha=1, line_width=2.75, line_color=color)
-
-    q5 = means.apply(np.nanpercentile, q=5, axis=1)
-    q95 = means.apply(np.nanpercentile, q=95, axis=1)
-    p.varea(x=xs, y1=q95, y2=q5, alpha=0.2, color=color)
-
-    p = _style(p)
-    return p
-
-
 def _input_processing(data_paths, outdir_path, background_vars):
     colors = get_colors("categorical", 12)
     if isinstance(background_vars, str):
@@ -209,10 +225,8 @@ def _create_folders(outdir_path, background_vars):
     if os.path.exists(outdir_path):
         rmtree(outdir_path)
     os.mkdir(outdir_path)
-    os.mkdir(outdir_path / "incidences")
-    os.mkdir(outdir_path / "r_zeros")
     for var in background_vars:
-        os.mkdir(outdir_path / "incidences" / var)
+        os.mkdir(outdir_path / var)
 
 
 def _style(p):
