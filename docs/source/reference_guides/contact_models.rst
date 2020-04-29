@@ -53,23 +53,23 @@ floating point numbers. In that case they will be automatically rounded to integ
 a way that preserves the total number of contacts.
 
 If the model is ``"meet_group"``, the matching is fully assortative and exhaustive. I.e.
-each individual meets all others who have the exact same value in all ``assortative_by``
+each individual meets all others who have the exact same value in all ``assort_by``
 variables. This can be used to model recurrent contacts inside a household, a school
 class or at the workplace.
 
-``"assortative_by"``
+``"assort_by"``
 ^^^^^^^^^^^^^^^^^^^^
 
 A single variable or list of variables according to which the matching is assortative.
-All assortative_by variables must be categorical. Individuals who have the same value
-in all assortative_by variables belong to one group. The ``params`` DataFrame contains
+All assort_by variables must be categorical. Individuals who have the same value
+in all assort_by variables belong to one group. The ``params`` DataFrame contains
 entries that govern the probability of meeting people from the own group. The index
 entry of that parameter values is ``("assortative_matching", "name_of_contact_model")``.
 
 The remaining probability mass is spread on all other groups, adjusting for group sizes
 and number of planned contacts in each group.
 
-If the model is ``"meet_group"`` there must be exactly one ``assortative_by`` variable.
+If the model is ``"meet_group"`` there must be exactly one ``assort_by`` variable.
 If a person has zero contacts in this contact model, it must have a unique value in the
 assort_by variable. Example: an individual who does not go to school needs a unique
 value in the variable that indicates school classes.

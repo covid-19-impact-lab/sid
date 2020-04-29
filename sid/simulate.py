@@ -140,23 +140,23 @@ def _sort_contact_models(contact_models):
 
 
 def _process_assort_bys(contact_models):
-    """Set default values for assortative_by variables and extract them into a dict.
+    """Set default values for assort_by variables and extract them into a dict.
 
     Args:
         contact_models (dict): see :ref:`contact_models`
 
     Returns:
         assort_bys (dict): Keys are names of contact models, values are lists with the
-            assortative_by variables of the model.
+            assort_by variables of the model.
 
     """
     assort_bys = {}
     for model_name, model in contact_models.items():
-        assort_by = model.get("assortative_by", None)
+        assort_by = model.get("assort_by", None)
         if assort_by is None:
             warnings.warn(
-                "Not specifying 'assortative_by' significantly raises runtime. "
-                "You can silence this warning by setting 'assortative_by' to False."
+                "Not specifying 'assort_by' significantly raises runtime. "
+                "You can silence this warning by setting 'assort_by' to False."
             )
             assort_by = []
         elif not assort_by:
