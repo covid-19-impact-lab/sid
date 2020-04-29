@@ -26,7 +26,6 @@ def simulate(
     duration=None,
     contact_policies=None,
     testing_policies=None,
-    assort_by=None,
     seed=None,
 ):
     """Simulate the spread of an infectious disease.
@@ -60,13 +59,7 @@ def simulate(
             initial_states.
 
     """
-    if assort_by is None:
-        warnings.warn(
-            "Specifying no variables in 'assort_by' significantly raises runtime. "
-            "You can silence this warning by setting 'assort_by' to False."
-        )
 
-    assort_by = [] if not assort_by else assort_by
     contact_policies = {} if contact_policies is None else contact_policies
     testing_policies = {} if testing_policies is None else testing_policies
     seed = count(np.random.randint(0, 1_000_000)) if seed is None else count(seed)
@@ -78,20 +71,23 @@ def simulate(
         contact_models,
         contact_policies,
         testing_policies,
-        assort_by,
     )
 
+    contact_models = _sort_contact_models(contact_models)
+    assort_bys = _process_assort_bys(contact_models)
+    states, index_names = _process_initial_states(initial_states, assort_bys)
     duration = parse_duration(duration)
 
-    states, index_names = _process_initial_states(initial_states, assort_by)
     states = draw_course_of_disease(states, params, seed)
     contact_policies = {
         key: _add_defaults_to_policy_dict(val, duration)
         for key, val in contact_policies.items()
     }
     states = update_states(states, initial_infections, params, seed)
-    indexer = create_group_indexer(states, assort_by)
-    first_probs = create_group_transition_probs(states, assort_by, params)
+
+    indexers, first_probs = _prepare_assortative_matching(
+        states, assort_bys, params, contact_models
+    )
 
     to_concat = []
     for period, date in enumerate(duration["dates"]):
@@ -102,18 +98,78 @@ def simulate(
             contact_models, contact_policies, states, params, date
         )
         infections, states = calculate_infections(
-            states, contacts, params, indexer, first_probs, seed,
+            states, contacts, params, indexers, first_probs, seed,
         )
         states = update_states(states, infections, params, seed)
 
-        for contact_type in contacts.columns:
-            states[contact_type] = contacts[contact_type]
+        for i, contact_model in enumerate(first_probs):
+            states[contact_model] = contacts[:, i]
         states["infections"] = infections
         to_concat.append(states.copy(deep=True))
 
     simulation_results = _process_simulation_results(to_concat, index_names)
 
     return simulation_results
+
+
+def _sort_contact_models(contact_models):
+    """Sort the contact_models.
+
+    First we have the contact models where model["model"] != "meet_group" in
+    alphabetical order. Then the ones where model["model"] == "meet_group" in
+    alphabetical order.
+
+    Args:
+        contact_models (dict): see :ref:`contact_models`
+
+    Returns:
+        dict: sorted copy of contact_models.
+
+    """
+    sorted_ = sorted(
+        name for name, mod in contact_models.items() if mod["model"] != "meet_group"
+    )
+    sorted_ += sorted(
+        name for name, mod in contact_models.items() if mod["model"] == "meet_group"
+    )
+    return {name: contact_models[name] for name in sorted_}
+
+
+def _process_assort_bys(contact_models):
+    """Set default values for assort_by variables and extract them into a dict.
+
+    Args:
+        contact_models (dict): see :ref:`contact_models`
+
+    Returns:
+        assort_bys (dict): Keys are names of contact models, values are lists with the
+            assort_by variables of the model.
+
+    """
+    assort_bys = {}
+    for model_name, model in contact_models.items():
+        assort_by = model.get("assort_by", None)
+        if assort_by is None:
+            warnings.warn(
+                "Not specifying 'assort_by' significantly raises runtime. "
+                "You can silence this warning by setting 'assort_by' to False."
+                f"in contact model {model_name}"
+            )
+            assort_by = []
+        elif not assort_by:
+            assort_by = []
+        elif isinstance(assort_by, str):
+            assort_by = [assort_by]
+        elif isinstance(assort_by, list):
+            pass
+        else:
+            raise ValueError(
+                f"'assort_by' for '{model_name}' must be False str, or list."
+            )
+
+        assort_bys[model_name] = assort_by
+
+    return assort_bys
 
 
 def _check_inputs(
@@ -123,7 +179,6 @@ def _check_inputs(
     contact_models,
     contact_policies,
     testing_policies,
-    assort_by,
 ):
     """Check the user inputs."""
     if not isinstance(params, pd.DataFrame):
@@ -162,9 +217,34 @@ def _check_inputs(
     if testing_policies != {}:
         raise NotImplementedError
 
-    for var in assort_by:
-        if var not in initial_states.columns:
-            raise KeyError(f"assort_by variable is not in initial states: {var}.")
+
+def _prepare_assortative_matching(states, assort_bys, params, contact_models):
+    """Create indexers and first stage probabilities for assortative matching.
+
+    Args:
+        states (pd.DataFrame): see :ref:`states`.
+        assort_bys (dict): Keys are names of contact models, values are lists with the
+            assort_by variables of the model.
+        params (pd.DataFrame): see :ref:`params`.
+        contact_models (dict): see :ret:`contact_models`.
+
+    returns:
+        indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
+            indices of the i_th group.
+        first_probs (dict): dict of arrays of shape
+            n_group, n_groups. probs[i, j] is the probability that an individual from
+            group i meets someone from group j.
+
+    """
+    indexers = {}
+    first_probs = {}
+    for model_name, assort_by in assort_bys.items():
+        indexers[model_name] = create_group_indexer(states, assort_by)
+        if contact_models[model_name]["model"] != "meet_group":
+            first_probs[model_name] = create_group_transition_probs(
+                states, assort_by, params
+            )
+    return indexers, first_probs
 
 
 def _add_defaults_to_policy_dict(pol_dict, duration):
@@ -179,7 +259,7 @@ def _add_defaults_to_policy_dict(pol_dict, duration):
     return default
 
 
-def _process_initial_states(states, assort_by):
+def _process_initial_states(states, assort_bys):
     """Process the initial states given by the user.
 
     Args:
@@ -204,9 +284,8 @@ def _process_initial_states(states, assort_by):
             states.index.name = STATES_INDEX_DEFAULT_NAME
         index_names = [states.index.name]
 
-    # Shuffle the states and reset the index because having a sorted range index could
-    # speed up things.
-    states = states.sample(frac=1, replace=False).reset_index()
+    # reset the index because having a sorted range index could speed up things.
+    states = states.reset_index()
 
     for col in BOOLEAN_STATE_COLUMNS:
         if col not in states.columns:
@@ -219,7 +298,10 @@ def _process_initial_states(states, assort_by):
 
     states["infection_counter"] = 0
 
-    states["group_codes"], _ = factorize_assortative_variables(states, assort_by)
+    for model_name, assort_by in assort_bys.items():
+        states[f"group_codes_{model_name}"], _ = factorize_assortative_variables(
+            states, assort_by
+        )
 
     return states, index_names
 

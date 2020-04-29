@@ -29,7 +29,6 @@ def factorize_assortative_variables(states, assort_by):
         group_codes, group_codes_values = pd.factorize(
             pd._libs.lib.fast_zip(assort_by_series), sort=True
         )
-
         group_codes = group_codes.astype(DTYPE_GROUP_CODE)
 
     else:
