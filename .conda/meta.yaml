@@ -23,9 +23,11 @@ requirements:
   run:
     - python >=3.6,<3.8
     - bokeh
+    - dask
     - numba >=0.48
     - numpy
     - pandas >=1
+    - pyarrow
     - pytest
     - pytest-regressions
     - utilities

@@ -1,6 +1,9 @@
+import shutil
 import warnings
 from itertools import count
+from pathlib import Path
 
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 
@@ -28,6 +31,7 @@ def simulate(
     testing_policies=None,
     assort_by=None,
     seed=None,
+    path=None,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -51,10 +55,12 @@ def simulate(
             these variables. These variables must be in the initial_states.
         seed (int, optional): Seed is used as the starting point of a sequence of seeds
             used to control randomness internally.
+        path (str or pathlib.Path): Path to the directory where the simulated data is
+            stored.
 
     Returns:
-        simulation_results (pandas.DataFrame): The simulation results in form of a long
-            DataFrame. The DataFrame contains the states of each period (see
+        simulation_results (dask.dataframe): The simulation results in form of a long
+            dask DataFrame. The DataFrame contains the states of each period (see
             :ref:`states`) and a column called infections. The index has two levels. The
             first is the period. The second is the id. Id is the index of
             initial_states.
@@ -65,6 +71,8 @@ def simulate(
             "Specifying no variables in 'assort_by' significantly raises runtime. "
             "You can silence this warning by setting 'assort_by' to False."
         )
+
+    output_directory = _create_output_directory(path)
 
     assort_by = [] if not assort_by else assort_by
     contact_policies = {} if contact_policies is None else contact_policies
@@ -93,7 +101,6 @@ def simulate(
     indexer = create_group_indexer(states, assort_by)
     first_probs = create_group_transition_probs(states, assort_by, params)
 
-    to_concat = []
     for period, date in enumerate(duration["dates"]):
         states["date"] = date
         states["period"] = period
@@ -109,11 +116,49 @@ def simulate(
         for contact_type in contacts.columns:
             states[contact_type] = contacts[contact_type]
         states["infections"] = infections
-        to_concat.append(states.copy(deep=True))
 
-    simulation_results = _process_simulation_results(to_concat, index_names)
+        states.copy(deep=True).to_parquet(output_directory / f"{date}.parquet")
+
+    simulation_results = _return_dask_dataframe(output_directory)
 
     return simulation_results
+
+
+def _create_output_directory(path):
+    """Determine the output directory for the data.
+
+    The user can provide a path or a default path is chosen. If the user's path leads to
+    an non-empty directory, it is removed and newly created.
+
+    Args:
+        path (pathlib.Path or None): Path to the output directory.
+
+    """
+    if path is not None:
+        output_directory = Path(path)
+
+        if output_directory.exists() and not output_directory.is_dir():
+            raise ValueError(f"{path} is a file instead of an directory.")
+        elif output_directory.exists():
+            shutil.rmtree(output_directory)
+        else:
+            pass
+
+    else:
+        current_working_directory = Path.cwd()
+        folder_name = ".sid"
+        if current_working_directory.joinpath(folder_name).exists():
+            i = 0
+            while True:
+                folder_name = f".sid-{i}"
+                if not current_working_directory.joinpath(folder_name).exists():
+                    break
+
+        output_directory = current_working_directory / folder_name
+
+    output_directory.mkdir(parents=True, exist_ok=True)
+
+    return output_directory
 
 
 def _check_inputs(
@@ -224,8 +269,14 @@ def _process_initial_states(states, assort_by):
     return states, index_names
 
 
-def _process_simulation_results(to_concat, index_names):
-    """Process the simulation results."""
-    df = pd.concat(to_concat).set_index(["date"] + index_names)
+def _return_dask_dataframe(output_directory):
+    """Process the simulation results.
 
-    return df
+    Args:
+        output_directory (pathlib.Path): Path to output directory.
+
+    Returns:
+        df (dask.dataframe): A dask DataFrame which contains the simulation results.
+
+    """
+    return dd.read_parquet(output_directory)

@@ -15,6 +15,7 @@ dependencies:
   - conda-verify
 
   - bokeh>=2
+  - dask
   - jupyterlab
   - nbsphinx
   - numba>=0.48
@@ -22,6 +23,7 @@ dependencies:
   - pandas>=1
   - panel>=0.9.2
   - pdbpp
+  - pyarrow
   - pytest
   - pytest-regressions
   - pytest-xdist
