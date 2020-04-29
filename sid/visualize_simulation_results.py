@@ -44,11 +44,12 @@ def visualize_simulation_results(
             title = "Rates in the General Population"
         else:
             title = f"Rates According to {_nice_str(bg_var)}"  # noqa
-        rate_plots = _create_rate_plots(rates, bg_var, colors, title)
+
+        rate_plots = _create_rate_plots(rates[bg_var], colors, title)
+
+        title_element = Div(text=title, style={"font-size": "150%"})
         _export_plots_and_layout(
-            title=Div(text=title, style={"font-size": "150%"}),
-            plots=rate_plots,
-            outdir_path=outdir_path / bg_var,
+            title=title_element, plots=rate_plots, outdir_path=outdir_path / bg_var,
         )
 
 
@@ -65,8 +66,9 @@ def _create_statistics(data_paths, infection_vars, background_vars, window_lengt
     Returns:
         rates (pd.DataFrame): DataFrame with the dates as index.
             The columns are a MultiIndex with four levels: The outermost is the
-            "rate". The next is the "bg_var"
-            ("general" for the overall rate), "bg_value" and last "data_id".
+            "bg_var" ("general" for the overall rate).
+            The next is the "rate" (e.g. the infectious rate or r zero),
+            then "bg_value", the value of the background variable and last "data_id".
 
     """
     vars_for_r_zero = ["immune", "infection_counter", "cd_infectious_false"]
@@ -103,21 +105,22 @@ def _create_statistics(data_paths, infection_vars, background_vars, window_lengt
 
         name_to_means[path.stem] = pd.concat(single_df_rates, axis=1)
 
-    infection_rates = pd.concat(name_to_means, axis=1, names=["data_id"])
-    order = ["rate", "bg_var", "bg_value", "data_id"]
-    infection_rates = infection_rates.reorder_levels(order=order, axis=1)
-    return infection_rates
+    rates = pd.concat(name_to_means, axis=1, names=["data_id"])
+    order = ["bg_var", "rate", "bg_value", "data_id"]
+    rates = rates.reorder_levels(order=order, axis=1)
+    return rates
 
 
-def _create_rate_plots(rates, bg_var, colors, title):
+def _create_rate_plots(rates, colors, title):
     """Plot all rates for a single background variable
 
     Args:
         rates (pd.DataFrame): DataFrame with the dates as index.
-            The columns are a MultiIndex with four levels: The outermost is the
-            "Infection Variable". The next is the "bg_var"
-            ("general" for the overall rate), "bg_value" and last "data_id".
-        bg_var (str): background variable. Value that the second index level can take.
+            The columns are a MultiIndex with three levels: The outermost is the
+            variable name (e.g. infectious or r_zero). The next are the values the
+            background variable can take, the last "data_id".
+        colors (list): list of colors to use.
+        title (str): the plot title will be the name of the rate plus this string.
 
     Returns:
         plots (list): list of bokeh plots.
@@ -125,20 +128,21 @@ def _create_rate_plots(rates, bg_var, colors, title):
     """
     vars_to_plot = rates.columns.levels[0]
     plots = []
+    full_range_vars = ["ever_infected", "immune", "symptomatic_among_infectious"]
     for var, color in zip(vars_to_plot, colors):
-        full_range_vars = ["ever_infected", "immune", "symptomatic_among_infectious"]
         y_range = (0, 1) if var in full_range_vars else None
-        background_values = rates[var][bg_var].columns.unique().levels[0]
-        for bg_val in background_values:
-            to_plot = rates[var][bg_var][bg_val]
+        bg_values = rates[var].columns.unique().levels[0]
+        for bg_val in bg_values:
             plot_title = f"{_nice_str(var)} {title}"
             if bg_val != "general":
                 plot_title += f": {bg_val}"  # noqa
-            p = _plot_rates(to_plot, plot_title, color, y_range)
-            if bg_var == "general":
-                p.name = var
-            else:
-                p.name = f"{var}_{bg_val.replace(' ', '')}"
+            p = _plot_rates(
+                rates=rates[var][bg_val],
+                plot_title=plot_title,
+                color=color,
+                y_range=y_range,
+            )
+            p.name = var if bg_val == "general" else f"{var}_{bg_val.replace(' ', '')}"
             plots.append(p)
     return plots
 
@@ -167,14 +171,17 @@ def _plot_rates(rates, title, color, y_range):
         x_axis_type="datetime",
     )
 
-    for var in rates:
-        p.line(x=xs, y=rates[var], line_width=1, line_color=color, alpha=0.3)
-
+    # plot the median
     p.line(x=xs, y=rates.median(axis=1), alpha=1, line_width=2.75, line_color=color)
 
+    # plot the confidence band
     q5 = rates.apply(np.nanpercentile, q=5, axis=1)
     q95 = rates.apply(np.nanpercentile, q=95, axis=1)
     p.varea(x=xs, y1=q95, y2=q5, alpha=0.2, color=color)
+
+    # add the trajectories
+    for var in rates:
+        p.line(x=xs, y=rates[var], line_width=1, line_color=color, alpha=0.3)
 
     p = _style(p)
     return p
@@ -194,6 +201,7 @@ def _export_plots_and_layout(title, plots, outdir_path):
         outpath = outdir_path / f"{p.name}.png"
         output_file(outpath)
         export_png(p, filename=outpath)
+
     output_file(outdir_path / "overview.html")
     save(Column(title, *plots))
 
