@@ -84,14 +84,10 @@ def simulate(
         for key, val in contact_policies.items()
     }
     states = update_states(states, initial_infections, params, seed)
-    indexers = {}
-    first_probs = {}
-    for model_name, assort_by in assort_bys.items():
-        indexers[model_name] = create_group_indexer(states, assort_by)
-        if contact_models[model_name]["model"] != "meet_group":
-            first_probs[model_name] = create_group_transition_probs(
-                states, assort_by, params
-            )
+
+    indexers, first_probs = _prepare_assortative_matching(
+        states, assort_bys, params, contact_models
+    )
 
     to_concat = []
     for period, date in enumerate(duration["dates"]):
@@ -220,6 +216,35 @@ def _check_inputs(
 
     if testing_policies != {}:
         raise NotImplementedError
+
+
+def _prepare_assortative_matching(states, assort_bys, params, contact_models):
+    """Create indexers and first stage probabilities for assortative matching.
+
+    Args:
+        states (pd.DataFrame): see :ref:`states`.
+        assort_bys (dict): Keys are names of contact models, values are lists with the
+            assort_by variables of the model.
+        params (pd.DataFrame): see :ref:`params`.
+        contact_models (dict): see :ret:`contact_models`.
+
+    returns:
+        indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
+            indices of the i_th group.
+        first_probs (dict): dict of arrays of shape
+            n_group, n_groups. probs[i, j] is the probability that an individual from
+            group i meets someone from group j.
+
+    """
+    indexers = {}
+    first_probs = {}
+    for model_name, assort_by in assort_bys.items():
+        indexers[model_name] = create_group_indexer(states, assort_by)
+        if contact_models[model_name]["model"] != "meet_group":
+            first_probs[model_name] = create_group_transition_probs(
+                states, assort_by, params
+            )
+    return indexers, first_probs
 
 
 def _add_defaults_to_policy_dict(pol_dict, duration):
