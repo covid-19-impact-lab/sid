@@ -10,7 +10,6 @@ import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import COUNTDOWNS
 from sid.config import DTYPE_COUNTER
-from sid.config import STATES_INDEX_DEFAULT_NAME
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections
 from sid.contacts import create_group_indexer
@@ -91,7 +90,7 @@ def simulate(
 
     duration = parse_duration(duration)
 
-    states, index_names = _process_initial_states(initial_states, assort_by)
+    states = _process_initial_states(initial_states, assort_by)
     states = draw_course_of_disease(states, params, seed)
     contact_policies = {
         key: _add_defaults_to_policy_dict(val, duration)
@@ -241,14 +240,8 @@ def _process_initial_states(states, assort_by):
     if np.any(states.isna()):
         raise ValueError("'initial_states' are not allowed to contain NaNs.")
 
+    # Sort index for deterministic shuffling.
     states = states.sort_index()
-    if isinstance(states.index, pd.MultiIndex):
-        index_names = states.index.names
-    else:
-        if not states.index.name:
-            states.index.name = STATES_INDEX_DEFAULT_NAME
-        index_names = [states.index.name]
-
     # Shuffle the states and reset the index because having a sorted range index could
     # speed up things.
     states = states.sample(frac=1, replace=False).reset_index()
@@ -266,7 +259,7 @@ def _process_initial_states(states, assort_by):
 
     states["group_codes"], _ = factorize_assortative_variables(states, assort_by)
 
-    return states, index_names
+    return states
 
 
 def _return_dask_dataframe(output_directory):

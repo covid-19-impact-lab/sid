@@ -12,6 +12,6 @@ def initial_states():
 @pytest.fixture
 def params():
     return pd.read_csv(
-        Path(__file__).resolve().parent / ".." / "params.csv",
+        Path(__file__).resolve().parent / "test_params.csv",
         index_col=["category", "name"],
     )

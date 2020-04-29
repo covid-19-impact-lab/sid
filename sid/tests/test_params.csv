@@ -1,0 +1,19 @@
+category,name,value,note,source
+assortative_matching,age_group,0.5
+assortative_matching,region,0.9
+prob_icu_given_symptoms,Under 50,0.003087
+prob_icu_given_symptoms,Over 50,0.045484
+prob_dead_given_icu,Under 50,0.4
+prob_dead_given_icu,Over 50,0.5
+prob_symptoms_given_infection,all,0.75
+countdown_length,cd_infectious_true,3
+countdown_length,cd_infectious_false,8
+countdown_length,cd_immune_false,365
+countdown_length,cd_symptoms_true,3
+countdown_length,cd_symptoms_false,6
+countdown_length,cd_needs_icu_true,10
+countdown_length,cd_dead,2
+countdown_length,cd_needs_icu_false,20
+countdown_length,cd_knows_true,5
+health_system,icu_limit_relative,0.0005
+infection_prob,standard,0.2

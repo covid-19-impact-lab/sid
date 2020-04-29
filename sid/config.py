@@ -76,5 +76,3 @@ been started.
 DTYPE_GROUP_CODE = np.uint32
 DTYPE_INDEX = np.uint32
 DTYPE_N_CONTACTS = np.uint32
-
-STATES_INDEX_DEFAULT_NAME = "id"
