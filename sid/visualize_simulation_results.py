@@ -44,13 +44,11 @@ def visualize_simulation_results(
             title = "Rates in the General Population"
         else:
             title = f"Rates According to {_nice_str(bg_var)}"  # noqa
-        rate_plots = _create_rate_plots(
-            rates=rates, colors=colors, bg_var=bg_var, title=title,
-        )
+        rate_plots = _create_rate_plots(rates, bg_var, colors, title)
         _export_plots_and_layout(
             title=Div(text=title, style={"font-size": "150%"}),
             plots=rate_plots,
-            outdir_path=outdir_path,
+            outdir_path=outdir_path / bg_var,
         )
 
 
@@ -77,42 +75,33 @@ def _create_statistics(data_paths, infection_vars, background_vars, window_lengt
     for path in data_paths:
         data = pd.read_pickle(path)[keep_vars]
         gb = data.groupby("date")
-        overall = gb.mean()[infection_vars]
-        overall["r_zero"] = gb.apply(calculate_r_zero, window_length=window_length)
-        overall["r_effective"] = gb.apply(
-            calculate_r_effective, window_length=window_length
-        )
 
-        # make columns a multiindex that fits to the background variable datasets
+        overall = gb.mean()[infection_vars]
+        overall["r_zero"] = gb.apply(calculate_r_zero, window_length)
+        overall["r_effective"] = gb.apply(calculate_r_effective, window_length)
+
+        # add column levels for later
         overall.columns.name = "rate"
-        overall = pd.concat([overall], keys=["general"], names=["bg_value"], axis=1)
-        overall = pd.concat([overall], keys=["general"], names=["bg_var"], axis=1)
-        single_df_means = [overall]
+        overall = _prepend_column_level(overall, "general", "bg_value")
+        overall = _prepend_column_level(overall, "general", "bg_var")
+
+        single_df_rates = [overall]
 
         for bg_var in background_vars:
             gb = data.groupby([bg_var, "date"])
-            date_as_index = gb.mean()[infection_vars].unstack(level=0)
-            r_zeros = gb.apply(calculate_r_zero, window_length=window_length)
-            r_zeros = r_zeros.unstack(level=0)
-            r_zeros = pd.concat([r_zeros], keys=["r_zero"], names=["rate"], axis=1)
-            r_effectives = gb.apply(calculate_r_effective, window_length=window_length)
-            r_effectives = r_effectives.unstack(level=0)
-            r_effectives = pd.concat(
-                [r_effectives], keys=["r_effective"], names=["rate"], axis=1
-            )
-            both_rs = pd.concat([r_zeros, r_effectives], axis=1)
-            date_as_index = pd.concat([date_as_index, both_rs], axis=1)
-            date_as_index.columns.names = ["rate", "bg_value"]
+            infection_rates = gb.mean()[infection_vars].unstack(level=0)
+            r_zeros = gb.apply(calculate_r_zero, window_length).unstack(level=0)
+            r_zeros = _prepend_column_level(r_zeros, "r_zero", "rate")
+            r_eff = gb.apply(calculate_r_effective, window_length).unstack(level=0)
+            r_eff = _prepend_column_level(r_eff, "r_effective", "rate")
 
-            # adjust multiindex columns
-            right_columns = pd.concat(
-                [date_as_index], keys=[bg_var], names=["bg_var"], axis=1
-            )
-            right_columns = right_columns.swaplevel("rate", "bg_value", axis=1)
-            single_df_means.append(right_columns)
+            rates_by_group = pd.concat([infection_rates, r_zeros, r_eff], axis=1)
+            rates_by_group.columns.names = ["rate", "bg_value"]
+            rates_by_group = _prepend_column_level(rates_by_group, bg_var, "bg_var")
+            rates_by_group = rates_by_group.swaplevel("rate", "bg_value", axis=1)
+            single_df_rates.append(rates_by_group)
 
-        means = pd.concat(single_df_means, axis=1)
-        name_to_means[path.stem] = means
+        name_to_means[path.stem] = pd.concat(single_df_rates, axis=1)
 
     infection_rates = pd.concat(name_to_means, axis=1, names=["data_id"])
     order = ["rate", "bg_var", "bg_value", "data_id"]
@@ -149,7 +138,7 @@ def _create_rate_plots(rates, bg_var, colors, title):
             if bg_var == "general":
                 p.name = var
             else:
-                p.name = f"{bg_var}/{var}_{bg_val.replace(' ', '')}"
+                p.name = f"{var}_{bg_val.replace(' ', '')}"
             plots.append(p)
     return plots
 
@@ -169,7 +158,14 @@ def _plot_rates(rates, title, color, y_range):
 
     """
     xs = rates.index
-    p = figure(tools=[], plot_height=400, plot_width=800, title=title, y_range=y_range)
+    p = figure(
+        tools=[],
+        plot_height=400,
+        plot_width=800,
+        title=title,
+        y_range=y_range,
+        x_axis_type="datetime",
+    )
 
     for var in rates:
         p.line(x=xs, y=rates[var], line_width=1, line_color=color, alpha=0.3)
@@ -215,7 +211,7 @@ def _create_folders(outdir_path, background_vars):
     if os.path.exists(outdir_path):
         rmtree(outdir_path)
     os.mkdir(outdir_path)
-    for var in background_vars:
+    for var in ["general"] + background_vars:
         os.mkdir(outdir_path / var)
 
 
@@ -233,3 +229,8 @@ def _style(p):
 
 def _nice_str(s):
     return s.replace("_", " ").title()
+
+
+def _prepend_column_level(df, key, name):
+    prepended = pd.concat([df], keys=[key], names=[name], axis=1)
+    return prepended
