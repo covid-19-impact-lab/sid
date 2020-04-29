@@ -57,6 +57,7 @@ autodoc_member_order = "bysource"
 
 autodoc_mock_imports = [
     "bokeh",
+    "dask",
     "numba",
     "numpy",
     "pandas",
