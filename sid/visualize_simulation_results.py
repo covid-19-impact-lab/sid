@@ -55,20 +55,20 @@ def visualize_simulation_results(
 
 
 def _create_statistics(data_paths, infection_vars, background_vars, window_length):
-    """Calculate the infection rates and reproduction numbers for each period.
+    """Calculate the infection rates and reproduction numbers for each date.
 
     Args:
         data_paths (list): list of paths to the pickled simulation results
         infection_vars (list): list of infection rates to plot
         background_vars (list): list of background variables by whose value to group
             the results. Have to be present in all simulation results.
-        window_length (int): how many periods to use for the reproduction numbers.
+        window_length (int): how many dates to use for the reproduction numbers.
 
     Returns:
-        rates (pd.DataFrame): DataFrame with the periods as index.
+        rates (pd.DataFrame): DataFrame with the dates as index.
             The columns are a MultiIndex with four levels: The outermost is the
-            "Rate". The next is the "Background Variable"
-            ("general" for the overall rate), "Background Value" and last "Data Name".
+            "rate". The next is the "bg_var"
+            ("general" for the overall rate), "bg_value" and last "data_id".
 
     """
     vars_for_r_zero = ["immune", "infection_counter", "cd_infectious_false"]
@@ -76,8 +76,7 @@ def _create_statistics(data_paths, infection_vars, background_vars, window_lengt
     name_to_means = {}
     for path in data_paths:
         data = pd.read_pickle(path)[keep_vars]
-
-        gb = data.groupby("period")
+        gb = data.groupby("date")
         overall = gb.mean()[infection_vars]
         overall["r_zero"] = gb.apply(calculate_r_zero, window_length=window_length)
         overall["r_effective"] = gb.apply(
@@ -85,47 +84,38 @@ def _create_statistics(data_paths, infection_vars, background_vars, window_lengt
         )
 
         # make columns a multiindex that fits to the background variable datasets
-        overall.columns.name = "Rate"
-        overall = pd.concat(
-            [overall], keys=["general"], names=["Background Value"], axis=1
-        )
-        overall = pd.concat(
-            [overall], keys=["general"], names=["Background Variable"], axis=1
-        )
+        overall.columns.name = "rate"
+        overall = pd.concat([overall], keys=["general"], names=["bg_value"], axis=1)
+        overall = pd.concat([overall], keys=["general"], names=["bg_var"], axis=1)
         single_df_means = [overall]
 
         for bg_var in background_vars:
-            gb = data.groupby([bg_var, "period"])
-            period_as_index = gb.mean()[infection_vars].unstack(level=0)
+            gb = data.groupby([bg_var, "date"])
+            date_as_index = gb.mean()[infection_vars].unstack(level=0)
             r_zeros = gb.apply(calculate_r_zero, window_length=window_length)
             r_zeros = r_zeros.unstack(level=0)
-            r_zeros = pd.concat([r_zeros], keys=["r_zero"], names=["Rate"], axis=1)
+            r_zeros = pd.concat([r_zeros], keys=["r_zero"], names=["rate"], axis=1)
             r_effectives = gb.apply(calculate_r_effective, window_length=window_length)
             r_effectives = r_effectives.unstack(level=0)
             r_effectives = pd.concat(
-                [r_effectives], keys=["r_effective"], names=["Rate"], axis=1
+                [r_effectives], keys=["r_effective"], names=["rate"], axis=1
             )
             both_rs = pd.concat([r_zeros, r_effectives], axis=1)
-            period_as_index = pd.concat([period_as_index, both_rs], axis=1)
-            period_as_index.columns.names = ["Rate", "Background Value"]
+            date_as_index = pd.concat([date_as_index, both_rs], axis=1)
+            date_as_index.columns.names = ["rate", "bg_value"]
 
             # adjust multiindex columns
             right_columns = pd.concat(
-                [period_as_index], keys=[bg_var], names=["Background Variable"], axis=1
+                [date_as_index], keys=[bg_var], names=["bg_var"], axis=1
             )
-            right_columns = right_columns.swaplevel("Rate", "Background Value", axis=1)
+            right_columns = right_columns.swaplevel("rate", "bg_value", axis=1)
             single_df_means.append(right_columns)
 
         means = pd.concat(single_df_means, axis=1)
         name_to_means[path.stem] = means
 
-    infection_rates = pd.concat(name_to_means, axis=1, names=["Data Name"])
-    order = [
-        "Rate",
-        "Background Variable",
-        "Background Value",
-        "Data Name",
-    ]
+    infection_rates = pd.concat(name_to_means, axis=1, names=["data_id"])
+    order = ["rate", "bg_var", "bg_value", "data_id"]
     infection_rates = infection_rates.reorder_levels(order=order, axis=1)
     return infection_rates
 
@@ -134,10 +124,10 @@ def _create_rate_plots(rates, bg_var, colors, title):
     """Plot all rates for a single background variable
 
     Args:
-        rates (pd.DataFrame): DataFrame with the periods as index.
+        rates (pd.DataFrame): DataFrame with the dates as index.
             The columns are a MultiIndex with four levels: The outermost is the
-            "Infection Variable". The next is the "Background Variable"
-            ("general" for the overall rate), "Background Value" and last "Data Name".
+            "Infection Variable". The next is the "bg_var"
+            ("general" for the overall rate), "bg_value" and last "data_id".
         bg_var (str): background variable. Value that the second index level can take.
 
     Returns:
