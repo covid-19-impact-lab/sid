@@ -165,8 +165,8 @@ def _sample_data_for_calculate_infections_numba(
     )
 
 
-# test calculate_infections with only one recurrent contact model and very few states
 def test_calculate_infections():
+    """test with only one recurrent contact model and very few states"""
     # set up states
     states = pd.DataFrame()
     states["infectious"] = [True] + [False] * 7

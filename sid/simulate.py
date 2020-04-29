@@ -157,6 +157,7 @@ def _process_assort_bys(contact_models):
             warnings.warn(
                 "Not specifying 'assort_by' significantly raises runtime. "
                 "You can silence this warning by setting 'assort_by' to False."
+                f"in contact model {model_name}"
             )
             assort_by = []
         elif not assort_by:
@@ -166,7 +167,9 @@ def _process_assort_bys(contact_models):
         elif isinstance(assort_by, list):
             pass
         else:
-            raise ValueError()
+            raise ValueError(
+                f"'assort_by' for '{model_name}' must be False str, or list."
+            )
 
         assort_bys[model_name] = assort_by
 
