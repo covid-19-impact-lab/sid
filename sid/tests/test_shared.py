@@ -30,7 +30,7 @@ def test_factorize_assortative_variables(initial_states, assort_by, expected):
     assert set(group_code_values) == set(expected)
 
 
-@pytest.fixture()
+@pytest.fixture
 def data_for_replication_numbers():
     df = pd.DataFrame()
     df["cd_infectious_false"] = [-2, -1, -1, 0] + [2, 5]
