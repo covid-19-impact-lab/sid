@@ -1,248 +1,269 @@
-import os
+import shutil
 from pathlib import Path
-from shutil import rmtree
 
+import numpy as np
 import pandas as pd
 from bokeh.io import export_png
 from bokeh.io import output_file
 from bokeh.models import Column
 from bokeh.models import Div
-from bokeh.models import Row
 from bokeh.plotting import figure
 from bokeh.plotting import save
-from bokeh.plotting import show
-from pandas.api.types import is_categorical
 from utilities.colors import get_colors
 
-
-def visualize_and_compare_models(
-    data_paths, outdir_path, background_vars=None, show_layout=False,
-):
-    background_vars = (
-        ["age_group", "sector"] if background_vars is None else background_vars
-    )
-    outdir_path = Path(outdir_path)
-    if background_vars is None:
-        background_vars = ["age_group", "sector"]
-
-    # clean up folder
-    if os.path.exists(outdir_path):
-        rmtree(outdir_path)
-    os.mkdir(outdir_path)
-
-    model_to_elements = {}
-    first = True
-    for model_name, data_p in data_paths:
-        title = f"Visualization of the Simulation Results of {_nice_str(model_name)}"
-        os.mkdir(outdir_path / model_name)
-        model_elements = visualize_simulation_results(
-            data_path=data_p,
-            background_vars=background_vars,
-            outdir_path=outdir_path / model_name,
-            show_layout=False,
-            title=title,
-        )
-        model_to_elements[model_name] = model_elements
-        plot_names = [
-            elem.name for elem in model_elements if elem.name.startswith("plot_")
-        ]
-        if first:
-            to_compare = set(plot_names)
-            first = False
-        else:
-            to_compare = to_compare.intersection(plot_names)
-
-    # create folders
-    os.mkdir(outdir_path / "comparison")
-    os.mkdir(outdir_path / "comparison" / "incidences")
-    for var in background_vars:
-        os.mkdir(outdir_path / "comparison" / "incidences" / var)
-    os.mkdir(outdir_path / "comparison" / "r_zeros")
-
-    comparison_layout = []
-    for plot_name in sorted(to_compare):
-        plots = []
-        for model_name, elements in model_to_elements.items():
-            matched = [el for el in elements if el.name == plot_name]
-            assert (
-                len(matched) == 1
-            ), f"More than one matched for {plot_name} in {model_name}"
-            p = matched[0]
-            p.title.text = _nice_str(f"{plot_name[5:]} in {model_name}")
-            plots.append(p)
-        row = Row(*plots)
-        comparison_layout.append(row)
-        export_png(row, filename=outdir_path / "comparison" / f"{plot_name[5:]}.png")
-
-    # column = Column(*comparison_layout)
-    # output_file(f"{outdir_path}/comparison.html")
-    # save(column, title=f"Comparisons")
+from sid.shared import calculate_r_effective
+from sid.shared import calculate_r_zero
 
 
 def visualize_simulation_results(
-    df_or_path, outdir_path=None, background_vars=None, show_layout=False, title=None,
+    data, outdir_path, infection_vars, background_vars, window_length,
 ):
-    if background_vars is None:
-        background_vars = ["age_group", "sector"]
-    elif isinstance(background_vars, str):
+    """Visualize the results one or more simulation results.
+
+    Args:
+        data (str, pd.DataFrame, Path, list): list of paths to the pickled simulation results
+        outdir_path (path): path to the folder where to save the results.
+            Careful, all contents are removed when the function is called.
+        infection_vars (list): list of infection rates to plot
+        background_vars (list): list of background variables by whose value to group
+            the results. Have to be present in all simulation results.
+
+    """
+    colors = get_colors("categorical", 12)
+    if isinstance(background_vars, str):
         background_vars = [background_vars]
+    outdir_path = Path(outdir_path)
 
-    title = "Visualization of the Simulation Results" if title is None else title
-    if isinstance(df_or_path, (Path, str)):
-        data = pd.read_pickle(df_or_path)
-    else:
-        data = df_or_path
-    data["symptomatic_among_infectious"] = data["symptoms"].where(data["infectious"])
-
-    plots_and_divs = _create_plots_and_divs(data=data, background_vars=background_vars)
-
-    if outdir_path is not None:
-        # empty folders
-        if os.path.exists(outdir_path):
-            rmtree(outdir_path)
-        os.mkdir(outdir_path)
-        os.mkdir(outdir_path / "incidences")
-        os.mkdir(outdir_path / "r_zeros")
-        for var in background_vars:
-            os.mkdir(outdir_path / "incidences" / var)
-
-        # export plots as png.
-        output_file(outdir_path)
-        for element in plots_and_divs:
-            name = element.name
-            if name.startswith("plot"):
-                name = name[5:]
-                export_png(element, filename=outdir_path / f"{name}.png")
-
-        # create tex and pdf
-
-    col = Column(*plots_and_divs)
-
-    if outdir_path is not None:
-        output_file(f"{outdir_path}/overview.html")
-        save(col, title=title)
-
-    if show_layout is True:
-        show(col)
-
-    return plots_and_divs
-
-
-def _create_plots_and_divs(data, background_vars):
-    infection_vars = [
-        "ever_infected",
-        "infectious",
-        # "symptomatic_among_infectious",
-        "needs_icu",
-        "dead",
-        "immune",
+    datasets = [data] if isinstance(data, (str, pd.DataFrame, Path)) else data
+    datasets = [
+        Path(path_or_df) if isinstance(path_or_df, str) else path_or_df
+        for path_or_df in datasets
     ]
-    style = {"font-size": "150%"}
 
-    # infection rates in the general population
-    inf_title = "Infection Related Rates in the Population"
-    inf_title = Div(text=inf_title, style=style, name="div_inf_title")
-    inf_rates = _plot_infection_rates(
-        data=data, infection_vars=infection_vars, colors=get_colors("categorical", 12)
+    _create_folders(outdir_path, background_vars)
+
+    rates = _create_rates_for_all_data(
+        datasets=datasets,
+        infection_vars=infection_vars,
+        background_vars=background_vars,
+        window_length=window_length,
     )
-    elements = [inf_title, inf_rates]
 
-    # infection rates in subpopulations
-    for groupby_var in background_vars:
-        gb_title = f"Infection Related Rates by {_nice_str(groupby_var)}"
-        gb_title = Div(text=gb_title, style=style, name=f"div_{groupby_var}_inf_title")
-        gb_rates = _plot_rates_by_group(
-            data=data,
-            groupby_var=groupby_var,
-            infection_vars=infection_vars,
-            colors=get_colors("categorical", 12),
+    for bg_var in ["general"] + background_vars:
+        if bg_var == "general":
+            title = "Rates in the General Population"
+        else:
+            title = f"Rates According to {_nice_str(bg_var)}"  # noqa
+
+        rate_plots = _create_rate_plots(rates[bg_var], colors, title)
+
+        title_element = Div(text=title, style={"font-size": "150%"})
+        _export_plots_and_layout(
+            title=title_element, plots=rate_plots, outdir_path=outdir_path / bg_var,
         )
-        elements += [gb_title, *gb_rates]
-
-        # r zeros
-        r_title = f"Basic Replication Rate Overall and by {_nice_str(groupby_var)}"
-        r_title = Div(text=r_title, style=style, name="div_r_title")
-        r_zeros = _plot_r_zeros(data=data, groupby_var=groupby_var)
-        elements += [r_title, r_zeros]
-    return elements
 
 
-def _plot_infection_rates(data, infection_vars, colors):
-    overall_gb = data.groupby("date")
-    overall_means = overall_gb[infection_vars].mean()
-    title = "Infection Related Rates in the General Population"
-    p = _plot_rates(means=overall_means, colors=colors, title=title)
-    p.name = "plot_incidences/general"
-    return p
+def _create_folders(outdir_path, background_vars):
+    if outdir_path.exists():
+        shutil.rmtree(outdir_path)
+    outdir_path.mkdir()
+    for var in ["general"] + background_vars:
+        outdir_path.joinpath(var).mkdir()
 
 
-def _plot_rates_by_group(data, groupby_var, infection_vars, colors):
-    gb = data.groupby(["date", groupby_var])
-    plots = []
-    if is_categorical(data[groupby_var]):
-        ordered = data[groupby_var].cat.ordered
-        n_categories = len(data[groupby_var].cat.categories)
+def _create_rates_for_all_data(
+    datasets, infection_vars, background_vars, window_length
+):
+    """Crate the statistics for each dataset and merge them into one dataset.
+
+    Args:
+        datasets (list): list of str, Paths to pickled DataFrames or pd.DataFrames.
+        infection_vars (list): list of infection rates to plot
+        background_vars (list): list of background variables by whose value to group
+            the results. Have to be present in all simulation results.
+        window_length (int): how many dates to use for the reproduction numbers.
+
+    rates (pd.DataFrame): DataFrame with the dates as index.
+        The columns are a MultiIndex with four levels: The outermost is the
+        "bg_var" ("general" for the overall rate).
+        The next is the "rate" (e.g. the infectious rate or r zero),
+        then "bg_value", the value of the background variable and last "data_id".
+
+    """
+    name_to_statistics = {}
+    for i, data_or_str in enumerate(datasets):
+        vars_for_r_zero = ["immune", "infection_counter", "cd_infectious_false"]
+        keep_vars = sorted(set(infection_vars + background_vars + vars_for_r_zero))
+        df_name, data = _load_data(data_or_str, keep_vars, i)
+        name_to_statistics[df_name] = _create_statistics(
+            data=data,
+            infection_vars=infection_vars,
+            background_vars=background_vars,
+            window_length=window_length,
+        )
+    rates = pd.concat(name_to_statistics, axis=1, names=["data_id"])
+    order = ["bg_var", "rate", "bg_value", "data_id"]
+    rates = rates.reorder_levels(order=order, axis=1)
+    return rates
+
+
+def _load_data(data_or_str, keep_vars, i):
+    if isinstance(data_or_str, pd.DataFrame):
+        data = data_or_str[keep_vars]
+        df_name = i
     else:
-        ordered = False
-    for var in infection_vars:
-        plot_colors = get_colors(f"blue-red", n_categories) if ordered else colors
-        means = gb[var].mean().unstack()
-        title = f"{_nice_str(var)} Rates by {_nice_str(groupby_var)}"
-        p = _plot_rates(means=means, colors=plot_colors, title=title)
-        p.name = f"plot_incidences/{groupby_var}/{var}_rate"
-        plots.append(p)
+        data = pd.read_pickle(data_or_str)[keep_vars]
+        df_name = data_or_str.stem
+    return df_name, data
+
+
+def _create_statistics(data, infection_vars, background_vars, window_length):
+    """Calculate the infection rates and reproduction numbers for each date.
+
+    Args:
+        data (pd.DataFrame): the pickled simulation results. The index is "date", "id".
+        infection_vars (list): list of infection rates to plot
+        background_vars (list): list of background variables by whose value to group
+            the results. Have to be present in all simulation results.
+        window_length (int): how many dates to use for the reproduction numbers.
+
+    Returns:
+        rates (pd.DataFrame): DataFrame with the statistics of one simulation run.
+            The index are the dates. The columns are a MultiIndex with three levels:
+            The outermost is the "bg_var" ("general" for the overall rate).
+            The next is the "bg_value", the last is the "rate"
+            (e.g. the infectious rate or r zero).
+
+    """
+    gb = data.groupby("date")
+
+    overall = gb.mean()[infection_vars]
+    overall["r_zero"] = gb.apply(calculate_r_zero, window_length)
+    overall["r_effective"] = gb.apply(calculate_r_effective, window_length)
+
+    # add column levels for later
+    overall.columns.name = "rate"
+    overall = _prepend_column_level(overall, "general", "bg_value")
+    overall = _prepend_column_level(overall, "general", "bg_var")
+
+    single_df_rates = [overall]
+
+    for bg_var in background_vars:
+        gb = data.groupby([bg_var, "date"])
+        infection_rates = gb.mean()[infection_vars].unstack(level=0)
+        r_zeros = gb.apply(calculate_r_zero, window_length).unstack(level=0)
+        r_zeros = _prepend_column_level(r_zeros, "r_zero", "rate")
+        r_eff = gb.apply(calculate_r_effective, window_length).unstack(level=0)
+        r_eff = _prepend_column_level(r_eff, "r_effective", "rate")
+
+        rates_by_group = pd.concat([infection_rates, r_zeros, r_eff], axis=1)
+        rates_by_group.columns.names = ["rate", "bg_value"]
+        rates_by_group = _prepend_column_level(rates_by_group, bg_var, "bg_var")
+        rates_by_group = rates_by_group.swaplevel("rate", "bg_value", axis=1)
+        single_df_rates.append(rates_by_group)
+
+    rates = pd.concat(single_df_rates, axis=1)
+    return rates
+
+
+def _prepend_column_level(df, key, name):
+    prepended = pd.concat([df], keys=[key], names=[name], axis=1)
+    return prepended
+
+
+def _create_rate_plots(rates, colors, title):
+    """Plot all rates for a single background variable
+
+    Args:
+        rates (pd.DataFrame): DataFrame with the dates as index.
+            The columns are a MultiIndex with three levels: The outermost is the
+            variable name (e.g. infectious or r_zero). The next are the values the
+            background variable can take, the last "data_id".
+        colors (list): list of colors to use.
+        title (str): the plot title will be the name of the rate plus this string.
+
+    Returns:
+        plots (list): list of bokeh plots.
+
+    """
+    vars_to_plot = rates.columns.levels[0]
+    plots = []
+    full_range_vars = ["ever_infected", "immune", "symptomatic_among_infectious"]
+    for var, color in zip(vars_to_plot, colors):
+        y_range = (0, 1) if var in full_range_vars else None
+        bg_values = rates[var].columns.unique().levels[0]
+        for bg_val in bg_values:
+            plot_title = f"{_nice_str(var)} {title}"
+            if bg_val != "general":
+                plot_title += f": {bg_val}"  # noqa
+            p = _plot_rates(
+                rates=rates[var][bg_val],
+                title=plot_title,
+                color=color,
+                y_range=y_range,
+            )
+            p.name = var if bg_val == "general" else f"{var}_{bg_val.replace(' ', '')}"
+            plots.append(p)
     return plots
 
 
-def _plot_r_zeros(data, groupby_var=None):
-    r_colors = ["black"]
-    if is_categorical(data[groupby_var]):
-        n_categories = len(data[groupby_var].cat.categories)
-        if data[groupby_var].cat.ordered:
-            r_colors += get_colors("red", n_categories)
-        else:
-            r_colors += get_colors("categorical", n_categories)
-    else:
-        r_colors += get_colors("categorical", 12)
-
-    gb = data.groupby("date")
-    overall_r_zeros = gb.apply(_calc_r_zero).to_frame(name="overall")
-    gb = data.groupby(["date", groupby_var])
-    group_r_zeros = gb.apply(_calc_r_zero).unstack()
-
-    to_plot = pd.merge(
-        overall_r_zeros, group_r_zeros, left_index=True, right_index=True
-    )
-    p = _plot_rates(
-        to_plot,
-        colors=r_colors,
-        title=f"Basic Replication Rate by {_nice_str(groupby_var)}",
-    )
-    p.name = f"plot_r_zeros/{groupby_var}"
-    return p
-
-
-def _plot_rates(means, title, colors):
+def _plot_rates(rates, title, color, y_range):
     """Plot the rates over time.
 
     Args:
-        means (DataFrame):
-            the index are the x values, the values the y values.
-            every column is plotted as a separate line.
-        colors (list): full color palette
+        rates (DataFrame): the index are the x values, the values the y values.
+            Every column is plotted as a separate line.
+        color (str): color.
         title (str): plot title.
+        y_range (tuple or None): range of the y axis.
+
+    Returns:
+        p (bokeh figure)
 
     """
-    p = figure(tools=[], plot_height=300, plot_width=600, title=title,)
-    for var, color in zip(means, colors[: len(means.columns)]):
-        rates = means[var]
-        p.line(
-            x=rates.index, y=rates, line_width=2.0, legend_label=var, line_color=color,
-        )
-    if means.columns.name is not None:
-        p.legend.title = _nice_str(means.columns.name)
+    xs = rates.index
+    p = figure(
+        tools=[],
+        plot_height=400,
+        plot_width=800,
+        title=title,
+        y_range=y_range,
+        x_axis_type="datetime",
+    )
+
+    # plot the median
+    p.line(x=xs, y=rates.median(axis=1), alpha=1, line_width=2.75, line_color=color)
+
+    # plot the confidence band
+    q5 = rates.apply(np.nanpercentile, q=5, axis=1)
+    q95 = rates.apply(np.nanpercentile, q=95, axis=1)
+    p.varea(x=xs, y1=q95, y2=q5, alpha=0.2, color=color)
+
+    # add the trajectories
+    for var in rates:
+        p.line(x=xs, y=rates[var], line_width=1, line_color=color, alpha=0.3)
+
     p = _style(p)
     return p
+
+
+def _export_plots_and_layout(title, plots, outdir_path):
+    """Save all plots as png and the layout as html.
+
+    Args:
+        title (bokeh.Div): title element.
+        plots (list): list of bokeh plots
+        outdir_path (pathlib.Path): base path to which to append the plot name to build
+            the path where to save each plot.
+
+    """
+    for p in plots:
+        outpath = outdir_path / f"{p.name}.png"
+        output_file(outpath)
+        export_png(p, filename=outpath)
+
+    output_file(outdir_path / "overview.html")
+    save(Column(title, *plots))
 
 
 def _style(p):
@@ -254,21 +275,7 @@ def _style(p):
     p.axis.axis_line_color = gray
     p.axis.major_label_text_color = gray
     p.axis.major_tick_line_color = gray
-    p.legend.border_line_alpha = 0.0
-    p.legend.background_fill_alpha = 0.0
-    p.legend.location = "top_left"
-    p.legend.title_text_font_style = "normal"
-    if len(p.legend.items) < 2:
-        p.legend.visible = False
-    # p.legend.label_text_color = gray
-    # p.title.text_color= gray
     return p
-
-
-def _calc_r_zero(df, n_periods=1):
-    pop_of_interest = df[df["cd_infectious_false"] >= -n_periods]
-    r_zero = pop_of_interest["infection_counter"].mean()
-    return r_zero
 
 
 def _nice_str(s):
