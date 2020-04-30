@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from shutil import rmtree
+import shutil
 
 import numpy as np
 import pandas as pd
@@ -216,11 +216,11 @@ def _input_processing(data_paths, outdir_path, background_vars):
 
 
 def _create_folders(outdir_path, background_vars):
-    if os.path.exists(outdir_path):
-        rmtree(outdir_path)
-    os.mkdir(outdir_path)
+    if outdir_path.exists():
+        shutil.rmtree(outdir_path)
+    outdir_path.mkdir()
     for var in ["general"] + background_vars:
-        os.mkdir(outdir_path / var)
+        outdir_path.joinpath(var).mkdir()
 
 
 def _style(p):
