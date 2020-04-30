@@ -1,6 +1,5 @@
-import os
-from pathlib import Path
 import shutil
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -36,9 +35,18 @@ def visualize_simulation_results(
 
     _create_folders(outdir_path, background_vars)
 
-    rates = _create_statistics(
-        data_paths, infection_vars, background_vars, window_length
-    )
+    name_to_statistics = {}
+    for path in data_paths:
+        name_to_statistics[path.stem] = _create_statistics(
+            data_path=path,
+            infection_vars=infection_vars,
+            background_vars=background_vars,
+            window_length=window_length,
+        )
+    rates = pd.concat(name_to_statistics, axis=1, names=["data_id"])
+    order = ["bg_var", "rate", "bg_value", "data_id"]
+    rates = rates.reorder_levels(order=order, axis=1)
+
     for bg_var in ["general"] + background_vars:
         if bg_var == "general":
             title = "Rates in the General Population"
@@ -53,11 +61,11 @@ def visualize_simulation_results(
         )
 
 
-def _create_statistics(data_paths, infection_vars, background_vars, window_length):
+def _create_statistics(data_path, infection_vars, background_vars, window_length):
     """Calculate the infection rates and reproduction numbers for each date.
 
     Args:
-        data_paths (list): list of paths to the pickled simulation results
+        data_path (str): path to the pickled simulation results
         infection_vars (list): list of infection rates to plot
         background_vars (list): list of background variables by whose value to group
             the results. Have to be present in all simulation results.
@@ -73,41 +81,35 @@ def _create_statistics(data_paths, infection_vars, background_vars, window_lengt
     """
     vars_for_r_zero = ["immune", "infection_counter", "cd_infectious_false"]
     keep_vars = sorted(set(infection_vars + background_vars + vars_for_r_zero))
-    name_to_means = {}
-    for path in data_paths:
-        data = pd.read_pickle(path)[keep_vars]
-        gb = data.groupby("date")
+    data = pd.read_pickle(data_path)[keep_vars]
+    gb = data.groupby("date")
 
-        overall = gb.mean()[infection_vars]
-        overall["r_zero"] = gb.apply(calculate_r_zero, window_length)
-        overall["r_effective"] = gb.apply(calculate_r_effective, window_length)
+    overall = gb.mean()[infection_vars]
+    overall["r_zero"] = gb.apply(calculate_r_zero, window_length)
+    overall["r_effective"] = gb.apply(calculate_r_effective, window_length)
 
-        # add column levels for later
-        overall.columns.name = "rate"
-        overall = _prepend_column_level(overall, "general", "bg_value")
-        overall = _prepend_column_level(overall, "general", "bg_var")
+    # add column levels for later
+    overall.columns.name = "rate"
+    overall = _prepend_column_level(overall, "general", "bg_value")
+    overall = _prepend_column_level(overall, "general", "bg_var")
 
-        single_df_rates = [overall]
+    single_df_rates = [overall]
 
-        for bg_var in background_vars:
-            gb = data.groupby([bg_var, "date"])
-            infection_rates = gb.mean()[infection_vars].unstack(level=0)
-            r_zeros = gb.apply(calculate_r_zero, window_length).unstack(level=0)
-            r_zeros = _prepend_column_level(r_zeros, "r_zero", "rate")
-            r_eff = gb.apply(calculate_r_effective, window_length).unstack(level=0)
-            r_eff = _prepend_column_level(r_eff, "r_effective", "rate")
+    for bg_var in background_vars:
+        gb = data.groupby([bg_var, "date"])
+        infection_rates = gb.mean()[infection_vars].unstack(level=0)
+        r_zeros = gb.apply(calculate_r_zero, window_length).unstack(level=0)
+        r_zeros = _prepend_column_level(r_zeros, "r_zero", "rate")
+        r_eff = gb.apply(calculate_r_effective, window_length).unstack(level=0)
+        r_eff = _prepend_column_level(r_eff, "r_effective", "rate")
 
-            rates_by_group = pd.concat([infection_rates, r_zeros, r_eff], axis=1)
-            rates_by_group.columns.names = ["rate", "bg_value"]
-            rates_by_group = _prepend_column_level(rates_by_group, bg_var, "bg_var")
-            rates_by_group = rates_by_group.swaplevel("rate", "bg_value", axis=1)
-            single_df_rates.append(rates_by_group)
+        rates_by_group = pd.concat([infection_rates, r_zeros, r_eff], axis=1)
+        rates_by_group.columns.names = ["rate", "bg_value"]
+        rates_by_group = _prepend_column_level(rates_by_group, bg_var, "bg_var")
+        rates_by_group = rates_by_group.swaplevel("rate", "bg_value", axis=1)
+        single_df_rates.append(rates_by_group)
 
-        name_to_means[path.stem] = pd.concat(single_df_rates, axis=1)
-
-    rates = pd.concat(name_to_means, axis=1, names=["data_id"])
-    order = ["bg_var", "rate", "bg_value", "data_id"]
-    rates = rates.reorder_levels(order=order, axis=1)
+    rates = pd.concat(single_df_rates, axis=1)
     return rates
 
 
@@ -138,7 +140,7 @@ def _create_rate_plots(rates, colors, title):
                 plot_title += f": {bg_val}"  # noqa
             p = _plot_rates(
                 rates=rates[var][bg_val],
-                plot_title=plot_title,
+                title=plot_title,
                 color=color,
                 y_range=y_range,
             )
