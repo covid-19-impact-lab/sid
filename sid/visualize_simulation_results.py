@@ -36,7 +36,8 @@ def visualize_simulation_results(
 
     datasets = [data] if isinstance(data, (str, pd.DataFrame, Path)) else data
     datasets = [
-        Path(path_or_df) for path_or_df in datasets if isinstance(path_or_df, str)
+        Path(path_or_df) if isinstance(path_or_df, str) else path_or_df
+        for path_or_df in datasets
     ]
 
     _create_folders(outdir_path, background_vars)
