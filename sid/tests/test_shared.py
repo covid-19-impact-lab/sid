@@ -59,7 +59,7 @@ def test_r_zero_few_susceptible(data_for_replication_numbers):
 
 def test_r_zero_all_susceptible(data_for_replication_numbers):
     df = data_for_replication_numbers
-    df["immune"] = [False] * 6
+    df["immune"] = False
     expected = (3 / 3) / (6 / 6)
     res = calculate_r_zero(data_for_replication_numbers, 1)
     assert res == expected
