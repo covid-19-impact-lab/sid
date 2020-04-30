@@ -46,8 +46,6 @@ def simulate(
             :ref:`policies`.
         duration (dict or None): Duration is a dictionary containing kwargs for
             :func:`pandas.date_range`.
-        assort_by (list, optional): List of variable names. Contacts are assortative by
-            these variables. These variables must be in the initial_states.
         seed (int, optional): Seed is used as the starting point of a sequence of seeds
             used to control randomness internally.
 
@@ -266,8 +264,8 @@ def _process_initial_states(states, assort_bys):
 
     Args:
         states (pandas.DataFrame): The user-defined initial states.
-        assort_by (list, optional): List of variable names. Contacts are assortative by
-            these variables.
+        assort_bys (list, optional): List of variable names. Contacts are assortative
+            by these variables.
 
     Returns:
         states (pandas.DataFrame): Processed states.
