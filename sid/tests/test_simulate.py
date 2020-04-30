@@ -11,7 +11,7 @@ def test_process_data_w_index():
         data=np.arange(9).reshape(3, 3), columns=["index", "a", "b"]
     ).set_index("index")
 
-    states, index_names = _process_initial_states(df, [])
+    states, index_names = _process_initial_states(df, {})
 
     assert isinstance(states.index, pd.RangeIndex)
     assert "index" in states
@@ -32,7 +32,7 @@ def test_process_data_w_multiindex():
         data=np.arange(9).reshape(3, 3), columns=["index_a", "index_b", "a"]
     ).set_index(["index_a", "index_b"])
 
-    states, index_names = _process_initial_states(df, [])
+    states, index_names = _process_initial_states(df, {})
 
     assert isinstance(states.index, pd.RangeIndex)
     assert all(col in states.columns for col in ["index_a", "index_b", "a"])
