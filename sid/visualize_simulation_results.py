@@ -16,12 +16,12 @@ from sid.shared import calculate_r_zero
 
 
 def visualize_simulation_results(
-    data_paths, outdir_path, infection_vars, background_vars, window_length,
+    data, outdir_path, infection_vars, background_vars, window_length,
 ):
     """Visualize the results one or more simulation results.
 
     Args:
-        data_paths (list): list of paths to the pickled simulation results
+        data (str, pd.DataFrame, Path, list): list of paths to the pickled simulation results
         outdir_path (path): path to the folder where to save the results.
             Careful, all contents are removed when the function is called.
         infection_vars (list): list of infection rates to plot
@@ -29,23 +29,24 @@ def visualize_simulation_results(
             the results. Have to be present in all simulation results.
 
     """
-    data_paths, outdir_path, background_vars, colors = _input_processing(
-        data_paths, outdir_path, background_vars
-    )
+    colors = get_colors("categorical", 12)
+    if isinstance(background_vars, str):
+        background_vars = [background_vars]
+    outdir_path = Path(outdir_path)
+
+    datasets = [data] if isinstance(data, (str, pd.DataFrame, Path)) else data
+    datasets = [
+        Path(path_or_df) for path_or_df in datasets if isinstance(path_or_df, str)
+    ]
 
     _create_folders(outdir_path, background_vars)
 
-    name_to_statistics = {}
-    for path in data_paths:
-        name_to_statistics[path.stem] = _create_statistics(
-            data_path=path,
-            infection_vars=infection_vars,
-            background_vars=background_vars,
-            window_length=window_length,
-        )
-    rates = pd.concat(name_to_statistics, axis=1, names=["data_id"])
-    order = ["bg_var", "rate", "bg_value", "data_id"]
-    rates = rates.reorder_levels(order=order, axis=1)
+    rates = _create_rates_for_all_data(
+        datasets=datasets,
+        infection_vars=infection_vars,
+        background_vars=background_vars,
+        window_length=window_length,
+    )
 
     for bg_var in ["general"] + background_vars:
         if bg_var == "general":
@@ -61,27 +62,78 @@ def visualize_simulation_results(
         )
 
 
-def _create_statistics(data_path, infection_vars, background_vars, window_length):
+def _create_folders(outdir_path, background_vars):
+    if outdir_path.exists():
+        shutil.rmtree(outdir_path)
+    outdir_path.mkdir()
+    for var in ["general"] + background_vars:
+        outdir_path.joinpath(var).mkdir()
+
+
+def _create_rates_for_all_data(
+    datasets, infection_vars, background_vars, window_length
+):
+    """Crate the statistics for each dataset and merge them into one dataset.
+
+    Args:
+        datasets (list): list of str, Paths to pickled DataFrames or pd.DataFrames.
+        infection_vars (list): list of infection rates to plot
+        background_vars (list): list of background variables by whose value to group
+            the results. Have to be present in all simulation results.
+        window_length (int): how many dates to use for the reproduction numbers.
+
+    rates (pd.DataFrame): DataFrame with the dates as index.
+        The columns are a MultiIndex with four levels: The outermost is the
+        "bg_var" ("general" for the overall rate).
+        The next is the "rate" (e.g. the infectious rate or r zero),
+        then "bg_value", the value of the background variable and last "data_id".
+
+    """
+    name_to_statistics = {}
+    for i, data_or_str in enumerate(datasets):
+        vars_for_r_zero = ["immune", "infection_counter", "cd_infectious_false"]
+        keep_vars = sorted(set(infection_vars + background_vars + vars_for_r_zero))
+        df_name, data = _load_data(data_or_str, keep_vars, i)
+        name_to_statistics[df_name] = _create_statistics(
+            data=data,
+            infection_vars=infection_vars,
+            background_vars=background_vars,
+            window_length=window_length,
+        )
+    rates = pd.concat(name_to_statistics, axis=1, names=["data_id"])
+    order = ["bg_var", "rate", "bg_value", "data_id"]
+    rates = rates.reorder_levels(order=order, axis=1)
+    return rates
+
+
+def _load_data(data_or_str, keep_vars, i):
+    if isinstance(data_or_str, pd.DataFrame):
+        data = data_or_str[keep_vars]
+        df_name = i
+    else:
+        data = pd.read_pickle(data_or_str)[keep_vars]
+        df_name = data_or_str.stem
+    return df_name, data
+
+
+def _create_statistics(data, infection_vars, background_vars, window_length):
     """Calculate the infection rates and reproduction numbers for each date.
 
     Args:
-        data_path (str): path to the pickled simulation results
+        data (pd.DataFrame): the pickled simulation results. The index is "date", "id".
         infection_vars (list): list of infection rates to plot
         background_vars (list): list of background variables by whose value to group
             the results. Have to be present in all simulation results.
         window_length (int): how many dates to use for the reproduction numbers.
 
     Returns:
-        rates (pd.DataFrame): DataFrame with the dates as index.
-            The columns are a MultiIndex with four levels: The outermost is the
-            "bg_var" ("general" for the overall rate).
-            The next is the "rate" (e.g. the infectious rate or r zero),
-            then "bg_value", the value of the background variable and last "data_id".
+        rates (pd.DataFrame): DataFrame with the statistics of one simulation run.
+            The index are the dates. The columns are a MultiIndex with three levels:
+            The outermost is the "bg_var" ("general" for the overall rate).
+            The next is the "bg_value", the last is the "rate"
+            (e.g. the infectious rate or r zero).
 
     """
-    vars_for_r_zero = ["immune", "infection_counter", "cd_infectious_false"]
-    keep_vars = sorted(set(infection_vars + background_vars + vars_for_r_zero))
-    data = pd.read_pickle(data_path)[keep_vars]
     gb = data.groupby("date")
 
     overall = gb.mean()[infection_vars]
@@ -111,6 +163,11 @@ def _create_statistics(data_path, infection_vars, background_vars, window_length
 
     rates = pd.concat(single_df_rates, axis=1)
     return rates
+
+
+def _prepend_column_level(df, key, name):
+    prepended = pd.concat([df], keys=[key], names=[name], axis=1)
+    return prepended
 
 
 def _create_rate_plots(rates, colors, title):
@@ -208,23 +265,6 @@ def _export_plots_and_layout(title, plots, outdir_path):
     save(Column(title, *plots))
 
 
-def _input_processing(data_paths, outdir_path, background_vars):
-    colors = get_colors("categorical", 12)
-    if isinstance(background_vars, str):
-        background_vars = [background_vars]
-    outdir_path = Path(outdir_path)
-    data_paths = [data_paths] if isinstance(data_paths, (str, Path)) else data_paths
-    return data_paths, outdir_path, background_vars, colors
-
-
-def _create_folders(outdir_path, background_vars):
-    if outdir_path.exists():
-        shutil.rmtree(outdir_path)
-    outdir_path.mkdir()
-    for var in ["general"] + background_vars:
-        outdir_path.joinpath(var).mkdir()
-
-
 def _style(p):
     gray = "#808080"
     p.outline_line_color = None
@@ -239,8 +279,3 @@ def _style(p):
 
 def _nice_str(s):
     return s.replace("_", " ").title()
-
-
-def _prepend_column_level(df, key, name):
-    prepended = pd.concat([df], keys=[key], names=[name], axis=1)
-    return prepended
