@@ -43,6 +43,7 @@ def draw_course_of_disease(states, params, seed):
     # time until icu
     cd_length = params.loc[("countdown_length", "cd_needs_icu_true", None), "value"]
     probs = params.loc["prob_icu_given_symptoms", "value"]
+    probs = probs.reset_index(level="name", drop=True)
     states["cd_needs_icu_true_draws"] = _age_varying_two_stage_sampling(
         states, probs, cd_length
     )
@@ -53,6 +54,7 @@ def draw_course_of_disease(states, params, seed):
     # time until death
     cd_length = params.loc[("countdown_length", "cd_dead", None), "value"]
     probs = params.loc["prob_dead_given_icu", "value"]
+    probs = probs.reset_index(level="name", drop=True)
     states["cd_dead_draws"] = _age_varying_two_stage_sampling(states, probs, cd_length)
     states["cd_dead_draws"] = states["cd_dead_draws"].where(
         states["cd_needs_icu_true_draws"] >= 0, -1
