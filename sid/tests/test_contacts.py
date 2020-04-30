@@ -181,7 +181,7 @@ def test_calculate_infections():
     params = pd.DataFrame(
         columns=["value"],
         data=1.0,
-        index=pd.MultiIndex.from_tuples([("infection_prob", "households")]),
+        index=pd.MultiIndex.from_tuples([("infection_prob", "households", None)]),
     )
 
     indexers = {"households": create_group_indexer(states, ["households"])}

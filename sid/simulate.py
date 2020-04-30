@@ -184,8 +184,10 @@ def _check_inputs(
     if not isinstance(params, pd.DataFrame):
         raise ValueError("params must be a DataFrame.")
 
-    if params.index.names != ["category", "name"]:
-        raise ValueError("params must have an index with levels 'category' and 'name'.")
+    if params.index.names != ["category", "subcategory", "name"]:
+        raise ValueError(
+            "params must have the index levels 'category', 'subcategory' and 'name'."
+        )
 
     if not isinstance(initial_states, pd.DataFrame):
         raise ValueError("initial_states must be a DataFrame.")
