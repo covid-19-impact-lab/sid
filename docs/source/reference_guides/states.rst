@@ -49,10 +49,11 @@ Infection Counter
 There is an integer column called ``infection_counter`` that counts how many people each
 person infected during there current or most recent infection with the virus. This is
 set to zero in the moment an infection takes place. It will mainly be used to calculate
-``r_zero``.
+the `basic and effective replication number <https://en.wikipedia.org/wiki/Basic_reproduction_number>`_.
 
-``r_zero`` can be counted by taking all individuals who became non-infectious in the
-past k days, i.e. those with ``cd_infectious_false`` between 0 and -k.
+The effective replication number over the past k days can be calculated by averaging
+over the infection counter of all individuals who became non-infectious in the past
+k days, i.e. those with ``cd_infectious_false`` between 0 and -k.
 
 People can become non-infectious for the following reasons:
 
@@ -76,10 +77,11 @@ stochastic incubation time that can last several days.
 
 Such transitions are handled by countdowns. Countdowns are integer variables. They are
 negative if no change was triggered and positive otherwise. Each period they get reduced
-by one. If they hit zero, the state variables they are associated with is changed. Since
-all variables are booleans, the end of the countdown means just that the current value
-is negated. Thus the same countdown can be used for switches from True to False and from
-False to True.
+by one. If they hit zero, the state variables they are associated with is changed.
+
+.. Since all variables are booleans, the end of the countdown means just that the
+.. current value is negated. Thus the same countdown can be used for switches from
+.. True to False and from False to True.
 
 
 We have the following countdowns:
