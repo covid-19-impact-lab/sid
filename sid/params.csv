@@ -1,7 +1,7 @@
-category,subcategory,value,probability,note,source
-assortative_matching,age_group,0.5,,Probability of meeting someone from the own age group conditional on meeting someone. Rest of probability mass is split equally across other age groups. ,
-assortative_matching,region,0.9,,Probability of meeting someone from the own region conditional on meeting someone. Rest of probability mass is split equally across other regions. ,
-health_system,icu_limit_relative,0.0005,,Number of ICU beds relative to population size,https://www.dkgev.de/dkg/coronavirus-fakten-und-infos/ (for germany)
+category,subcategory,name,value,note,source
+assortative_matching,age_group,,0.5,Probability of meeting someone from the own age group conditional on meeting someone. Rest of probability mass is split equally across other age groups. ,
+assortative_matching,region,,0.9,Probability of meeting someone from the own region conditional on meeting someone. Rest of probability mass is split equally across other regions. ,
+health_system,icu_limit_relative,,0.0005,Number of ICU beds relative to population size,https://www.dkgev.de/dkg/coronavirus-fakten-und-infos/ (for germany)
 cd_infectious_true,all,3,1,,https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Steckbrief.html
 cd_infectious_false,all,8,1,This is infectiousness of people who do not get symptoms,https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Steckbrief.html
 cd_immune_false,all,365,1,This is just a guess,https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Steckbrief.html
