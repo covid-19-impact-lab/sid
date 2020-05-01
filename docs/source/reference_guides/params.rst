@@ -11,7 +11,9 @@ Make sure to read about the basic structure of `params DataFrames
 <https://estimagic.readthedocs.io/en/latest/optimization/params.html>`_ in estimagic,
 before you continue.
 
-`params` has a two level index. The first level is a category, the second is a name.
+`params` has a three level index. The first level is a category, the second is the
+subcategory, the third is a name.
+
 Currently, we have the following categories:
 
 - `assortative_matching`
@@ -21,3 +23,7 @@ Currently, we have the following categories:
 - `countdown_length`
 - `health_system`
 - `infection_prob`
+
+We provide epidemiological estimates for most of these variables.
+As the infection probabilities depend on the contact model, these must be added by the
+user.
