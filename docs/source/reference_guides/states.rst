@@ -64,6 +64,8 @@ In all cases ``cd_infectious_false`` is set to zero when infectiousness stop,
 even if the end of infectiousness was not triggered by that countdown.
 
 
+.. _countdowns:
+
 Evolution of States
 -------------------
 
@@ -78,6 +80,7 @@ by one. If they hit zero, the state variables they are associated with is change
 all variables are booleans, the end of the countdown means just that the current value
 is negated. Thus the same countdown can be used for switches from True to False and from
 False to True.
+
 
 We have the following countdowns:
 

@@ -12,18 +12,44 @@ Make sure to read about the basic structure of `params DataFrames
 before you continue.
 
 `params` has a three level index. The first level is a category, the second is the
-subcategory, the third is a name.
+subcategory, the third is called `name`. The values are stored in the "value" column.
+
+We provide epidemiological estimates for many of these variables in the `params.csv`
+with explanatory notes and links to their sources.
 
 Currently, we have the following categories:
 
-- `assortative_matching`
-- `prob_icu_given_symptoms`
-- `prob_dead_given_icu`
-- `prob_symptoms_given_infection`
-- `countdown_length`
-- `health_system`
-- `infection_prob`
+Assortative Matching (`assortative_matching`)
+---------------------------------------------------
 
-We provide epidemiological estimates for most of these variables.
-As the infection probabilities depend on the contact model, these must be added by the
-user.
+The defaults are assortative matching by `age_group` and `region`.
+
+
+Health System (`health_system`)
+-------------------------------------
+
+The default parameters in this category only include the number of free beds in
+intensive care units which determine how many individuals with serious infection cases
+survive.
+
+
+Infection Probabilities (`infection_prob`)
+-----------------------------------------------
+
+As the infection probabilities depend on the contact models, wo don't provide any
+defaults. They must be added by the user.
+Have a look at the `Simulation Tutorial <tutorials/simulation.ipynb>`_ to see some
+example contact models.
+
+
+Countdowns
+--------------
+
+Every countdown described in :ref:`countdowns` has its own category, describing its
+distribution.
+
+If the distribution does not depend on the age group, the subcategory is "all".
+If the distribution does depend on the age group then the subcategory takes the values
+of the age groups. In each case the "name" column contains the possible realizations
+and the "value" column contains the probability. Probabilities for each group must add
+up to one.
