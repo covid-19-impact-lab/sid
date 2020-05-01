@@ -31,7 +31,7 @@ def draw_course_of_disease(states, params, seed):
 
     states = states.copy()
     countdowns = [
-        "cd_immune_false_draws",
+        "cd_immune_false",
         "cd_symptoms_true",
         "cd_needs_icu_true",
         "cd_dead",
@@ -68,7 +68,7 @@ def _draw_countdowns(states, param_slice):
     if len(param_slice) == 1:
         value = param_slice.index[0][1]
         draws = pd.Series(value, index=states.index)
-    elif param_slice.index.levels[0].tolist() == ["all"]:
+    elif set(param_slice.index.get_level_values("subcategory")) == {"all"}:
         realizations = param_slice.loc["all"].index
         probs = param_slice["value"]
         draws = np.random.choice(a=realizations, p=probs, size=len(states))
