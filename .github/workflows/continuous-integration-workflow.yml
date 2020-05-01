@@ -35,7 +35,7 @@ jobs:
       - name: Run pytest.
         shell: bash -l {0}
         run: |
-          tox -e pytest -- --cov=sid
+          tox -e pytest -- --cov=sid -m "not optional"
           coverage xml --ignore-errors
 
       - name: Validate codecov.yml
