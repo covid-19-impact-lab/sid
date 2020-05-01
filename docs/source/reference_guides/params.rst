@@ -19,6 +19,7 @@ with explanatory notes and links to their sources.
 
 Currently, we have the following categories:
 
+
 Assortative Matching (`assortative_matching`)
 ---------------------------------------------------
 
@@ -53,3 +54,18 @@ If the distribution does depend on the age group then the subcategory takes the 
 of the age groups. In each case the "name" column contains the possible realizations
 and the "value" column contains the probability. Probabilities for each group must add
 up to one.
+
+Here is an example with hypothetical numbers:
+
++--------------------+-------------------+--------------------------+-------------------+
+| category           | subcategory       | name                     | value             |
++--------------------+-------------------+--------------------------+-------------------+
+| cd_symptoms_true   | all               | -1 (= never)             | 0.25              |
+| cd_symptoms_true   | all               | 3                        | 0.75              |
+| ...                | ...               | ...                      | ...               |
+| cd_infectious_true | 0 - 9 (age group) | 3 (possible realization) | 0.6 (probability) |
+| cd_infectious_true | 0 - 9 (age group) | 5 (possible realization) | 0.3 (probability) |
+| cd_infectious_true | 0 - 9 (age group) | 7 (possible realization) | 0.1 (probability) |
+| cd_infectious_true | 10 - 20           | 3 (possible realization) | 0.6 (probability) |
+| ...                | ...               | ...                      | ...               |
++--------------------+-------------------+--------------------------+-------------------+

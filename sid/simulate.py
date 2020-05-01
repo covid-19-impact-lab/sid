@@ -187,6 +187,14 @@ def _check_inputs(
             "params must have the index levels 'category', 'subcategory' and 'name'."
         )
 
+    cd_names = sorted(COUNTDOWNS.keys())
+    gb = params.loc[cd_names].groupby(["category", "subcategory"])
+    prob_sums = gb["value"].sum()
+    problematic = prob_sums[~prob_sums.between(1 - 1e-08, 1 + 1e-08)].index.tolist()
+    assert (
+        len(problematic) == 0
+    ), f"The following countdown probabilities don't add up to 1: {problematic}"
+
     if not isinstance(initial_states, pd.DataFrame):
         raise ValueError("initial_states must be a DataFrame.")
 

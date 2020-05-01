@@ -7,6 +7,8 @@ countdown lengths. Currently, most of it is deterministic.
 import numpy as np
 import pandas as pd
 
+from sid.config import COUNTDOWNS
+
 
 def draw_course_of_disease(states, params, seed):
     """Draw course of the disease.
@@ -30,17 +32,7 @@ def draw_course_of_disease(states, params, seed):
     np.random.seed(next(seed))
 
     states = states.copy()
-    countdowns = [
-        "cd_immune_false",
-        "cd_symptoms_true",
-        "cd_needs_icu_true",
-        "cd_dead",
-        "cd_symptoms_false",
-        "cd_needs_icu_false",
-        "cd_knows_true",
-        "cd_infectious_true",
-        "cd_infectious_false",
-    ]
+    countdowns = COUNTDOWNS.keys()
 
     for cd in countdowns:
         states[f"{cd}_draws"] = _draw_countdowns(states, params.loc[cd])
