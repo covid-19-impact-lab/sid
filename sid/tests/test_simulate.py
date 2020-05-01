@@ -4,6 +4,7 @@ from pathlib import Path
 import nbformat
 import numpy as np
 import pandas as pd
+import pytest
 from nbconvert.preprocessors import ExecutePreprocessor
 
 from sid.parse_model import parse_duration
@@ -52,6 +53,7 @@ def test_process_data_w_multiindex():
     assert simulation_results.index.names == ["date", "index_a", "index_b"]
 
 
+@pytest.mark.slow
 def test_simulate_notebook():
     """Run the simulation notebook.
 
