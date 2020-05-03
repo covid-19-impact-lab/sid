@@ -15,4 +15,11 @@ def test_notebooks():
     repo_path = Path(__file__).resolve().parent.parent
     tutorials_path = repo_path / "docs" / "source" / "tutorials"
     os.chdir(tutorials_path)
-    assert True is False, "test_notebooks ran!"
+    ipynbs = list(tutorials_path.glob("*.ipynb"))
+    import nbformat
+    from nbconvert.preprocessors import ExecutePreprocessor
+
+    for nb_name in ipynbs:
+        with open(nb_name) as f:
+            notebook = nbformat.read(f, as_version=4)
+        ExecutePreprocessor(timeout=600).preprocess(notebook)
