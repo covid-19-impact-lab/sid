@@ -5,6 +5,8 @@ repos:
     -   id: check-merge-conflict
     -   id: debug-statements
     -   id: end-of-file-fixer
+    -   id: check-added-large-files
+        args: ['--maxkb=500']
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.2.0
     hooks:
