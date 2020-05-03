@@ -32,9 +32,8 @@ def draw_course_of_disease(states, params, seed):
     np.random.seed(next(seed))
 
     states = states.copy()
-    countdowns = COUNTDOWNS.keys()
 
-    for cd in countdowns:
+    for cd in COUNTDOWNS:
         states[f"{cd}_draws"] = _draw_countdowns(states, params.loc[cd])
 
     return states

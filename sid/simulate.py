@@ -187,7 +187,7 @@ def _check_inputs(
             "params must have the index levels 'category', 'subcategory' and 'name'."
         )
 
-    cd_names = sorted(COUNTDOWNS.keys())
+    cd_names = sorted(COUNTDOWNS)
     gb = params.loc[cd_names].groupby(["category", "subcategory"])
     prob_sums = gb["value"].sum()
     problematic = prob_sums[~prob_sums.between(1 - 1e-08, 1 + 1e-08)].index.tolist()
