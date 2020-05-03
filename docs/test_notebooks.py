@@ -1,9 +1,7 @@
 import os
 from pathlib import Path
 
-import nbformat
 import pytest
-from nbconvert.preprocessors import ExecutePreprocessor
 
 
 @pytest.mark.optional
@@ -13,6 +11,9 @@ def test_notebooks():
    source: https://nbconvert.readthedocs.io/en/latest/execute_api.html
 
    """
+    import nbformat
+    from nbconvert.preprocessors import ExecutePreprocessor
+
     repo_path = Path(__file__).resolve().parent.parent
     tutorials_path = repo_path / "docs" / "source" / "tutorials"
     ipynbs = list(tutorials_path.glob("*.ipynb"))
