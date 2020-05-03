@@ -8,9 +8,9 @@ import pytest
 def test_notebooks():
     """Run the simulation notebook.
 
-   source: https://nbconvert.readthedocs.io/en/latest/execute_api.html
+    source: https://nbconvert.readthedocs.io/en/latest/execute_api.html
 
-   """
+    """
     import nbformat
     from nbconvert.preprocessors import ExecutePreprocessor
 
