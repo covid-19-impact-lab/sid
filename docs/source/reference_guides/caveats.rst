@@ -4,18 +4,6 @@
 Caveats
 =======
 
-Interpretation of contact channels
-----------------------------------
-
-In the current implementation we cannot interpret easily which contact types lead to
-most infection because we first do all matchings for the first contact type, then for
-the second and so on. This means that the first contact type has higher chances to
-infect people because for the second contact type there are already more immune people.
-The bias should however be small. If we get interesting results that some contact type
-is responsible for a large share of infections, we can move it to the end and find out
-if the results persist.
-
-
 Problems in the matching process
 --------------------------------
 

@@ -13,12 +13,7 @@ def test_simple_run(params, initial_states, tmpdir):
     contact_models = {"standard": {"model": meet_two, "contact_type": "standard"}}
 
     df = simulate(
-        params,
-        initial_states,
-        initial_infections,
-        contact_models,
-        assort_by=["age_group", "region"],
-        path=tmpdir,
+        params, initial_states, initial_infections, contact_models, path=tmpdir,
     )
     df = df.compute()
 

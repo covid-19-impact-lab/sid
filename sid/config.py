@@ -73,6 +73,6 @@ The dtype has to be signed integer because `-1` is assigned to counters which ha
 been started.
 
 """
-DTYPE_GROUP_CODE = np.uint32
+DTYPE_GROUP_CODE = np.int32
 DTYPE_INDEX = np.uint32
 DTYPE_N_CONTACTS = np.uint32
