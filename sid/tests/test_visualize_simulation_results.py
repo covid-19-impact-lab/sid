@@ -34,8 +34,8 @@ def test_create_folders(tmp_path):
 
 @pytest.mark.optional
 def test_load_data_path(keep_vars):
-    path = Path(__file__).resolve().parent / "simulation_results" / "001.pkl"
-    expected_name = "001"
+    path = Path(__file__).resolve().parent / "simulation_results" / "01.pkl"
+    expected_name = "01"
     expected_df = pd.read_pickle(path)[keep_vars]
     name, df = vsr._load_data(path, keep_vars=keep_vars, i=100)
     assert expected_name == name
@@ -44,7 +44,7 @@ def test_load_data_path(keep_vars):
 
 @pytest.mark.optional
 def test_load_data_df(keep_vars):
-    path = Path(__file__).resolve().parent / "simulation_results" / "001.pkl"
+    path = Path(__file__).resolve().parent / "simulation_results" / "01.pkl"
     input_df = pd.read_pickle(path)
     expected_df = pd.read_pickle(path)[keep_vars]
     name, df = vsr._load_data(input_df, keep_vars=keep_vars, i=100)
@@ -56,7 +56,7 @@ def test_load_data_df(keep_vars):
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_visualize_simulation_results(tmp_path):
     path = Path(__file__).resolve().parent / "simulation_results"
-    data = [path / "001.pkl", path / "002.pkl"]
+    data = [path / "01.pkl", path / "02.pkl"]
     bg_vars = ["age_group"]
     infection_vars = ["immune", "infectious"]
     # just check that this does not raise any Errors:

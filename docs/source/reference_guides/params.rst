@@ -23,7 +23,18 @@ Currently, we have the following categories:
 Assortative Matching (`assortative_matching`)
 ---------------------------------------------------
 
-The defaults are assortative matching by `age_group` and `region`.
+As the assortative matching parameters depend on the contact models,
+we don't provide any defaults. They must be added by the user.
+
+We suggest to implement assortative matching by `age_group` and `region`.
+However, you are free to implement assortative matching by any variable in your `states`
+dataset. Having assortative matching not only adds realism to your model but also
+reduces running time.
+
+Have a look at the `Simulation Tutorial <tutorials/simulation.ipynb>`_ to see some
+example contact models and assortative matching parameters.
+
+For more information on assortative matching see :ref:`assort_by`.
 
 
 Health System (`health_system`)

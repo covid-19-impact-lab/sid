@@ -57,6 +57,9 @@ each individual meets all others who have the exact same value in all ``assort_b
 variables. This can be used to model recurrent contacts inside a household, a school
 class or at the workplace.
 
+
+.. _assort_by:
+
 ``"assort_by"``
 ^^^^^^^^^^^^^^^^^^^^
 

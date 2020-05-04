@@ -48,8 +48,18 @@ def test_create_group_indexer(initial_states, assort_by, expected):
     ],
 )
 def test_create_group_transition_probs(initial_states, assort_by, params, expected):
-    transition_matrix = create_group_transition_probs(initial_states, assort_by, params)
+    # append assortative matching parameters
+    assort_index = pd.MultiIndex.from_tuples(
+        [
+            ("assortative_matching", "age_group", None),
+            ("assortative_matching", "region", None),
+        ]
+    )
+    assort_probs = pd.DataFrame(columns=params.columns, index=assort_index)
+    assort_probs["value"] = [0.5, 0.9]
+    params = params.append(assort_probs)
 
+    transition_matrix = create_group_transition_probs(initial_states, assort_by, params)
     np.testing.assert_allclose(transition_matrix, expected)
 
 
