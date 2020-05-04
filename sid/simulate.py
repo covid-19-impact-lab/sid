@@ -250,7 +250,7 @@ def _prepare_assortative_matching(states, assort_bys, params, contact_models):
         indexers[model_name] = create_group_indexer(states, assort_by)
         if contact_models[model_name]["model"] != "meet_group":
             first_probs[model_name] = create_group_transition_probs(
-                states, assort_by, params
+                states, assort_by, params, model_name
             )
     return indexers, first_probs
 

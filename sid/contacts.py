@@ -369,13 +369,14 @@ def create_group_indexer(states, assort_by):
     return indexer
 
 
-def create_group_transition_probs(states, assort_by, params):
+def create_group_transition_probs(states, assort_by, params, model_name):
     """Create a transition matrix for groups.
 
     Args:
         states (pandas.DataFrame): see :ref:`states`
         assort_by (list): List of variables that influence matching probabilities.
         params (pandas.DataFrame): See :ref:`params`
+        model_name (str): name of the contact model.
 
     Returns
         probs (numpy.ndarray): Array of shape n_group, n_groups. probs[i, j] is the
@@ -389,7 +390,7 @@ def create_group_transition_probs(states, assort_by, params):
         same_probs = []
         other_probs = []
         for var in assort_by:
-            p = params.loc[("assortative_matching", var, None), "value"]
+            p = params.loc[("assortative_matching", model_name, var), "value"]
             n_vals = len(states[var].unique())
             same_probs.append(p)
             other_probs.append((1 - p) / (n_vals - 1))

@@ -51,15 +51,17 @@ def test_create_group_transition_probs(initial_states, assort_by, params, expect
     # append assortative matching parameters
     assort_index = pd.MultiIndex.from_tuples(
         [
-            ("assortative_matching", "age_group", None),
-            ("assortative_matching", "region", None),
+            ("assortative_matching", "model1", "age_group"),
+            ("assortative_matching", "model1", "region"),
         ]
     )
     assort_probs = pd.DataFrame(columns=params.columns, index=assort_index)
     assort_probs["value"] = [0.5, 0.9]
     params = params.append(assort_probs)
 
-    transition_matrix = create_group_transition_probs(initial_states, assort_by, params)
+    transition_matrix = create_group_transition_probs(
+        states=initial_states, assort_by=assort_by, params=params, model_name="model1"
+    )
     np.testing.assert_allclose(transition_matrix, expected)
 
 
