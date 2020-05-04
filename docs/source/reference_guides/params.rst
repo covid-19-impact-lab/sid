@@ -11,13 +11,72 @@ Make sure to read about the basic structure of `params DataFrames
 <https://estimagic.readthedocs.io/en/latest/optimization/params.html>`_ in estimagic,
 before you continue.
 
-`params` has a two level index. The first level is a category, the second is a name.
+`params` has a three level index. The first level is a category, the second is the
+subcategory, the third is called `name`. The values are stored in the "value" column.
+
+We provide epidemiological estimates for many of these variables in the `params.csv`
+with explanatory notes and links to their sources.
+
 Currently, we have the following categories:
 
-- `assortative_matching`
-- `prob_icu_given_symptoms`
-- `prob_dead_given_icu`
-- `prob_symptoms_given_infection`
-- `countdown_length`
-- `health_system`
-- `infection_prob`
+
+Assortative Matching (`assortative_matching`)
+---------------------------------------------------
+
+As the assortative matching parameters depend on the contact models,
+we don't provide any defaults. They must be added by the user.
+
+We suggest to implement assortative matching by `age_group` and `region`.
+However, you are free to implement assortative matching by any variable in your `states`
+dataset. Having assortative matching not only adds realism to your model but also
+reduces running time.
+
+Have a look at the `Simulation Tutorial <tutorials/simulation.ipynb>`_ to see some
+example contact models and assortative matching parameters.
+
+For more information on assortative matching see :ref:`assort_by`.
+
+
+Health System (`health_system`)
+-------------------------------------
+
+The default parameters in this category only include the number of free beds in
+intensive care units which determine how many individuals with serious infection cases
+survive.
+
+
+Infection Probabilities (`infection_prob`)
+-----------------------------------------------
+
+As the infection probabilities depend on the contact models, wo don't provide any
+defaults. They must be added by the user.
+Have a look at the `Simulation Tutorial <tutorials/simulation.ipynb>`_ to see some
+example contact models.
+
+
+Countdowns
+--------------
+
+Every countdown described in :ref:`countdowns` has its own category, describing its
+distribution.
+
+If the distribution does not depend on the age group, the subcategory is "all".
+If the distribution does depend on the age group then the subcategory takes the values
+of the age groups. In each case the "name" column contains the possible realizations
+and the "value" column contains the probability. Probabilities for each group must add
+up to one.
+
+Here is an example with hypothetical numbers:
+
++--------------------+-------------------+--------------------------+-------------------+
+| category           | subcategory       | name                     | value             |
++--------------------+-------------------+--------------------------+-------------------+
+| cd_symptoms_true   | all               | -1 (= never)             | 0.25              |
+| cd_symptoms_true   | all               | 3                        | 0.75              |
+| ...                | ...               | ...                      | ...               |
+| cd_infectious_true | 0 - 9 (age group) | 3 (possible realization) | 0.6 (probability) |
+| cd_infectious_true | 0 - 9 (age group) | 5 (possible realization) | 0.3 (probability) |
+| cd_infectious_true | 0 - 9 (age group) | 7 (possible realization) | 0.1 (probability) |
+| cd_infectious_true | 10 - 20           | 3 (possible realization) | 0.6 (probability) |
+| ...                | ...               | ...                      | ...               |
++--------------------+-------------------+--------------------------+-------------------+

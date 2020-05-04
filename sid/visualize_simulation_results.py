@@ -21,7 +21,8 @@ def visualize_simulation_results(
     """Visualize the results one or more simulation results.
 
     Args:
-        data (str, pd.DataFrame, Path, list): list of paths to the pickled simulation results
+        data (str, pd.DataFrame, Path, list): list of paths to the pickled simulation
+            results
         outdir_path (path): path to the folder where to save the results.
             Careful, all contents are removed when the function is called.
         infection_vars (list): list of infection rates to plot

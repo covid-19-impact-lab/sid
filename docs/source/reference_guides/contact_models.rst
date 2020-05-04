@@ -57,6 +57,9 @@ each individual meets all others who have the exact same value in all ``assort_b
 variables. This can be used to model recurrent contacts inside a household, a school
 class or at the workplace.
 
+
+.. _assort_by:
+
 ``"assort_by"``
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -64,7 +67,8 @@ A single variable or list of variables according to which the matching is assort
 All assort_by variables must be categorical. Individuals who have the same value
 in all assort_by variables belong to one group. The ``params`` DataFrame contains
 entries that govern the probability of meeting people from the own group. The index
-entry of that parameter values is ``("assortative_matching", "name_of_contact_model")``.
+entry of that parameter values is
+``("assortative_matching", "name_of_contact_model", variable_name)``.
 
 The remaining probability mass is spread on all other groups, adjusting for group sizes
 and number of planned contacts in each group.

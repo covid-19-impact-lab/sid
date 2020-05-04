@@ -46,8 +46,6 @@ def simulate(
             :ref:`policies`.
         duration (dict or None): Duration is a dictionary containing kwargs for
             :func:`pandas.date_range`.
-        assort_by (list, optional): List of variable names. Contacts are assortative by
-            these variables. These variables must be in the initial_states.
         seed (int, optional): Seed is used as the starting point of a sequence of seeds
             used to control randomness internally.
 
@@ -184,8 +182,18 @@ def _check_inputs(
     if not isinstance(params, pd.DataFrame):
         raise ValueError("params must be a DataFrame.")
 
-    if params.index.names != ["category", "name"]:
-        raise ValueError("params must have an index with levels 'category' and 'name'.")
+    if params.index.names != ["category", "subcategory", "name"]:
+        raise ValueError(
+            "params must have the index levels 'category', 'subcategory' and 'name'."
+        )
+
+    cd_names = sorted(COUNTDOWNS)
+    gb = params.loc[cd_names].groupby(["category", "subcategory"])
+    prob_sums = gb["value"].sum()
+    problematic = prob_sums[~prob_sums.between(1 - 1e-08, 1 + 1e-08)].index.tolist()
+    assert (
+        len(problematic) == 0
+    ), f"The following countdown probabilities don't add up to 1: {problematic}"
 
     if not isinstance(initial_states, pd.DataFrame):
         raise ValueError("initial_states must be a DataFrame.")
@@ -242,7 +250,7 @@ def _prepare_assortative_matching(states, assort_bys, params, contact_models):
         indexers[model_name] = create_group_indexer(states, assort_by)
         if contact_models[model_name]["model"] != "meet_group":
             first_probs[model_name] = create_group_transition_probs(
-                states, assort_by, params
+                states, assort_by, params, model_name
             )
     return indexers, first_probs
 
@@ -264,8 +272,8 @@ def _process_initial_states(states, assort_bys):
 
     Args:
         states (pandas.DataFrame): The user-defined initial states.
-        assort_by (list, optional): List of variable names. Contacts are assortative by
-            these variables.
+        assort_bys (list, optional): List of variable names. Contacts are assortative
+            by these variables.
 
     Returns:
         states (pandas.DataFrame): Processed states.

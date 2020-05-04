@@ -13,5 +13,5 @@ def initial_states():
 def params():
     return pd.read_csv(
         Path(__file__).resolve().parent / ".." / "params.csv",
-        index_col=["category", "name"],
+        index_col=["category", "subcategory", "name"],
     )

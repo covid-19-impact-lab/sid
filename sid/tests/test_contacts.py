@@ -48,8 +48,20 @@ def test_create_group_indexer(initial_states, assort_by, expected):
     ],
 )
 def test_create_group_transition_probs(initial_states, assort_by, params, expected):
-    transition_matrix = create_group_transition_probs(initial_states, assort_by, params)
+    # append assortative matching parameters
+    assort_index = pd.MultiIndex.from_tuples(
+        [
+            ("assortative_matching", "model1", "age_group"),
+            ("assortative_matching", "model1", "region"),
+        ]
+    )
+    assort_probs = pd.DataFrame(columns=params.columns, index=assort_index)
+    assort_probs["value"] = [0.5, 0.9]
+    params = params.append(assort_probs)
 
+    transition_matrix = create_group_transition_probs(
+        states=initial_states, assort_by=assort_by, params=params, model_name="model1"
+    )
     np.testing.assert_allclose(transition_matrix, expected)
 
 
@@ -181,7 +193,7 @@ def test_calculate_infections():
     params = pd.DataFrame(
         columns=["value"],
         data=1.0,
-        index=pd.MultiIndex.from_tuples([("infection_prob", "households")]),
+        index=pd.MultiIndex.from_tuples([("infection_prob", "households", None)]),
     )
 
     indexers = {"households": create_group_indexer(states, ["households"])}

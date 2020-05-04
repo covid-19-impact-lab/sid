@@ -1,0 +1,5 @@
+category,subcategory,name,value,note,source
+assortative_matching,meet_close,age_group,0.5,,
+assortative_matching,meet_close,region,0.9,,
+assortative_matching,meet_distant,age_group,0.5,,
+assortative_matching,meet_distant,region,0.9,,
