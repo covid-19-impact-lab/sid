@@ -20,7 +20,7 @@ def parse_duration(duration):
     if duration is None:
         duration = {"start": "2020-02-01", "periods": 10}
 
-    iterable = pd.date_range(**duration).date
+    iterable = pd.date_range(**duration)
 
     internal_duration = {}
     internal_duration["start"] = iterable[0]

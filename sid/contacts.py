@@ -33,8 +33,8 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
             cont = func(states, params.loc[loc], date)
             if model_name in contact_policies:
                 cp = contact_policies[model_name]
-                policy_start = pd.to_datetime(cp["start"]).date()
-                policy_end = pd.to_datetime(cp["end"]).date()
+                policy_start = pd.to_datetime(cp["start"])
+                policy_end = pd.to_datetime(cp["end"])
                 if policy_start <= date <= policy_end and cp["is_active"](states):
                     cont *= cp["multiplier"]
 

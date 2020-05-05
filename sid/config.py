@@ -76,3 +76,25 @@ been started.
 DTYPE_GROUP_CODE = np.int32
 DTYPE_INDEX = np.uint32
 DTYPE_N_CONTACTS = np.uint32
+
+USELESS_COLUMNS = [
+    "cd_infectious_true",
+    "cd_immune_false",
+    "cd_symptoms_true",
+    "cd_symptoms_false",
+    "cd_needs_icu_true",
+    "cd_dead",
+    "cd_needs_icu_false",
+    "cd_knows_true",
+    "cd_immune_false_draws",
+    "cd_symptoms_true_draws",
+    "cd_needs_icu_true_draws",
+    "cd_dead_draws",
+    "cd_symptoms_false_draws",
+    "cd_needs_icu_false_draws",
+    "cd_knows_true_draws",
+    "cd_infectious_true_draws",
+    "cd_infectious_false_draws",
+    "group_codes_close",
+    "group_codes_distant",
+]

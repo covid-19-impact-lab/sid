@@ -1,6 +1,6 @@
+import itertools as it
 import shutil
 import warnings
-from itertools import count
 from pathlib import Path
 
 import dask.dataframe as dd
@@ -10,6 +10,7 @@ import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import COUNTDOWNS
 from sid.config import DTYPE_COUNTER
+from sid.config import USELESS_COLUMNS
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections
 from sid.contacts import create_group_indexer
@@ -44,13 +45,11 @@ def simulate(
         contact_models (dict): Dictionary of dictionaries where each dictionary
             describes a channel by which contacts can be formed.
             See :ref:`contact_models`.
+        duration (dict or None): Duration is a dictionary containing kwargs for
+            :func:`pandas.date_range`.
         contact_policies (dict): Dict of dicts with contact. See :ref:`policies`.
         testing_policies (dict): Dict of dicts with testing policies. See
             :ref:`policies`.
-        duration (dict or None): Duration is a dictionary containing kwargs for
-            :func:`pandas.date_range`.
-        assort_by (list, optional): List of variable names. Contacts are assortative by
-            these variables. These variables must be in the initial_states.
         seed (int, optional): Seed is used as the starting point of a sequence of seeds
             used to control randomness internally.
         path (str or pathlib.Path): Path to the directory where the simulated data is
@@ -59,16 +58,14 @@ def simulate(
     Returns:
         simulation_results (dask.dataframe): The simulation results in form of a long
             dask DataFrame. The DataFrame contains the states of each period (see
-            :ref:`states`) and a column called infections. The index has two levels. The
-            first is the period. The second is the id. Id is the index of
-            initial_states.
+            :ref:`states`) and a column called infections.
 
     """
     output_directory = _create_output_directory(path)
 
     contact_policies = {} if contact_policies is None else contact_policies
     testing_policies = {} if testing_policies is None else testing_policies
-    seed = count(np.random.randint(0, 1_000_000)) if seed is None else count(seed)
+    seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
 
     _check_inputs(
         params,
@@ -97,7 +94,7 @@ def simulate(
 
     for period, date in enumerate(duration["dates"]):
         states["date"] = date
-        states["period"] = period
+        states["period"] = np.uint16(period)
 
         contacts = calculate_contacts(
             contact_models, contact_policies, states, params, date
@@ -111,9 +108,9 @@ def simulate(
             states[contact_model] = contacts[:, i]
         states["infections"] = infections
 
-        states.copy(deep=True).to_parquet(output_directory / f"{date}.parquet")
+        _dump_periodic_states(states, output_directory, date)
 
-    simulation_results = _return_dask_dataframe(output_directory)
+    simulation_results = _return_dask_dataframe(output_directory, assort_bys)
 
     return simulation_results
 
@@ -147,6 +144,8 @@ def _create_output_directory(path):
                 folder_name = f".sid-{i}"
                 if not current_working_directory.joinpath(folder_name).exists():
                     break
+                else:
+                    i += 1
 
         output_directory = current_working_directory / folder_name
 
@@ -319,6 +318,17 @@ def _process_initial_states(states, assort_bys):
     if np.any(states.isna()):
         raise ValueError("'initial_states' are not allowed to contain NaNs.")
 
+    # Check if all assort_by columns are categoricals. This is important to save memory.
+    assort_by_variables = list(
+        set(it.chain.from_iterable(a_b for a_b in assort_bys.values()))
+    )
+    for assort_by in assort_by_variables:
+        if states[assort_by].dtype.name != "category":
+            raise TypeError(
+                "All 'assort_by' variables need to be pandas.Categoricals. "
+                f"'{assort_by}' is not."
+            )
+
     # Sort index for deterministic shuffling and reset index because otherwise it will
     # be dropped while writing to parquet. Parquet stores an efficient range index
     # instead.
@@ -343,7 +353,13 @@ def _process_initial_states(states, assort_bys):
     return states
 
 
-def _return_dask_dataframe(output_directory):
+def _dump_periodic_states(states, output_directory, date):
+    states.copy(deep=True).drop(columns=USELESS_COLUMNS).to_parquet(
+        output_directory / f"{date.date()}.parquet"
+    )
+
+
+def _return_dask_dataframe(output_directory, assort_bys):
     """Process the simulation results.
 
     Args:
@@ -353,4 +369,7 @@ def _return_dask_dataframe(output_directory):
         df (dask.dataframe): A dask DataFrame which contains the simulation results.
 
     """
-    return dd.read_parquet(output_directory)
+    assort_by_variables = list(
+        set(it.chain.from_iterable(a_b for a_b in assort_bys.values()))
+    )
+    return dd.read_parquet(output_directory, categories=assort_by_variables)

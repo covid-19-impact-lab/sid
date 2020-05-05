@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 from bokeh.io import export_png
@@ -16,7 +17,7 @@ from sid.shared import calculate_r_zero
 
 
 def visualize_simulation_results(
-    data, outdir_path, infection_vars, background_vars, window_length,
+    data, outdir_path, infection_vars, background_vars, window_length=7,
 ):
     """Visualize the results one or more simulation results.
 
@@ -28,6 +29,7 @@ def visualize_simulation_results(
         infection_vars (list): list of infection rates to plot
         background_vars (list): list of background variables by whose value to group
             the results. Have to be present in all simulation results.
+        window_length (int): How many dates to use for the reproduction numbers.
 
     """
     colors = get_colors("categorical", 12)
@@ -75,16 +77,16 @@ def _create_folders(outdir_path, background_vars):
 def _create_rates_for_all_data(
     datasets, infection_vars, background_vars, window_length
 ):
-    """Crate the statistics for each dataset and merge them into one dataset.
+    """Create the statistics for each dataset and merge them into one dataset.
 
     Args:
         datasets (list): list of str, Paths to pickled DataFrames or pd.DataFrames.
         infection_vars (list): list of infection rates to plot
         background_vars (list): list of background variables by whose value to group
             the results. Have to be present in all simulation results.
-        window_length (int): how many dates to use for the reproduction numbers.
+        window_length (int): How many dates to use for the reproduction numbers.
 
-    rates (pd.DataFrame): DataFrame with the dates as index.
+    rates (pandas.DataFrame): DataFrame with the dates as index.
         The columns are a MultiIndex with four levels: The outermost is the
         "bg_var" ("general" for the overall rate).
         The next is the "rate" (e.g. the infectious rate or r zero),
@@ -92,12 +94,14 @@ def _create_rates_for_all_data(
 
     """
     name_to_statistics = {}
-    for i, data_or_str in enumerate(datasets):
+    for i, df_or_str in enumerate(datasets):
         vars_for_r_zero = ["immune", "infection_counter", "cd_infectious_false"]
-        keep_vars = sorted(set(infection_vars + background_vars + vars_for_r_zero))
-        df_name, data = _load_data(data_or_str, keep_vars, i)
+        keep_vars = sorted(
+            set(infection_vars + background_vars + vars_for_r_zero + ["date"])
+        )
+        df_name, df = _load_data(df_or_str, keep_vars, i)
         name_to_statistics[df_name] = _create_statistics(
-            data=data,
+            df=df,
             infection_vars=infection_vars,
             background_vars=background_vars,
             window_length=window_length,
@@ -108,35 +112,36 @@ def _create_rates_for_all_data(
     return rates
 
 
-def _load_data(data_or_str, keep_vars, i):
-    if isinstance(data_or_str, pd.DataFrame):
-        data = data_or_str[keep_vars]
+def _load_data(df_or_str, keep_vars, i):
+    if isinstance(df_or_str, pd.DataFrame):
+        df = df_or_str[keep_vars]
         df_name = i
     else:
-        data = pd.read_pickle(data_or_str)[keep_vars]
-        df_name = data_or_str.stem
-    return df_name, data
+        df = dd.read_parquet(df_or_str)[keep_vars]
+        df_name = df_or_str.stem
+    return df_name, df
 
 
-def _create_statistics(data, infection_vars, background_vars, window_length):
+def _create_statistics(df, infection_vars, background_vars, window_length):
     """Calculate the infection rates and reproduction numbers for each date.
 
     Args:
-        data (pd.DataFrame): the pickled simulation results. The index is "date", "id".
+        df (pandas.DataFrame): the pickled simulation results. The index is "date",
+            "id".
         infection_vars (list): list of infection rates to plot
         background_vars (list): list of background variables by whose value to group
             the results. Have to be present in all simulation results.
-        window_length (int): how many dates to use for the reproduction numbers.
+        window_length (int): How many dates to use for the reproduction numbers.
 
     Returns:
-        rates (pd.DataFrame): DataFrame with the statistics of one simulation run.
+        rates (pandas.DataFrame): DataFrame with the statistics of one simulation run.
             The index are the dates. The columns are a MultiIndex with three levels:
             The outermost is the "bg_var" ("general" for the overall rate).
             The next is the "bg_value", the last is the "rate"
             (e.g. the infectious rate or r zero).
 
     """
-    gb = data.groupby("date")
+    gb = df.groupby("date")
 
     overall = gb.mean()[infection_vars]
     overall["r_zero"] = gb.apply(calculate_r_zero, window_length)
@@ -150,7 +155,7 @@ def _create_statistics(data, infection_vars, background_vars, window_length):
     single_df_rates = [overall]
 
     for bg_var in background_vars:
-        gb = data.groupby([bg_var, "date"])
+        gb = df.groupby([bg_var, "date"])
         infection_rates = gb.mean()[infection_vars].unstack(level=0)
         r_zeros = gb.apply(calculate_r_zero, window_length).unstack(level=0)
         r_zeros = _prepend_column_level(r_zeros, "r_zero", "rate")
@@ -176,10 +181,10 @@ def _create_rate_plots(rates, colors, title):
     """Plot all rates for a single background variable
 
     Args:
-        rates (pd.DataFrame): DataFrame with the dates as index.
-            The columns are a MultiIndex with three levels: The outermost is the
-            variable name (e.g. infectious or r_zero). The next are the values the
-            background variable can take, the last "data_id".
+        rates (pandas.DataFrame): DataFrame with the dates as index. The columns are a
+            MultiIndex with three levels: The outermost is the variable name (e.g.
+            infectious or r_zero). The next are the values the background variable can
+            take, the last "data_id".
         colors (list): list of colors to use.
         title (str): the plot title will be the name of the rate plus this string.
 
