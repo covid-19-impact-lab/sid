@@ -6,6 +6,8 @@ from numba import njit
 from numba.typed import List as NumbaList
 
 from sid.config import DTYPE_INDEX
+from sid.config import DTYPE_INFECTED
+from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_N_CONTACTS
 from sid.shared import factorize_assortative_variables
 
@@ -113,7 +115,7 @@ def calculate_infections(states, contacts, params, indexers, group_probs, seed):
         loop_order,
     )
 
-    infected_sr = pd.Series(infected, index=states.index, dtype=bool)
+    infected_sr = pd.Series(infected, index=states.index)
     states["infection_counter"] += infection_counter
     for i, contact_model in enumerate(group_probs):
         states[f"missed_{contact_model}"] = missed[:, i]
@@ -171,8 +173,8 @@ def _calculate_infections_numba(
     """
     np.random.seed(seed)
 
-    infected = np.zeros(len(contacts), dtype=np.int32)
-    infection_counter = np.zeros(len(contacts), dtype=np.int32)
+    infected = np.zeros(len(contacts), dtype=DTYPE_INFECTED)
+    infection_counter = np.zeros(len(contacts), dtype=DTYPE_INFECTION_COUNTER)
     groups_list = [np.arange(len(gp)) for gp in group_probs_list]
 
     # Loop over all individual-contact_model combinations

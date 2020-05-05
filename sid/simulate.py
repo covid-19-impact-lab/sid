@@ -9,7 +9,8 @@ import pandas as pd
 
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import COUNTDOWNS
-from sid.config import DTYPE_COUNTER
+from sid.config import DTYPE_COUNTDOWNS
+from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import USELESS_COLUMNS
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections
@@ -99,14 +100,14 @@ def simulate(
         contacts = calculate_contacts(
             contact_models, contact_policies, states, params, date
         )
-        infections, states = calculate_infections(
+        newly_infected, states = calculate_infections(
             states, contacts, params, indexers, first_probs, seed,
         )
-        states = update_states(states, infections, params, seed)
+        states = update_states(states, newly_infected, params, seed)
 
         for i, contact_model in enumerate(first_probs):
             states[contact_model] = contacts[:, i]
-        states["infections"] = infections
+        states["infections"] = newly_infected
 
         _dump_periodic_states(states, output_directory, date)
 
@@ -125,29 +126,17 @@ def _create_output_directory(path):
         path (pathlib.Path or None): Path to the output directory.
 
     """
-    if path is not None:
-        output_directory = Path(path)
+    if path is None:
+        path = Path.cwd() / ".sid"
 
-        if output_directory.exists() and not output_directory.is_dir():
-            raise ValueError(f"{path} is a file instead of an directory.")
-        elif output_directory.exists():
-            shutil.rmtree(output_directory)
-        else:
-            pass
+    output_directory = Path(path)
 
+    if output_directory.exists() and not output_directory.is_dir():
+        raise ValueError(f"{path} is a file instead of an directory.")
+    elif output_directory.exists():
+        shutil.rmtree(output_directory)
     else:
-        current_working_directory = Path.cwd()
-        folder_name = ".sid"
-        if current_working_directory.joinpath(folder_name).exists():
-            i = 0
-            while True:
-                folder_name = f".sid-{i}"
-                if not current_working_directory.joinpath(folder_name).exists():
-                    break
-                else:
-                    i += 1
-
-        output_directory = current_working_directory / folder_name
+        pass
 
     output_directory.mkdir(parents=True, exist_ok=True)
 
@@ -351,9 +340,9 @@ def _process_initial_states(states, assort_bys):
     for col in COUNTDOWNS:
         if col not in states.columns:
             states[col] = -1
-        states[col] = states[col].astype(DTYPE_COUNTER)
+        states[col] = states[col].astype(DTYPE_COUNTDOWNS)
 
-    states["infection_counter"] = 0
+    states["infection_counter"] = DTYPE_INFECTION_COUNTER(0)
 
     for model_name, assort_by in assort_bys.items():
         states[f"group_codes_{model_name}"], _ = factorize_assortative_variables(
@@ -364,7 +353,10 @@ def _process_initial_states(states, assort_bys):
 
 
 def _dump_periodic_states(states, output_directory, date):
-    states.copy(deep=True).drop(columns=USELESS_COLUMNS).to_parquet(
+    group_codes = states.filter(like="group_codes_").columns.tolist()
+    useless_columns = USELESS_COLUMNS + group_codes
+
+    states.copy(deep=True).drop(columns=useless_columns).to_parquet(
         output_directory / f"{date.date()}.parquet"
     )
 

@@ -21,7 +21,7 @@ Currently, we have the following categories:
 
 
 Assortative Matching (`assortative_matching`)
----------------------------------------------------
+---------------------------------------------
 
 As the assortative matching parameters depend on the contact models,
 we don't provide any defaults. They must be added by the user.
@@ -38,7 +38,7 @@ For more information on assortative matching see :ref:`assort_by`.
 
 
 Health System (`health_system`)
--------------------------------------
+-------------------------------
 
 The default parameters in this category only include the number of free beds in
 intensive care units which determine how many individuals with serious infection cases
@@ -46,7 +46,7 @@ survive.
 
 
 Infection Probabilities (`infection_prob`)
------------------------------------------------
+------------------------------------------
 
 As the infection probabilities depend on the contact models, wo don't provide any
 defaults. They must be added by the user.
@@ -55,7 +55,7 @@ example contact models.
 
 
 Countdowns
---------------
+----------
 
 Every countdown described in :ref:`countdowns` has its own category, describing its
 distribution.
@@ -68,15 +68,15 @@ up to one.
 
 Here is an example with hypothetical numbers:
 
-+--------------------+-------------------+--------------------------+-------------------+
-| category           | subcategory       | name                     | value             |
-+--------------------+-------------------+--------------------------+-------------------+
-| cd_symptoms_true   | all               | -1 (= never)             | 0.25              |
-| cd_symptoms_true   | all               | 3                        | 0.75              |
-| ...                | ...               | ...                      | ...               |
-| cd_infectious_true | 0 - 9 (age group) | 3 (possible realization) | 0.6 (probability) |
-| cd_infectious_true | 0 - 9 (age group) | 5 (possible realization) | 0.3 (probability) |
-| cd_infectious_true | 0 - 9 (age group) | 7 (possible realization) | 0.1 (probability) |
-| cd_infectious_true | 10 - 20           | 3 (possible realization) | 0.6 (probability) |
-| ...                | ...               | ...                      | ...               |
-+--------------------+-------------------+--------------------------+-------------------+
++--------------------+-------------------+--------------------+-------------------+
+| category           | subcategory       | name               | value             |
++--------------------+-------------------+--------------------+-------------------+
+| cd_symptoms_true   | all               | -1 (= never)       | 0.25              |
+| cd_symptoms_true   | all               | 3                  | 0.75              |
+| ...                | ...               | ...                | ...               |
+| cd_infectious_true | 0 - 9 (age group) | 3 (possible value) | 0.6 (probability) |
+| cd_infectious_true | 0 - 9 (age group) | 5 (possible value) | 0.3 (probability) |
+| cd_infectious_true | 0 - 9 (age group) | 7 (possible value) | 0.1 (probability) |
+| cd_infectious_true | 10 - 20           | 3 (possible value) | 0.6 (probability) |
+| ...                | ...               | ...                | ...               |
++--------------------+-------------------+--------------------+-------------------+

@@ -66,15 +66,18 @@ COUNTDOWNS = {
 }
 
 
-DTYPE_COUNTER = np.int16
-"""Dtype for the counters.
+DTYPE_COUNTDOWNS = np.int16
+"""Dtype for the countdowns.
 
 The dtype has to be signed integer because `-1` is assigned to counters which have not
 been started.
 
 """
+DTYPE_DRAW_COURSE_OF_DISEASE = np.int16
 DTYPE_GROUP_CODE = np.int32
 DTYPE_INDEX = np.uint32
+DTYPE_INFECTED = np.bool_
+DTYPE_INFECTION_COUNTER = np.uint16
 DTYPE_N_CONTACTS = np.uint32
 
 USELESS_COLUMNS = [
@@ -95,6 +98,4 @@ USELESS_COLUMNS = [
     "cd_knows_true_draws",
     "cd_infectious_true_draws",
     "cd_infectious_false_draws",
-    "group_codes_close",
-    "group_codes_distant",
 ]

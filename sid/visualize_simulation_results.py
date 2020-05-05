@@ -46,10 +46,7 @@ def visualize_simulation_results(
     _create_folders(outdir_path, background_vars)
 
     rates = _create_rates_for_all_data(
-        datasets=datasets,
-        infection_vars=infection_vars,
-        background_vars=background_vars,
-        window_length=window_length,
+        datasets, infection_vars, background_vars, window_length,
     )
 
     for bg_var in ["general"] + background_vars:
@@ -94,12 +91,12 @@ def _create_rates_for_all_data(
 
     """
     name_to_statistics = {}
-    for i, df_or_str in enumerate(datasets):
+    for i, df_or_path in enumerate(datasets):
         vars_for_r_zero = ["immune", "infection_counter", "cd_infectious_false"]
         keep_vars = sorted(
             set(infection_vars + background_vars + vars_for_r_zero + ["date"])
         )
-        df_name, df = _load_data(df_or_str, keep_vars, i)
+        df_name, df = _load_data(df_or_path, keep_vars, i)
         name_to_statistics[df_name] = _create_statistics(
             df=df,
             infection_vars=infection_vars,
@@ -109,16 +106,20 @@ def _create_rates_for_all_data(
     rates = pd.concat(name_to_statistics, axis=1, names=["data_id"])
     order = ["bg_var", "rate", "bg_value", "data_id"]
     rates = rates.reorder_levels(order=order, axis=1)
+
     return rates
 
 
-def _load_data(df_or_str, keep_vars, i):
-    if isinstance(df_or_str, pd.DataFrame):
-        df = df_or_str[keep_vars]
+def _load_data(df_or_path, keep_vars, i):
+    if isinstance(df_or_path, pd.DataFrame):
+        df = df_or_path[keep_vars]
         df_name = i
+    elif isinstance(df_or_path, Path):
+        df = dd.read_parquet(df_or_path)[keep_vars].compute()
+        df_name = df_or_path.stem
     else:
-        df = dd.read_parquet(df_or_str)[keep_vars]
-        df_name = df_or_str.stem
+        raise NotImplementedError
+
     return df_name, df
 
 
@@ -126,8 +127,7 @@ def _create_statistics(df, infection_vars, background_vars, window_length):
     """Calculate the infection rates and reproduction numbers for each date.
 
     Args:
-        df (pandas.DataFrame): the pickled simulation results. The index is "date",
-            "id".
+        df (pandas.DataFrame): The simulation results.
         infection_vars (list): list of infection rates to plot
         background_vars (list): list of background variables by whose value to group
             the results. Have to be present in all simulation results.
@@ -168,7 +168,8 @@ def _create_statistics(df, infection_vars, background_vars, window_length):
         rates_by_group = rates_by_group.swaplevel("rate", "bg_value", axis=1)
         single_df_rates.append(rates_by_group)
 
-    rates = pd.concat(single_df_rates, axis=1)
+    rates = pd.concat(single_df_rates, axis=1).fillna(0)
+
     return rates
 
 

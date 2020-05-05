@@ -28,9 +28,8 @@ def test_simple_run(params, initial_states, tmpdir):
 def test_check_assort_by_are_categoricals(initial_states):
     assort_bys = _process_assort_bys(CONTACT_MODELS)
 
+    _ = _process_initial_states(initial_states, assort_bys)
+
+    initial_states = initial_states.astype(str)
     with pytest.raises(TypeError):
         _process_initial_states(initial_states, assort_bys)
-
-    initial_states = initial_states.astype("category")
-
-    _ = _process_initial_states(initial_states, assort_bys)

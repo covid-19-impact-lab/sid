@@ -24,6 +24,7 @@ dependencies:
   - pandas>=1
   - panel>=0.9.2
   - pdbpp
+  - pre-commit
   - pytest
   - pytest-regressions
   - pytest-xdist
@@ -38,8 +39,11 @@ dependencies:
   - geckodriver
   - firefox
 
+  # Jupyter Lab Formatter
+  - black
+  - jupyterlab_code_formatter
+  - nodejs
+
   - snakeviz
   - pip:
-    - black
     - blackcellmagic
-    - pre-commit
