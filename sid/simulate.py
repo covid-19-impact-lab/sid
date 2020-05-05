@@ -62,11 +62,12 @@ def simulate(
             :ref:`states`) and a column called newly_infected.
 
     """
-    output_directory = _create_output_directory(path)
-
     contact_policies = {} if contact_policies is None else contact_policies
     testing_policies = {} if testing_policies is None else testing_policies
     seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
+    initial_states = initial_states.copy(deep=True)
+
+    output_directory = _create_output_directory(path)
 
     _check_inputs(
         params,
@@ -124,9 +125,10 @@ def _create_output_directory(path):
 
     Args:
         path (pathlib.Path or None): Path to the output directory.
-Returns: 
-    output_directory (pathlib.Path): Path to the created output directory.
-    
+
+    Returns:
+        output_directory (pathlib.Path): Path to the created output directory.
+
     """
     if path is None:
         path = Path.cwd() / ".sid"
@@ -312,8 +314,6 @@ def _process_initial_states(states, assort_bys):
         states (pandas.DataFrame): Processed states.
 
     """
-    states = states.copy()
-
     if np.any(states.isna()):
         raise ValueError("'initial_states' are not allowed to contain NaNs.")
 
