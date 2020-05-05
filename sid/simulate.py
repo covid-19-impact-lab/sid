@@ -59,7 +59,7 @@ def simulate(
     Returns:
         simulation_results (dask.dataframe): The simulation results in form of a long
             dask DataFrame. The DataFrame contains the states of each period (see
-            :ref:`states`) and a column called infections.
+            :ref:`states`) and a column called newly_infected.
 
     """
     output_directory = _create_output_directory(path)
@@ -124,7 +124,9 @@ def _create_output_directory(path):
 
     Args:
         path (pathlib.Path or None): Path to the output directory.
-
+Returns: 
+    output_directory (pathlib.Path): Path to the created output directory.
+    
     """
     if path is None:
         path = Path.cwd() / ".sid"
@@ -135,8 +137,6 @@ def _create_output_directory(path):
         raise ValueError(f"{path} is a file instead of an directory.")
     elif output_directory.exists():
         shutil.rmtree(output_directory)
-    else:
-        pass
 
     output_directory.mkdir(parents=True, exist_ok=True)
 
@@ -356,7 +356,7 @@ def _dump_periodic_states(states, output_directory, date):
     group_codes = states.filter(like="group_codes_").columns.tolist()
     useless_columns = USELESS_COLUMNS + group_codes
 
-    states.copy(deep=True).drop(columns=useless_columns).to_parquet(
+    states.drop(columns=useless_columns).to_parquet(
         output_directory / f"{date.date()}.parquet"
     )
 
@@ -366,7 +366,8 @@ def _return_dask_dataframe(output_directory, assort_bys):
 
     Args:
         output_directory (pathlib.Path): Path to output directory.
-
+        assort_bys (list, optional): List of variable names. Contacts are assortative
+            by these variables.
     Returns:
         df (dask.dataframe): A dask DataFrame which contains the simulation results.
 
