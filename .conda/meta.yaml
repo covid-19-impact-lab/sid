@@ -30,6 +30,7 @@ requirements:
     - pandas >=1
     - pytest
     - pytest-regressions
+    - python-snappy
     - utilities
 
 test:
