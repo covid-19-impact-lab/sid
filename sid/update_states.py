@@ -42,7 +42,7 @@ def update_states(states, new_infections, params, seed):
     ]
 
     # Kill people over icu_limit.
-    rel_limit = params.loc[("health_system", "icu_limit_relative"), "value"]
+    rel_limit = params.loc[("health_system", "icu_limit_relative", None), "value"]
     abs_limit = rel_limit * len(states)
     need_icu_locs = states.index[states["needs_icu"]]
     if abs_limit < len(need_icu_locs):

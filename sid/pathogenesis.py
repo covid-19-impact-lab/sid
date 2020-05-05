@@ -7,6 +7,8 @@ countdown lengths. Currently, most of it is deterministic.
 import numpy as np
 import pandas as pd
 
+from sid.config import COUNTDOWNS
+
 
 def draw_course_of_disease(states, params, seed):
     """Draw course of the disease.
@@ -14,8 +16,8 @@ def draw_course_of_disease(states, params, seed):
     The course of disease is drawn before the actual simulation and samples for each
     individual the length of the countdown.
 
-    Countdowns govern the transition from being infectious to having symptoms,
-    potentially needing icu and maybe even dying.
+    Countdowns govern the transition from becoming infectious, to potentially
+    having symptoms, needing icu and maybe even dying.
 
     Args:
         states (pandas.DataFrame): The initial states.
@@ -31,83 +33,48 @@ def draw_course_of_disease(states, params, seed):
 
     states = states.copy()
 
-    # time of immunity
-    cd_length = params.loc[("countdown_length", "cd_immune_false"), "value"]
-    states["cd_immune_false_draws"] = cd_length
-
-    # time until symptoms. -1 if no symptoms
-    cd_length = params.loc[("countdown_length", "cd_symptoms_true"), "value"]
-    prob = params.loc[("prob_symptoms_given_infection", "all"), "value"]
-    states["cd_symptoms_true_draws"] = _two_stage_sampling(prob, cd_length, len(states))
-
-    # time until icu
-    cd_length = params.loc[("countdown_length", "cd_needs_icu_true"), "value"]
-    probs = params.loc["prob_icu_given_symptoms", "value"]
-    states["cd_needs_icu_true_draws"] = _age_varying_two_stage_sampling(
-        states, probs, cd_length
-    )
-    states["cd_needs_icu_true_draws"] = states["cd_needs_icu_true_draws"].where(
-        states["cd_symptoms_true_draws"] >= 0, -1
-    )
-
-    # time until death
-    cd_length = params.loc[("countdown_length", "cd_dead"), "value"]
-    probs = params.loc["prob_dead_given_icu", "value"]
-    states["cd_dead_draws"] = _age_varying_two_stage_sampling(states, probs, cd_length)
-    states["cd_dead_draws"] = states["cd_dead_draws"].where(
-        states["cd_needs_icu_true_draws"] >= 0, -1
-    )
-
-    # length of symptoms; can be drawn for all because it will only be triggered if
-    # needed anyways
-    cd_length = params.loc[("countdown_length", "cd_symptoms_false"), "value"]
-    states["cd_symptoms_false_draws"] = cd_length
-
-    # length of icu treatment; can be drawn for all because it will only be triggered
-    # for people who needed icu
-    cd_length = params.loc[("countdown_length", "cd_needs_icu_false"), "value"]
-    states["cd_needs_icu_false_draws"] = cd_length
-
-    # length of testing
-    cd_length = params.loc[("countdown_length", "cd_knows_true"), "value"]
-    states["cd_knows_true_draws"] = cd_length
-
-    # time until infectiousness
-    cd_length = params.loc[("countdown_length", "cd_infectious_true"), "value"]
-    states["cd_infectious_true_draws"] = cd_length
-
-    # length of infectiousness, can be drawn for all because if will only be triggered
-    # for people who became infectious
-    cd_length = params.loc[("countdown_length", "cd_infectious_false"), "value"]
-    states["cd_infectious_false_draws"] = cd_length
+    for cd in COUNTDOWNS:
+        states[f"{cd}_draws"] = _draw_countdowns(states, params.loc[cd])
 
     return states
 
 
-def _two_stage_sampling(prob, val, size):
-    return np.random.choice(a=[val, -1], p=[prob, 1 - prob], size=size)
-
-
-def _age_varying_two_stage_sampling(states, probs, val):
-    """Sample probability by age groups.
+def _draw_countdowns(states, param_slice):
+    """Draw the countdowns.
 
     Args:
-        probs (pandas.Series): Index contains age groups in same codes as "age_group"
-            column in states.
-        val (int): The sampled value is either this value or -1.
+        states (pandas.DataFrame): The initial states, includes the age_group by which
+            probabilities may differ between individuals.
+        param_slice (pandas.DataFrame):
+            DataFrame slice with the parameters of the current countdown to be drawn.
+            the "name" index level contains the possible realizations, the "value"
+            column contains the probabilities. If either differ between age groups
+            the "subcategory" index level contains the group values. If they do not
+            differ the "subcategory" is "all".
 
-    Returns: s (pandas.Series): Series containing the sampled values with age-varying
-        distributions.
+    Returns:
+        draws (pandas.Series): Series with the countdowns. Has the same index as states.
 
     """
-    s = pd.Series(-1, index=states.index, dtype=np.int32)
-    # extract age groups from states instead of from probs and then look up the probs,
-    # so we get a key error for missing parameters due to typos in the params index.
-    # otherwise it would fail silently.
-    age_groups = states["age_group"].unique().tolist()
-    for age_group in age_groups:
-        prob = probs[age_group]
-        locs = states.query(f"age_group == '{age_group}'").index
-        s.loc[locs] = _two_stage_sampling(prob, val, len(locs))
+    if len(param_slice) == 1:
+        value = param_slice.index[0][1]
+        draws = pd.Series(value, index=states.index)
+    elif set(param_slice.index.get_level_values("subcategory")) == {"all"}:
+        realizations = param_slice.loc["all"].index
+        probs = param_slice["value"]
+        draws = np.random.choice(a=realizations, p=probs, size=len(states))
+        draws = pd.Series(draws, index=states.index)
+    else:
+        draws = pd.Series(np.nan, index=states.index)
+        # extract age groups from states instead of probs and then look up the probs,
+        # so we get a key error for missing parameters due to typos in the params index.
+        # otherwise it would fail silently.
+        age_groups = states["age_group"].unique().tolist()
+        for age_group in age_groups:
+            age_entry = param_slice.loc[age_group]
+            realizations = age_entry.index.values
+            probs = age_entry["value"]
 
-    return s
+            locs = states.query(f"age_group == '{age_group}'").index
+            draws.loc[locs] = np.random.choice(a=realizations, p=probs, size=len(locs))
+    return draws.astype(np.int32)
