@@ -1,4 +1,4 @@
-,infected,infection_counter,immune,missed
+,infected,n_has_infected,immune,missed
 0,1,0,1,0
 1,0,0,1,0
 2,0,0,0,0

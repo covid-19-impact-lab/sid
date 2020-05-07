@@ -34,7 +34,7 @@ def test_factorize_assortative_variables(initial_states, assort_by, expected):
 def data_for_replication_numbers():
     df = pd.DataFrame()
     df["cd_infectious_false"] = [-2, -1, -1, 0] + [2, 5]
-    df["infection_counter"] = [2, 1, 1, 1] + [0, 0]
+    df["n_has_infected"] = [2, 1, 1, 1] + [0, 0]
     df["immune"] = [True] * 4 + [False, False]
     return df
 

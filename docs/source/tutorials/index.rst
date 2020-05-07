@@ -8,4 +8,4 @@ everyone new to the package.
 .. toctree::
    :maxdepth: 1
 
-   simulation
+   how_to_simulate

@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from sid.config import COUNTDOWNS
+from sid.config import DTYPE_DRAW_COURSE_OF_DISEASE
 
 
 def draw_course_of_disease(states, params, seed):
@@ -31,21 +32,19 @@ def draw_course_of_disease(states, params, seed):
     """
     np.random.seed(next(seed))
 
-    states = states.copy()
-
     for cd in COUNTDOWNS:
         states[f"{cd}_draws"] = _draw_countdowns(states, params.loc[cd])
 
     return states
 
 
-def _draw_countdowns(states, param_slice):
+def _draw_countdowns(states, params_slice):
     """Draw the countdowns.
 
     Args:
         states (pandas.DataFrame): The initial states, includes the age_group by which
             probabilities may differ between individuals.
-        param_slice (pandas.DataFrame):
+        params_slice (pandas.DataFrame):
             DataFrame slice with the parameters of the current countdown to be drawn.
             the "name" index level contains the possible realizations, the "value"
             column contains the probabilities. If either differ between age groups
@@ -56,12 +55,12 @@ def _draw_countdowns(states, param_slice):
         draws (pandas.Series): Series with the countdowns. Has the same index as states.
 
     """
-    if len(param_slice) == 1:
-        value = param_slice.index[0][1]
+    if len(params_slice) == 1:
+        value = params_slice.index[0][1]
         draws = pd.Series(value, index=states.index)
-    elif set(param_slice.index.get_level_values("subcategory")) == {"all"}:
-        realizations = param_slice.loc["all"].index
-        probs = param_slice["value"]
+    elif set(params_slice.index.get_level_values("subcategory")) == {"all"}:
+        realizations = params_slice.loc["all"].index
+        probs = params_slice["value"]
         draws = np.random.choice(a=realizations, p=probs, size=len(states))
         draws = pd.Series(draws, index=states.index)
     else:
@@ -69,12 +68,13 @@ def _draw_countdowns(states, param_slice):
         # extract age groups from states instead of probs and then look up the probs,
         # so we get a key error for missing parameters due to typos in the params index.
         # otherwise it would fail silently.
-        age_groups = states["age_group"].unique().tolist()
+        age_groups = states["age_group"].unique()
         for age_group in age_groups:
-            age_entry = param_slice.loc[age_group]
+            age_entry = params_slice.loc[age_group]
             realizations = age_entry.index.values
             probs = age_entry["value"]
 
             locs = states.query(f"age_group == '{age_group}'").index
             draws.loc[locs] = np.random.choice(a=realizations, p=probs, size=len(locs))
-    return draws.astype(np.int32)
+
+    return draws.astype(DTYPE_DRAW_COURSE_OF_DISEASE)

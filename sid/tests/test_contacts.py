@@ -95,7 +95,7 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
     num_regression.check(
         data_dict={
             "infected": infected.astype("float"),
-            "infection_counter": infection_counter.astype("float"),
+            "n_has_infected": infection_counter.astype("float"),
             "immune": immune.astype("float"),
             "missed": missed[:, 0].astype("float"),
         },
@@ -185,8 +185,8 @@ def test_calculate_infections():
     states["immune"] = states["infectious"]
     states["group_codes_households"] = [0] * 4 + [1] * 4
     states["households"] = [0] * 4 + [1] * 4
-    states["infection_counter"] = 0
-    states["infection_counter"] = states["infection_counter"].astype(int)
+    states["n_has_infected"] = 0
+    states["n_has_infected"] = states["n_has_infected"].astype(int)
 
     contacts = np.zeros((len(states), 0))
 
@@ -213,7 +213,5 @@ def test_calculate_infections():
     exp_infection_counter = pd.Series([3] + [0] * 7).astype(np.int32)
     exp_immune = pd.Series([True] * 4 + [False] * 4)
     assert calc_infected.equals(exp_infected)
-    assert (
-        calc_states["infection_counter"].astype(np.int32).equals(exp_infection_counter)
-    )
+    assert calc_states["n_has_infected"].astype(np.int32).equals(exp_infection_counter)
     assert calc_states["immune"].equals(exp_immune)

@@ -3,14 +3,14 @@ import numpy as np
 from sid.config import COUNTDOWNS
 
 
-def update_states(states, new_infections, params, seed):
+def update_states(states, newly_infected, params, seed):
     """Update the states with new infections and advance it by one period.
 
     States are changed in place to save copying!
 
     Args:
         states (pandas.DataFrame): See :ref:`states`.
-        new_infections (pandas.Series): Boolean Series with same index as states.
+        newly_infected (pandas.Series): Boolean Series with same index as states.
         params (pandas.DataFrame): See :ref:`params`.
         seed (itertools.count): Seed counter to control randomness.
 
@@ -34,7 +34,7 @@ def update_states(states, new_infections, params, seed):
             states.loc[locs, new_countdown] = states.loc[locs, f"{new_countdown}_draws"]
 
     # Update states with new infections and add corresponding countdowns.
-    locs = new_infections[new_infections].index
+    locs = newly_infected[newly_infected].index
     states.loc[locs, "ever_infected"] = True
     states.loc[locs, "cd_immune_false"] = states.loc[locs, "cd_immune_false_draws"]
     states.loc[locs, "cd_infectious_true"] = states.loc[

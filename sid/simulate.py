@@ -1,13 +1,17 @@
+import itertools as it
+import shutil
 import warnings
-from itertools import count
+from pathlib import Path
 
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import COUNTDOWNS
-from sid.config import DTYPE_COUNTER
-from sid.config import STATES_INDEX_DEFAULT_NAME
+from sid.config import DTYPE_COUNTDOWNS
+from sid.config import DTYPE_INFECTION_COUNTER
+from sid.config import USELESS_COLUMNS
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections
 from sid.contacts import create_group_indexer
@@ -27,6 +31,7 @@ def simulate(
     contact_policies=None,
     testing_policies=None,
     seed=None,
+    path=None,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -41,26 +46,28 @@ def simulate(
         contact_models (dict): Dictionary of dictionaries where each dictionary
             describes a channel by which contacts can be formed.
             See :ref:`contact_models`.
+        duration (dict or None): Duration is a dictionary containing kwargs for
+            :func:`pandas.date_range`.
         contact_policies (dict): Dict of dicts with contact. See :ref:`policies`.
         testing_policies (dict): Dict of dicts with testing policies. See
             :ref:`policies`.
-        duration (dict or None): Duration is a dictionary containing kwargs for
-            :func:`pandas.date_range`.
         seed (int, optional): Seed is used as the starting point of a sequence of seeds
             used to control randomness internally.
+        path (str or pathlib.Path): Path to the directory where the simulated data is
+            stored.
 
     Returns:
-        simulation_results (pandas.DataFrame): The simulation results in form of a long
-            DataFrame. The DataFrame contains the states of each period (see
-            :ref:`states`) and a column called infections. The index has two levels. The
-            first is the period. The second is the id. Id is the index of
-            initial_states.
+        simulation_results (dask.dataframe): The simulation results in form of a long
+            dask DataFrame. The DataFrame contains the states of each period (see
+            :ref:`states`) and a column called newly_infected.
 
     """
-
     contact_policies = {} if contact_policies is None else contact_policies
     testing_policies = {} if testing_policies is None else testing_policies
-    seed = count(np.random.randint(0, 1_000_000)) if seed is None else count(seed)
+    seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
+    initial_states = initial_states.copy(deep=True)
+
+    output_directory = _create_output_directory(path)
 
     _check_inputs(
         params,
@@ -73,7 +80,7 @@ def simulate(
 
     contact_models = _sort_contact_models(contact_models)
     assort_bys = _process_assort_bys(contact_models)
-    states, index_names = _process_initial_states(initial_states, assort_bys)
+    states = _process_initial_states(initial_states, assort_bys)
     duration = parse_duration(duration)
 
     states = draw_course_of_disease(states, params, seed)
@@ -87,27 +94,55 @@ def simulate(
         states, assort_bys, params, contact_models
     )
 
-    to_concat = []
     for period, date in enumerate(duration["dates"]):
         states["date"] = date
-        states["period"] = period
+        states["period"] = np.uint16(period)
 
         contacts = calculate_contacts(
             contact_models, contact_policies, states, params, date
         )
-        infections, states = calculate_infections(
+        newly_infected, states = calculate_infections(
             states, contacts, params, indexers, first_probs, seed,
         )
-        states = update_states(states, infections, params, seed)
+        states = update_states(states, newly_infected, params, seed)
 
         for i, contact_model in enumerate(first_probs):
-            states[contact_model] = contacts[:, i]
-        states["infections"] = infections
-        to_concat.append(states.copy(deep=True))
+            states[f"n_contacts_{contact_model}"] = contacts[:, i]
+        states["newly_infected"] = newly_infected
 
-    simulation_results = _process_simulation_results(to_concat, index_names)
+        _dump_periodic_states(states, output_directory, date)
+
+    simulation_results = _return_dask_dataframe(output_directory, assort_bys)
 
     return simulation_results
+
+
+def _create_output_directory(path):
+    """Determine the output directory for the data.
+
+    The user can provide a path or a default path is chosen. If the user's path leads to
+    an non-empty directory, it is removed and newly created.
+
+    Args:
+        path (pathlib.Path or None): Path to the output directory.
+
+    Returns:
+        output_directory (pathlib.Path): Path to the created output directory.
+
+    """
+    if path is None:
+        path = Path.cwd() / ".sid"
+
+    output_directory = Path(path)
+
+    if output_directory.exists() and not output_directory.is_dir():
+        raise ValueError(f"{path} is a file instead of an directory.")
+    elif output_directory.exists():
+        shutil.rmtree(output_directory)
+
+    output_directory.mkdir(parents=True, exist_ok=True)
+
+    return output_directory
 
 
 def _sort_contact_models(contact_models):
@@ -279,21 +314,24 @@ def _process_initial_states(states, assort_bys):
         states (pandas.DataFrame): Processed states.
 
     """
-    states = states.copy()
-
     if np.any(states.isna()):
         raise ValueError("'initial_states' are not allowed to contain NaNs.")
 
-    states = states.sort_index()
-    if isinstance(states.index, pd.MultiIndex):
-        index_names = states.index.names
-    else:
-        if not states.index.name:
-            states.index.name = STATES_INDEX_DEFAULT_NAME
-        index_names = [states.index.name]
+    # Check if all assort_by columns are categoricals. This is important to save memory.
+    assort_by_variables = list(
+        set(it.chain.from_iterable(a_b for a_b in assort_bys.values()))
+    )
+    for assort_by in assort_by_variables:
+        if states[assort_by].dtype.name != "category":
+            raise TypeError(
+                "All 'assort_by' variables need to be pandas.Categoricals. "
+                f"'{assort_by}' is not."
+            )
 
-    # reset the index because having a sorted range index could speed up things.
-    states = states.reset_index()
+    # Sort index for deterministic shuffling and reset index because otherwise it will
+    # be dropped while writing to parquet. Parquet stores an efficient range index
+    # instead.
+    states = states.sort_index().reset_index()
 
     for col in BOOLEAN_STATE_COLUMNS:
         if col not in states.columns:
@@ -302,20 +340,39 @@ def _process_initial_states(states, assort_bys):
     for col in COUNTDOWNS:
         if col not in states.columns:
             states[col] = -1
-        states[col] = states[col].astype(DTYPE_COUNTER)
+        states[col] = states[col].astype(DTYPE_COUNTDOWNS)
 
-    states["infection_counter"] = 0
+    states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
 
     for model_name, assort_by in assort_bys.items():
         states[f"group_codes_{model_name}"], _ = factorize_assortative_variables(
             states, assort_by
         )
 
-    return states, index_names
+    return states
 
 
-def _process_simulation_results(to_concat, index_names):
-    """Process the simulation results."""
-    df = pd.concat(to_concat).set_index(["date"] + index_names)
+def _dump_periodic_states(states, output_directory, date):
+    group_codes = states.filter(like="group_codes_").columns.tolist()
+    useless_columns = USELESS_COLUMNS + group_codes
 
-    return df
+    states.drop(columns=useless_columns).to_parquet(
+        output_directory / f"{date.date()}.parquet"
+    )
+
+
+def _return_dask_dataframe(output_directory, assort_bys):
+    """Process the simulation results.
+
+    Args:
+        output_directory (pathlib.Path): Path to output directory.
+        assort_bys (list, optional): List of variable names. Contacts are assortative
+            by these variables.
+    Returns:
+        df (dask.dataframe): A dask DataFrame which contains the simulation results.
+
+    """
+    assort_by_variables = list(
+        set(it.chain.from_iterable(a_b for a_b in assort_bys.values()))
+    )
+    return dd.read_parquet(output_directory, categories=assort_by_variables)
