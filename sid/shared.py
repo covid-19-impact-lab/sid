@@ -59,7 +59,7 @@ def calculate_r_effective(df, window_length=7):
     # the infection counter is only reset to zero once a person becomes infected again
     # so abstracting from very fast reinfections its mean among those that
     # ceased to be infectious in the last window_length is R_e.
-    r_effective = prev_infected["infection_counter"].mean()
+    r_effective = prev_infected["n_has_infected"].mean()
     return r_effective
 
 

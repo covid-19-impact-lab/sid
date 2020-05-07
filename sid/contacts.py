@@ -116,7 +116,7 @@ def calculate_infections(states, contacts, params, indexers, group_probs, seed):
     )
 
     infected_sr = pd.Series(infected, index=states.index)
-    states["infection_counter"] += infection_counter
+    states["n_has_infected"] += infection_counter
     for i, contact_model in enumerate(group_probs):
         states[f"missed_{contact_model}"] = missed[:, i]
 

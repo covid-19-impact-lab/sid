@@ -107,8 +107,8 @@ def simulate(
         states = update_states(states, newly_infected, params, seed)
 
         for i, contact_model in enumerate(first_probs):
-            states[contact_model] = contacts[:, i]
-        states["infections"] = newly_infected
+            states[f"n_contacts_{contact_model}"] = contacts[:, i]
+        states["newly_infected"] = newly_infected
 
         _dump_periodic_states(states, output_directory, date)
 
@@ -342,7 +342,7 @@ def _process_initial_states(states, assort_bys):
             states[col] = -1
         states[col] = states[col].astype(DTYPE_COUNTDOWNS)
 
-    states["infection_counter"] = DTYPE_INFECTION_COUNTER(0)
+    states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
 
     for model_name, assort_by in assort_bys.items():
         states[f"group_codes_{model_name}"], _ = factorize_assortative_variables(

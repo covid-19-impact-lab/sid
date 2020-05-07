@@ -6,7 +6,7 @@ BOOLEAN_STATE_COLUMNS = [
     "immune",
     "infectious",
     "knows",
-    "symptoms",
+    "symptomatic",
     "needs_icu",
     "dead",
 ]
@@ -17,7 +17,7 @@ BOOLEAN_STATE_COLUMNS = [
 # all other countdowns are triggered by chain reactions.
 COUNTDOWNS = {
     "cd_infectious_true": {
-        "changes": {"infectious": True, "infection_counter": 0},
+        "changes": {"infectious": True, "n_has_infected": 0},
         "starts": ["cd_infectious_false", "cd_symptoms_true"],
     },
     # will be overriden if a person develops symptoms. In that case
@@ -25,13 +25,13 @@ COUNTDOWNS = {
     "cd_infectious_false": {"changes": {"infectious": False, "knows": False}},
     "cd_immune_false": {"changes": {"immune": False}},
     "cd_symptoms_true": {
-        "changes": {"symptoms": True, "cd_infectious_false": -1},
+        "changes": {"symptomatic": True, "cd_infectious_false": -1},
         "starts": ["cd_symptoms_false", "cd_needs_icu_true"],
     },
     # will be overriden if a person needs icu. In that case symptoms
     # end with need for icu.
     "cd_symptoms_false": {
-        "changes": {"symptoms": False, "infectious": False, "knows": False}
+        "changes": {"symptomatic": False, "infectious": False, "knows": False}
     },
     "cd_needs_icu_true": {
         "changes": {"needs_icu": True, "cd_symptoms_false": -1},
@@ -40,7 +40,7 @@ COUNTDOWNS = {
     "cd_dead": {
         "changes": {
             "dead": True,
-            "symptoms": False,
+            "symptomatic": False,
             "needs_icu": False,
             "knows": False,
             "cd_immune_false": -1,
@@ -54,7 +54,7 @@ COUNTDOWNS = {
     "cd_needs_icu_false": {
         "changes": {
             "needs_icu": False,
-            "symptoms": False,
+            "symptomatic": False,
             "infectious": False,
             "knows": False,
             # cd_infectious_false is set to 0 instead of -1 because this is needed

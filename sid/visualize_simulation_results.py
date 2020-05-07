@@ -92,7 +92,7 @@ def _create_rates_for_all_data(
     """
     name_to_statistics = {}
     for i, df_or_path in enumerate(datasets):
-        vars_for_r_zero = ["immune", "infection_counter", "cd_infectious_false"]
+        vars_for_r_zero = ["immune", "n_has_infected", "cd_infectious_false"]
         keep_vars = sorted(
             set(infection_vars + background_vars + vars_for_r_zero + ["date"])
         )

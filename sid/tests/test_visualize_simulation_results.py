@@ -11,7 +11,7 @@ from sid.visualize_simulation_results import visualize_simulation_results
 
 @pytest.fixture
 def keep_vars():
-    return ["immune", "infection_counter", "cd_infectious_false"]
+    return ["immune", "n_has_infected", "cd_infectious_false"]
 
 
 def test_nice_str():
