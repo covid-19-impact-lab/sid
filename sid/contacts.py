@@ -264,7 +264,7 @@ def _choose_one_element(a, weights):
     cdf = weights.cumsum()
     sum_of_weights = cdf[-1]
     u = np.random.uniform(0, sum_of_weights)
-    index = (u < cdf).argmax()
+    index = _get_index_refining_search(u, cdf)
 
     return a[index]
 
@@ -303,10 +303,57 @@ def _choose_other_individual(a, weights):
         chosen = -1
     else:
         u = np.random.uniform(0, sum_of_weights)
-        index = (u < cdf).argmax()
+        index = _get_index_refining_search(u, cdf)
         chosen = a[index]
 
     return chosen
+
+
+@njit
+def _get_index_refining_search(u, cdf):
+    """Get the index of the first element in cdf that is larger than u.
+
+    The algorithm does a refining search. We first iterate over cdf in
+    larger steps to find a subset of cdf in which we have to look
+    at each element.
+
+    The step size in the first iteration is the square root of the
+    length of cdf, which minimizes runtime in expectation if u is a
+    uniform random variable.
+
+    Args:
+        u (float): A uniform random draw.
+        cdf (np.ndarray): 1d array with cumulative probabilities.
+
+    Returns:
+        int: The selected index.
+
+    Example:
+        >>> cdf = np.array([0.1, 0.6, 1.0])
+        >>> _get_index_refining_search(0, cdf)
+        0
+        >>> _get_index_refining_search(0.05, cdf)
+        0
+        >>> _get_index_refining_search(0.55, cdf)
+        1
+        >>> _get_index_refining_search(1, cdf)
+        2
+
+    """
+    n_ind = len(cdf)
+    highest_i = n_ind - 1
+    i = 0
+    step = int(np.sqrt(n_ind))
+
+    while cdf[i] < u and i < highest_i:
+        i = min(i + step, highest_i)
+
+    i = max(0, i - step)
+
+    while cdf[i] < u and i < highest_i:
+        i += 1
+
+    return i
 
 
 @njit
