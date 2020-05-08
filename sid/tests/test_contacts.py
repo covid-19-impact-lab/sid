@@ -62,7 +62,7 @@ def test_create_group_transition_probs(initial_states, assort_by, params, expect
     transition_matrix = create_group_transition_probs(
         states=initial_states, assort_by=assort_by, params=params, model_name="model1"
     )
-    np.testing.assert_allclose(transition_matrix, expected)
+    np.testing.assert_allclose(transition_matrix, expected.cumsum(axis=1))
 
 
 @pytest.mark.parametrize("seed", range(10))
@@ -147,7 +147,7 @@ def _sample_data_for_calculate_infections_numba(
             axis=1, keepdims=True
         )
     group_probs_list = NumbaList()
-    group_probs_list.append(group_probabilities)
+    group_probs_list.append(group_probabilities.cumsum(axis=1))
 
     indexer = NumbaList()
     for group in range(n_groups):

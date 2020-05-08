@@ -208,7 +208,7 @@ def _calculate_infections_numba(
             n_contacts = contacts[i, cm]
             for _ in range(n_contacts):
                 contact_takes_place = True
-                group_j = _choose_one_element(groups_list[cm], weights=group_probs_i)
+                group_j = _choose_other_group(groups_list[cm], cdf=group_probs_i)
                 choice_indices = indexers_list[cm][group_j]
                 contacts_j = contacts[choice_indices, cm]
 
@@ -242,30 +242,10 @@ def _calculate_infections_numba(
 
 
 @njit
-def _choose_one_element(a, weights):
-    """Return an element of choices.
-
-    This function does the same as :func:`numpy.random.choice`, but is way faster.
-
-    :func:`numpy.argmax` returns the first index for multiple maximum values.
-
-    Args:
-        a (numpy.ndarray): 1d array of choices
-        weights (numpy.ndarray): 1d array of weights.
-
-    Returns:
-        choice (int): An element of a.
-
-    Example:
-        >>> chosen = _choose_one_element(np.arange(3), np.array([0.2, 0.3, 0.5]))
-        >>> assert isinstance(chosen, int)
-
-    """
-    cdf = weights.cumsum()
-    sum_of_weights = cdf[-1]
-    u = np.random.uniform(0, sum_of_weights)
+def _choose_other_group(a, cdf):
+    """Choose a group out of a, given cumulative choice probabilities."""
+    u = np.random.uniform(0, 1)
     index = _get_index_refining_search(u, cdf)
-
     return a[index]
 
 
@@ -428,8 +408,9 @@ def create_group_transition_probs(states, assort_by, params, model_name):
         model_name (str): name of the contact model.
 
     Returns
-        probs (numpy.ndarray): Array of shape n_group, n_groups. probs[i, j] is the
-            probability that an individual from group i meets someone from group j.
+        cum_probs (numpy.ndarray): Array of shape n_group, n_groups. cum_probs[i, j]
+            is the probability that an individual from group i meets someone from group
+            j or lower.
 
     """
     _, group_codes_values = factorize_assortative_variables(states, assort_by)
@@ -452,7 +433,9 @@ def create_group_transition_probs(states, assort_by, params, model_name):
                     else:
                         probs[i, j] *= other_probs[v]
 
-    return probs
+    cum_probs = probs.cumsum(axis=1)
+
+    return cum_probs
 
 
 @njit
