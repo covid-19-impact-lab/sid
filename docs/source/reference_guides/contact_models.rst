@@ -39,7 +39,7 @@ select covariates from ``states``. Optional.
 ``"model"``
 ^^^^^^^^^^^
 
-Either ``"meet_group"`` or a function that takes states, params and date as arguments
+A function that takes states, params and date as arguments
 and returns a series that has the same index as states. The values of the Series are
 numbers of contacts. An example is:
 
@@ -52,10 +52,12 @@ The function can depend on the date in order to implement policies. The returned
 can be floating point numbers. In that case they will be automatically rounded to
 integers in a way that preserves the total number of contacts.
 
-If the model is ``"meet_group"``, the matching is fully assortative and exhaustive. I.e.
-each individual meets all others who have the exact same value in all ``assort_by``
-variables. This can be used to model recurrent contacts inside a household, a school
-class or at the workplace.
+For recurrent contact models the matching is fully
+assortative and exhaustive. I.e. each individual meets all others who have the exact
+same value in all ``assort_by`` variables. In that case the values of the Series are not
+interpreted quantitatively and we just check if they are zero (in which case an
+individual will not have contacts) or larger than zero (in which case she will meet
+all people in her group).
 
 
 .. _assort_by:
@@ -77,6 +79,16 @@ If the model is ``"meet_group"`` there must be exactly one ``assort_by`` variabl
 person has zero contacts in this contact model, it must have a unique value in the
 ``assort_by`` variable. Example: an individual who does not go to school needs a unique
 value in the variable that indicates school classes.
+
+
+.. _is_recurrent:
+
+
+``"is_recurrent"``
+^^^^^^^^^^^^^^^^^^
+
+Boolean flag to mark models that describe recurrent contacts such as in families, school
+classes and the workplace.
 
 
 Combining Contact Models

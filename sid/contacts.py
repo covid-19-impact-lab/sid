@@ -29,24 +29,20 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
     """
     columns = []
     for model_name, model in contact_models.items():
-        if model["model"] != "meet_group":
-            loc = model.get("loc", params.index)
-            func = model["model"]
-            cont = func(states, params.loc[loc], date)
-            if model_name in contact_policies:
-                cp = contact_policies[model_name]
-                policy_start = pd.to_datetime(cp["start"])
-                policy_end = pd.to_datetime(cp["end"])
-                if policy_start <= date <= policy_end and cp["is_active"](states):
-                    cont *= cp["multiplier"]
-
+        loc = model.get("loc", params.index)
+        func = model["model"]
+        cont = func(states, params.loc[loc], date)
+        if model_name in contact_policies:
+            cp = contact_policies[model_name]
+            policy_start = pd.to_datetime(cp["start"])
+            policy_end = pd.to_datetime(cp["end"])
+            if policy_start <= date <= policy_end and cp["is_active"](states):
+                cont *= cp["multiplier"]
+        if not model["is_recurrent"]:
             cont = _sum_preserving_round(cont.to_numpy()).astype(DTYPE_N_CONTACTS)
-            columns.append(cont)
+        columns.append(cont)
 
-    if columns:
-        contacts = np.column_stack(columns)
-    else:
-        contacts = np.zeros((len(states), 0))
+    contacts = np.column_stack(columns)
 
     return contacts
 
@@ -74,7 +70,7 @@ def calculate_infections(states, contacts, params, indexers, group_probs, seed):
         states (pandas.DataFrame): Copy of states with updated immune column.
 
     """
-    is_meet_group = np.array([k not in group_probs for k in indexers])
+    is_recurrent = np.array([k not in group_probs for k in indexers])
     states = states.copy()
     infectious = states["infectious"].to_numpy(copy=True)
     immune = states["immune"].to_numpy(copy=True)
@@ -111,7 +107,7 @@ def calculate_infections(states, contacts, params, indexers, group_probs, seed):
         indexers_list,
         infect_probs,
         next(seed),
-        is_meet_group,
+        is_recurrent,
         loop_order,
     )
 
@@ -135,7 +131,7 @@ def _calculate_infections_numba(
     indexers_list,
     infection_probs,
     seed,
-    is_meet_group,
+    is_recurrent,
     loop_order,
 ):
     """Match people, draw if they get infected and record who infected whom.
@@ -158,7 +154,7 @@ def _calculate_infections_numba(
         infection_probs (numpy.ndarray): 1d array of length n_contact_models with the
             probability of infection for each contact model.
         seed (int): Seed value to control randomness.
-        is_meet_group (numpy.ndarray): Boolean array of length n_contact_models.
+        is_recurrent (numpy.ndarray): Boolean array of length n_contact_models.
         loop_orrder (np.ndarray): 2d numpy array with two columns. The first column
             indicates an individual. The second indicates a contact model.
 
@@ -180,17 +176,17 @@ def _calculate_infections_numba(
     # Loop over all individual-contact_model combinations
     for k in range(len(loop_order)):
         i, cm = loop_order[k]
-        if is_meet_group[cm]:
+        if is_recurrent[cm]:
             # We only check if i gets infected by someone else from his group. Whether
             # he infects some j is only checked, when the main loop arrives at j.
             group_i = group_codes[i, cm]
             # skip completely if i does not have a group or is already immune
-            if not immune[i] and group_i >= 0:
+            if not immune[i] and contacts[i, cm] > 0:
                 others = indexers_list[cm][group_i]
                 # we don't have to handle the case where j == i because if i is
                 # infectious he is also immune, if not, nothing happens anyways.
                 for j in others:
-                    if infectious[j] and not immune[i]:
+                    if infectious[j] and not immune[i] and contacts[j, cm] > 0:
                         is_infection = _boolean_choice(infection_probs[cm])
                         if is_infection:
                             infection_counter[j] += 1

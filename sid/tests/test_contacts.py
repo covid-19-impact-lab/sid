@@ -75,7 +75,7 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
         group_probabilities,
         indexer,
         infection_prob,
-        is_meet_group,
+        is_recurrent,
         loop_order,
     ) = _sample_data_for_calculate_infections_numba(n_individuals=100, seed=seed)
 
@@ -88,7 +88,7 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
         indexer,
         infection_prob,
         seed,
-        is_meet_group,
+        is_recurrent,
         loop_order,
     )
 
@@ -160,7 +160,7 @@ def _sample_data_for_calculate_infections_numba(
         ip = np.random.uniform()
         infection_prob = np.array([ip])
 
-    is_meet_group = np.array([False])
+    is_recurrent = np.array([False])
 
     loop_order = np.array(list(itertools.product(range(n_individuals), range(1))))
 
@@ -172,7 +172,7 @@ def _sample_data_for_calculate_infections_numba(
         group_probs_list,
         indexers_list,
         infection_prob,
-        is_meet_group,
+        is_recurrent,
         loop_order,
     )
 
@@ -188,7 +188,7 @@ def test_calculate_infections():
     states["n_has_infected"] = 0
     states["n_has_infected"] = states["n_has_infected"].astype(int)
 
-    contacts = np.zeros((len(states), 0))
+    contacts = np.ones((len(states), 1))
 
     params = pd.DataFrame(
         columns=["value"],

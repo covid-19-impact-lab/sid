@@ -148,9 +148,8 @@ def _create_output_directory(path):
 def _sort_contact_models(contact_models):
     """Sort the contact_models.
 
-    First we have the contact models where model["model"] != "meet_group" in
-    alphabetical order. Then the ones where model["model"] == "meet_group" in
-    alphabetical order.
+    First we have non recurrent, then recurrent contacts models. Within each group
+    the models are sorted alphabetically.
 
     Args:
         contact_models (dict): see :ref:`contact_models`
@@ -160,10 +159,10 @@ def _sort_contact_models(contact_models):
 
     """
     sorted_ = sorted(
-        name for name, mod in contact_models.items() if mod["model"] != "meet_group"
+        name for name, mod in contact_models.items() if not mod["is_recurrent"]
     )
     sorted_ += sorted(
-        name for name, mod in contact_models.items() if mod["model"] == "meet_group"
+        name for name, mod in contact_models.items() if mod["is_recurrent"]
     )
     return {name: contact_models[name] for name in sorted_}
 
@@ -283,7 +282,7 @@ def _prepare_assortative_matching(states, assort_bys, params, contact_models):
     first_probs = {}
     for model_name, assort_by in assort_bys.items():
         indexers[model_name] = create_group_indexer(states, assort_by)
-        if contact_models[model_name]["model"] != "meet_group":
+        if not contact_models[model_name]["is_recurrent"]:
             first_probs[model_name] = create_group_transition_probs(
                 states, assort_by, params, model_name
             )
