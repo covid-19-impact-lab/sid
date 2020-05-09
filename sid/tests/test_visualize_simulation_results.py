@@ -35,7 +35,6 @@ def test_create_folders(tmp_path):
         assert path.exists()
 
 
-@pytest.mark.xfail
 @pytest.mark.optional
 def test_load_data_path(keep_vars):
     path = Path(__file__).resolve().parent / "simulation_results" / "1.parquet"
@@ -46,7 +45,6 @@ def test_load_data_path(keep_vars):
     pd.testing.assert_frame_equal(expected_df, df)
 
 
-@pytest.mark.xfail
 @pytest.mark.optional
 def test_load_data_df(keep_vars):
     path = Path(__file__).resolve().parent / "simulation_results" / "1.parquet"
@@ -57,7 +55,6 @@ def test_load_data_df(keep_vars):
     pd.testing.assert_frame_equal(expected_df, df)
 
 
-@pytest.mark.xfail
 @pytest.mark.optional
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_visualize_simulation_results(tmp_path):
