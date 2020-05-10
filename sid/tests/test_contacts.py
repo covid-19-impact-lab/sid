@@ -205,7 +205,7 @@ def test_calculate_infections():
         contacts=contacts,
         params=params,
         indexers=indexers,
-        group_probs=group_probs,
+        group_cdfs=group_probs,
         seed=itertools.count(),
     )
 
