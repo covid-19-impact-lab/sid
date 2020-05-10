@@ -62,7 +62,7 @@ def test_create_group_transition_probs(initial_states, assort_by, params, expect
     transition_matrix = create_group_transition_probs(
         states=initial_states, assort_by=assort_by, params=params, model_name="model1"
     )
-    np.testing.assert_allclose(transition_matrix, expected)
+    np.testing.assert_allclose(transition_matrix, expected.cumsum(axis=1))
 
 
 @pytest.mark.parametrize("seed", range(10))
@@ -75,7 +75,7 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
         group_probabilities,
         indexer,
         infection_prob,
-        is_meet_group,
+        is_recurrent,
         loop_order,
     ) = _sample_data_for_calculate_infections_numba(n_individuals=100, seed=seed)
 
@@ -88,7 +88,7 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
         indexer,
         infection_prob,
         seed,
-        is_meet_group,
+        is_recurrent,
         loop_order,
     )
 
@@ -147,7 +147,7 @@ def _sample_data_for_calculate_infections_numba(
             axis=1, keepdims=True
         )
     group_probs_list = NumbaList()
-    group_probs_list.append(group_probabilities)
+    group_probs_list.append(group_probabilities.cumsum(axis=1))
 
     indexer = NumbaList()
     for group in range(n_groups):
@@ -160,7 +160,7 @@ def _sample_data_for_calculate_infections_numba(
         ip = np.random.uniform()
         infection_prob = np.array([ip])
 
-    is_meet_group = np.array([False])
+    is_recurrent = np.array([False])
 
     loop_order = np.array(list(itertools.product(range(n_individuals), range(1))))
 
@@ -172,7 +172,7 @@ def _sample_data_for_calculate_infections_numba(
         group_probs_list,
         indexers_list,
         infection_prob,
-        is_meet_group,
+        is_recurrent,
         loop_order,
     )
 
@@ -188,7 +188,7 @@ def test_calculate_infections():
     states["n_has_infected"] = 0
     states["n_has_infected"] = states["n_has_infected"].astype(int)
 
-    contacts = np.zeros((len(states), 0))
+    contacts = np.ones((len(states), 1))
 
     params = pd.DataFrame(
         columns=["value"],
@@ -205,7 +205,7 @@ def test_calculate_infections():
         contacts=contacts,
         params=params,
         indexers=indexers,
-        group_probs=group_probs,
+        group_cdfs=group_probs,
         seed=itertools.count(),
     )
 

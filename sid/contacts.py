@@ -23,35 +23,30 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
         date (datetime.date): The current date.
 
     Returns:
-        contacts (np.ndarray): DataFrame with one column for each contact model that
-            where model["model"] != "meet_group".
+        contacts (np.ndarray): DataFrame with one column for each contact model.
 
     """
     columns = []
     for model_name, model in contact_models.items():
-        if model["model"] != "meet_group":
-            loc = model.get("loc", params.index)
-            func = model["model"]
-            cont = func(states, params.loc[loc], date)
-            if model_name in contact_policies:
-                cp = contact_policies[model_name]
-                policy_start = pd.to_datetime(cp["start"])
-                policy_end = pd.to_datetime(cp["end"])
-                if policy_start <= date <= policy_end and cp["is_active"](states):
-                    cont *= cp["multiplier"]
-
+        loc = model.get("loc", params.index)
+        func = model["model"]
+        cont = func(states, params.loc[loc], date)
+        if model_name in contact_policies:
+            cp = contact_policies[model_name]
+            policy_start = pd.to_datetime(cp["start"])
+            policy_end = pd.to_datetime(cp["end"])
+            if policy_start <= date <= policy_end and cp["is_active"](states):
+                cont *= cp["multiplier"]
+        if not model["is_recurrent"]:
             cont = _sum_preserving_round(cont.to_numpy()).astype(DTYPE_N_CONTACTS)
-            columns.append(cont)
+        columns.append(cont)
 
-    if columns:
-        contacts = np.column_stack(columns)
-    else:
-        contacts = np.zeros((len(states), 0))
+    contacts = np.column_stack(columns)
 
     return contacts
 
 
-def calculate_infections(states, contacts, params, indexers, group_probs, seed):
+def calculate_infections(states, contacts, params, indexers, group_cdfs, seed):
     """Calculate infections from contacts.
 
     This function mainly converts the relevant parts from states and contacts into
@@ -64,9 +59,9 @@ def calculate_infections(states, contacts, params, indexers, group_probs, seed):
         params (pandas.DataFrame): See :ref:`params`.
         indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
             indices of the i_th group.
-        group_probs (dict): dict of arrays of shape
-            n_group, n_groups. probs[i, j] is the probability that an individual from
-            group i meets someone from group j.
+        group_cdfs (dict): dict of arrays of shape
+            n_group, n_groups. probs[i, j] is the cumulative probability that an
+            individual from group i meets someone from group j.
         seed (itertools.count): Seed counter to control randomness.
 
     Returns:
@@ -74,7 +69,7 @@ def calculate_infections(states, contacts, params, indexers, group_probs, seed):
         states (pandas.DataFrame): Copy of states with updated immune column.
 
     """
-    is_meet_group = np.array([k not in group_probs for k in indexers])
+    is_recurrent = np.array([k not in group_cdfs for k in indexers])
     states = states.copy()
     infectious = states["infectious"].to_numpy(copy=True)
     immune = states["immune"].to_numpy(copy=True)
@@ -83,12 +78,12 @@ def calculate_infections(states, contacts, params, indexers, group_probs, seed):
         [params.loc[("infection_prob", cm, None), "value"] for cm in indexers]
     )
 
-    group_probs_list = NumbaList()
-    for gp in group_probs.values():
-        group_probs_list.append(gp)
+    group_cdfs_list = NumbaList()
+    for gp in group_cdfs.values():
+        group_cdfs_list.append(gp)
     # nopython mode fails, if we leave the list empty or put a 1d array inside the list.
-    if len(group_probs_list) == 0:
-        group_probs_list.append(np.zeros((0, 0)))
+    if len(group_cdfs_list) == 0:
+        group_cdfs_list.append(np.zeros((0, 0)))
 
     indexers_list = NumbaList()
     for ind in indexers.values():
@@ -107,17 +102,17 @@ def calculate_infections(states, contacts, params, indexers, group_probs, seed):
         infectious,
         immune,
         group_codes,
-        group_probs_list,
+        group_cdfs_list,
         indexers_list,
         infect_probs,
         next(seed),
-        is_meet_group,
+        is_recurrent,
         loop_order,
     )
 
     infected_sr = pd.Series(infected, index=states.index)
     states["n_has_infected"] += infection_counter
-    for i, contact_model in enumerate(group_probs):
+    for i, contact_model in enumerate(group_cdfs):
         states[f"missed_{contact_model}"] = missed[:, i]
 
     states["immune"] = immune
@@ -131,11 +126,11 @@ def _calculate_infections_numba(
     infectious,
     immune,
     group_codes,
-    group_probs_list,
+    group_cdfs,
     indexers_list,
     infection_probs,
     seed,
-    is_meet_group,
+    is_recurrent,
     loop_order,
 ):
     """Match people, draw if they get infected and record who infected whom.
@@ -149,16 +144,16 @@ def _calculate_infections_numba(
         immune (numpy.ndarray): 1d boolean array that indicates if a person is immune.
         group_codes (numpy.ndarray): 2d integer array with the index of the group used
             in the first stage of matching.
-        group_probs_list (numba.typed.List): List of arrays of shape n_group, n_groups.
-            arr[i, j] is the probability that an individual from group i meets someone
-            from group j.
+        group_cdfs (numba.typed.List): List of arrays of shape n_group, n_groups.
+            arr[i, j] is the cumulative probability that an individual from group i
+            meets someone from group j.
         indexers_list (numba.typed.List): Nested typed list. The i_th entry of the inner
             lists are the indices of the i_th group. There is one inner list per contact
             model.
         infection_probs (numpy.ndarray): 1d array of length n_contact_models with the
             probability of infection for each contact model.
         seed (int): Seed value to control randomness.
-        is_meet_group (numpy.ndarray): Boolean array of length n_contact_models.
+        is_recurrent (numpy.ndarray): Boolean array of length n_contact_models.
         loop_orrder (np.ndarray): 2d numpy array with two columns. The first column
             indicates an individual. The second indicates a contact model.
 
@@ -175,22 +170,22 @@ def _calculate_infections_numba(
 
     infected = np.zeros(len(contacts), dtype=DTYPE_INFECTED)
     infection_counter = np.zeros(len(contacts), dtype=DTYPE_INFECTION_COUNTER)
-    groups_list = [np.arange(len(gp)) for gp in group_probs_list]
+    groups_list = [np.arange(len(gp)) for gp in group_cdfs]
 
     # Loop over all individual-contact_model combinations
     for k in range(len(loop_order)):
         i, cm = loop_order[k]
-        if is_meet_group[cm]:
+        if is_recurrent[cm]:
             # We only check if i gets infected by someone else from his group. Whether
             # he infects some j is only checked, when the main loop arrives at j.
             group_i = group_codes[i, cm]
             # skip completely if i does not have a group or is already immune
-            if not immune[i] and group_i >= 0:
+            if not immune[i] and contacts[i, cm] > 0:
                 others = indexers_list[cm][group_i]
                 # we don't have to handle the case where j == i because if i is
                 # infectious he is also immune, if not, nothing happens anyways.
                 for j in others:
-                    if infectious[j] and not immune[i]:
+                    if infectious[j] and not immune[i] and contacts[j, cm] > 0:
                         is_infection = _boolean_choice(infection_probs[cm])
                         if is_infection:
                             infection_counter[j] += 1
@@ -201,14 +196,14 @@ def _calculate_infections_numba(
             # get the probabilities for meeting another group which depend on the
             # individual's group.
             group_i = group_codes[i, cm]
-            group_probs_i = group_probs_list[cm][group_i]
+            group_i_cdf = group_cdfs[cm][group_i]
 
             # Loop over each contact the individual has, sample the contact's group and
             # compute the sum of possible contacts in this group.
             n_contacts = contacts[i, cm]
             for _ in range(n_contacts):
                 contact_takes_place = True
-                group_j = _choose_one_element(groups_list[cm], weights=group_probs_i)
+                group_j = _choose_other_group(groups_list[cm], cdf=group_i_cdf)
                 choice_indices = indexers_list[cm][group_j]
                 contacts_j = contacts[choice_indices, cm]
 
@@ -242,30 +237,10 @@ def _calculate_infections_numba(
 
 
 @njit
-def _choose_one_element(a, weights):
-    """Return an element of choices.
-
-    This function does the same as :func:`numpy.random.choice`, but is way faster.
-
-    :func:`numpy.argmax` returns the first index for multiple maximum values.
-
-    Args:
-        a (numpy.ndarray): 1d array of choices
-        weights (numpy.ndarray): 1d array of weights.
-
-    Returns:
-        choice (int): An element of a.
-
-    Example:
-        >>> chosen = _choose_one_element(np.arange(3), np.array([0.2, 0.3, 0.5]))
-        >>> assert isinstance(chosen, int)
-
-    """
-    cdf = weights.cumsum()
-    sum_of_weights = cdf[-1]
-    u = np.random.uniform(0, sum_of_weights)
-    index = (u < cdf).argmax()
-
+def _choose_other_group(a, cdf):
+    """Choose a group out of a, given cumulative choice probabilities."""
+    u = np.random.uniform(0, 1)
+    index = _get_index_refining_search(u, cdf)
     return a[index]
 
 
@@ -303,10 +278,57 @@ def _choose_other_individual(a, weights):
         chosen = -1
     else:
         u = np.random.uniform(0, sum_of_weights)
-        index = (u < cdf).argmax()
+        index = _get_index_refining_search(u, cdf)
         chosen = a[index]
 
     return chosen
+
+
+@njit
+def _get_index_refining_search(u, cdf):
+    """Get the index of the first element in cdf that is larger than u.
+
+    The algorithm does a refining search. We first iterate over cdf in
+    larger steps to find a subset of cdf in which we have to look
+    at each element.
+
+    The step size in the first iteration is the square root of the
+    length of cdf, which minimizes runtime in expectation if u is a
+    uniform random variable.
+
+    Args:
+        u (float): A uniform random draw.
+        cdf (np.ndarray): 1d array with cumulative probabilities.
+
+    Returns:
+        int: The selected index.
+
+    Example:
+        >>> cdf = np.array([0.1, 0.6, 1.0])
+        >>> _get_index_refining_search(0, cdf)
+        0
+        >>> _get_index_refining_search(0.05, cdf)
+        0
+        >>> _get_index_refining_search(0.55, cdf)
+        1
+        >>> _get_index_refining_search(1, cdf)
+        2
+
+    """
+    n_ind = len(cdf)
+    highest_i = n_ind - 1
+    i = 0
+    step = int(np.sqrt(n_ind))
+
+    while cdf[i] < u and i < highest_i:
+        i = min(i + step, highest_i)
+
+    i = max(0, i - step)
+
+    while cdf[i] < u and i < highest_i:
+        i += 1
+
+    return i
 
 
 @njit
@@ -381,8 +403,9 @@ def create_group_transition_probs(states, assort_by, params, model_name):
         model_name (str): name of the contact model.
 
     Returns
-        probs (numpy.ndarray): Array of shape n_group, n_groups. probs[i, j] is the
-            probability that an individual from group i meets someone from group j.
+        cum_probs (numpy.ndarray): Array of shape n_group, n_groups. cum_probs[i, j]
+            is the probability that an individual from group i meets someone from group
+            j or lower.
 
     """
     _, group_codes_values = factorize_assortative_variables(states, assort_by)
@@ -405,7 +428,9 @@ def create_group_transition_probs(states, assort_by, params, model_name):
                     else:
                         probs[i, j] *= other_probs[v]
 
-    return probs
+    cum_probs = probs.cumsum(axis=1)
+
+    return cum_probs
 
 
 @njit

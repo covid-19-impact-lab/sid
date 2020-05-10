@@ -20,7 +20,7 @@ def factorize_assortative_variables(states, assort_by):
 
     Returns:
         group_codes (numpy.ndarray): Array containing the code for each states.
-        group_codes_values (np.ndarray): One-dimensional array where positions
+        group_codes_values (numpy.ndarray): One-dimensional array where positions
             correspond the values of assortative variables to form the group.
 
     """
@@ -44,7 +44,7 @@ def calculate_r_effective(df, window_length=7):
     source: https://bit.ly/2VZOR5a
 
     Args:
-        df (pd.DataFrame): states DataFrame for which to calculate R_e, usually
+        df (pandas.DataFrame): states DataFrame for which to calculate R_e, usually
             the states of one period.
         window_length (int): how many periods to use to identify the previously
             infectious people. The lower, the more changes in behavior can be seen,

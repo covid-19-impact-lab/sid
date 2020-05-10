@@ -90,7 +90,7 @@ def simulate(
     }
     states = update_states(states, initial_infections, params, seed)
 
-    indexers, first_probs = _prepare_assortative_matching(
+    indexers, cum_probs = _prepare_assortative_matching(
         states, assort_bys, params, contact_models
     )
 
@@ -102,11 +102,11 @@ def simulate(
             contact_models, contact_policies, states, params, date
         )
         newly_infected, states = calculate_infections(
-            states, contacts, params, indexers, first_probs, seed,
+            states, contacts, params, indexers, cum_probs, seed,
         )
         states = update_states(states, newly_infected, params, seed)
 
-        for i, contact_model in enumerate(first_probs):
+        for i, contact_model in enumerate(cum_probs):
             states[f"n_contacts_{contact_model}"] = contacts[:, i]
         states["newly_infected"] = newly_infected
 
@@ -148,9 +148,8 @@ def _create_output_directory(path):
 def _sort_contact_models(contact_models):
     """Sort the contact_models.
 
-    First we have the contact models where model["model"] != "meet_group" in
-    alphabetical order. Then the ones where model["model"] == "meet_group" in
-    alphabetical order.
+    First we have non recurrent, then recurrent contacts models. Within each group
+    the models are sorted alphabetically.
 
     Args:
         contact_models (dict): see :ref:`contact_models`
@@ -160,10 +159,10 @@ def _sort_contact_models(contact_models):
 
     """
     sorted_ = sorted(
-        name for name, mod in contact_models.items() if mod["model"] != "meet_group"
+        name for name, mod in contact_models.items() if not mod["is_recurrent"]
     )
     sorted_ += sorted(
-        name for name, mod in contact_models.items() if mod["model"] == "meet_group"
+        name for name, mod in contact_models.items() if mod["is_recurrent"]
     )
     return {name: contact_models[name] for name in sorted_}
 
@@ -275,15 +274,15 @@ def _prepare_assortative_matching(states, assort_bys, params, contact_models):
         indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
             indices of the i_th group.
         first_probs (dict): dict of arrays of shape
-            n_group, n_groups. probs[i, j] is the probability that an individual from
-            group i meets someone from group j.
+            n_group, n_groups. probs[i, j] is the cumulative probability that an
+            individual from group i meets someone from group j.
 
     """
     indexers = {}
     first_probs = {}
     for model_name, assort_by in assort_bys.items():
         indexers[model_name] = create_group_indexer(states, assort_by)
-        if contact_models[model_name]["model"] != "meet_group":
+        if not contact_models[model_name]["is_recurrent"]:
             first_probs[model_name] = create_group_transition_probs(
                 states, assort_by, params, model_name
             )
