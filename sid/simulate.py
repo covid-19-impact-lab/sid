@@ -90,7 +90,7 @@ def simulate(
     }
     states = update_states(states, initial_infections, params, seed)
 
-    indexers, first_probs = _prepare_assortative_matching(
+    indexers, cum_probs = _prepare_assortative_matching(
         states, assort_bys, params, contact_models
     )
 
@@ -102,11 +102,11 @@ def simulate(
             contact_models, contact_policies, states, params, date
         )
         newly_infected, states = calculate_infections(
-            states, contacts, params, indexers, first_probs, seed,
+            states, contacts, params, indexers, cum_probs, seed,
         )
         states = update_states(states, newly_infected, params, seed)
 
-        for i, contact_model in enumerate(first_probs):
+        for i, contact_model in enumerate(cum_probs):
             states[f"n_contacts_{contact_model}"] = contacts[:, i]
         states["newly_infected"] = newly_infected
 
@@ -274,8 +274,8 @@ def _prepare_assortative_matching(states, assort_bys, params, contact_models):
         indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
             indices of the i_th group.
         first_probs (dict): dict of arrays of shape
-            n_group, n_groups. probs[i, j] is the probability that an individual from
-            group i meets someone from group j.
+            n_group, n_groups. probs[i, j] is the cumulative probability that an
+            individual from group i meets someone from group j.
 
     """
     indexers = {}
