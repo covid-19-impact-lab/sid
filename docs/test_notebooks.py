@@ -15,7 +15,11 @@ def test_notebooks():
     repo_path = Path(__file__).resolve().parent.parent
     tutorials_path = repo_path / "docs" / "source" / "tutorials"
     os.chdir(tutorials_path)
+
     ipynbs = list(tutorials_path.glob("*.ipynb"))
+    # Remove checkpoints.
+    ipynbs = [ipynb for ipynb in ipynbs if ".ipynb_checkpoints" not in ipynb.as_posix()]
+
     import nbformat
     from nbconvert.preprocessors import ExecutePreprocessor
 

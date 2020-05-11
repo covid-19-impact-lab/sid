@@ -10,3 +10,4 @@ sid provides some public functions which are listed below.
 
     simulate
     get_msm_func
+    get_date
