@@ -100,7 +100,12 @@ def calculate_infections_by_contacts(
     indices = np.random.choice(len(loop_entries), replace=False, size=len(loop_entries))
     loop_order = loop_entries[indices]
 
-    infected, infection_counter, immune, missed = _calculate_infections_numba(
+    (
+        infected,
+        infection_counter,
+        immune,
+        missed,
+    ) = _calculate_infections_by_contacts_numba(
         contacts,
         infectious,
         immune,
@@ -124,7 +129,7 @@ def calculate_infections_by_contacts(
 
 
 @njit
-def _calculate_infections_numba(
+def _calculate_infections_by_contacts_numba(
     contacts,
     infectious,
     immune,

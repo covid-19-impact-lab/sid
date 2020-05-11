@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from numba.typed import List as NumbaList
 
-from sid.contacts import _calculate_infections_numba
+from sid.contacts import _calculate_infections_by_contacts_numba
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
 from sid.contacts import create_group_transition_probs
@@ -79,7 +79,12 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
         loop_order,
     ) = _sample_data_for_calculate_infections_numba(n_individuals=100, seed=seed)
 
-    infected, infection_counter, immune, missed = _calculate_infections_numba(
+    (
+        infected,
+        infection_counter,
+        immune,
+        missed,
+    ) = _calculate_infections_by_contacts_numba(
         contacts,
         infectious,
         immune,
