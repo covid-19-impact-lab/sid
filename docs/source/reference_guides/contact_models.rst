@@ -42,7 +42,8 @@ classes and the workplace.
 
 Expression to select a subset of ``params``. This is mostly relevant if pre-implemented
 contact models are used (e.g. ``linear_contact_model``) and the params can be used to
-select covariates from ``states``. Optional.
+select covariates from ``states``. The same contact model could be used with a different
+parameterization. This key is optional.
 
 
 ``"model"``
