@@ -12,7 +12,8 @@ contacts to infectious people. Examples of such events are
   returned.
 
 - A carnival session which sparked the outbreak in `Gangelt
-  <https://www.land.nrw/sites/default/files/asset/document/zwischenergebnis_covid19_case_study_gangelt_0.pdf>`_.
+  <https://www.land.nrw/sites/default/files/asset/document/
+  zwischenergebnis_covid19_case_study_gangelt_0.pdf>`_.
 
 - The RKI models a steady inflow of one infection per day.
 
@@ -21,7 +22,8 @@ Specifying an event
 -------------------
 
 Multiple events are stored in a dictionary. Each event has a name in this dictionary
-like ``"gangelt"``. The values of the dictionary are again dictionaries which specify the event and could have the following keys.
+like ``"gangelt"``. The values of the dictionary are again dictionaries which specify
+the event and could have the following keys.
 
 .. code-block:: python
 
