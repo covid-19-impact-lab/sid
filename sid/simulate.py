@@ -13,7 +13,7 @@ from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import USELESS_COLUMNS
 from sid.contacts import calculate_contacts
-from sid.contacts import calculate_infections
+from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
 from sid.contacts import create_group_transition_probs
 from sid.events import calculate_infections_by_events
@@ -106,7 +106,7 @@ def simulate(
             contact_models, contact_policies, states, params, date
         )
 
-        newly_infected_contacts, states = calculate_infections(
+        newly_infected_contacts, states = calculate_infections_by_contacts(
             states, contacts, params, indexers, cum_probs, seed,
         )
         newly_infected_events = calculate_infections_by_events(states, params, events)

@@ -46,7 +46,9 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
     return contacts
 
 
-def calculate_infections(states, contacts, params, indexers, group_cdfs, seed):
+def calculate_infections_by_contacts(
+    states, contacts, params, indexers, group_cdfs, seed
+):
     """Calculate infections from contacts.
 
     This function mainly converts the relevant parts from states and contacts into

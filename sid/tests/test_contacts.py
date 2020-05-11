@@ -6,7 +6,7 @@ import pytest
 from numba.typed import List as NumbaList
 
 from sid.contacts import _calculate_infections_numba
-from sid.contacts import calculate_infections
+from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
 from sid.contacts import create_group_transition_probs
 
@@ -200,7 +200,7 @@ def test_calculate_infections():
 
     group_probs = {}
 
-    calc_infected, calc_states = calculate_infections(
+    calc_infected, calc_states = calculate_infections_by_contacts(
         states=states,
         contacts=contacts,
         params=params,
