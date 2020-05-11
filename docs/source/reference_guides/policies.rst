@@ -43,6 +43,8 @@ policy is only active is ``is_active & pol["start"] <= period <= pol["end"]``.
 ``testing_policies``
 --------------------
 
+*This feature is under development.*
+
 Testing policies determine which individuals receive a test. Testing policies are not
 implemented yet, but will be a dict of dicts of the following form:
 
