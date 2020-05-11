@@ -12,12 +12,13 @@ policies that modify contact models or implement testing strategies.
 ``contact_policies``
 --------------------
 
-Contact policies are multipliers on a contact model that are active in certain periods
-or when the ``states`` fulfills some condition. Here is an example:
+Contact policies are multipliers on a contact model that are active on certain dates or
+when ``states`` fulfills some condition. Here is an example:
 
 .. code-block:: python
 
-    def contact_policy_is_active(states):
+    def activate_contact_policy(states):
+        """Activate policy if 20% of the population are infectious."""
         return states["infectious"].mean() > 0.2
 
 
@@ -26,7 +27,7 @@ or when the ``states`` fulfills some condition. Here is an example:
             "start": "2020-02-01",
             "end": "2020-02-15",
             "multiplier": 0.5,
-            "is_active": contact_policy_is_active,
+            "is_active": activate_contact_policy,
         }
     }
 
@@ -37,7 +38,7 @@ optional. ``"multiplier"`` will be multiplied with the number of contacts. It is
 problem if the multiplication leads to non-integer number of contacts. We will
 automatically round them in a way that preserves the total number of contacts as well as
 possible. ``"is_active"`` is a function that returns a bool. This is also optional. A
-policy is only active is ``is_active & pol["start"] <= period <= pol["end"]``.
+policy is only active if ``is_active & pol["start"] <= date <= pol["end"]``.
 
 
 ``testing_policies``

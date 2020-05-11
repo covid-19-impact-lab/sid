@@ -6,7 +6,7 @@ from sid.simulate import _process_initial_states
 from sid.simulate import simulate
 
 
-def meet_two(states, params, period):  # noqa: U100
+def meet_two(states, params):  # noqa: U100
     return pd.Series(index=states.index, data=2)
 
 

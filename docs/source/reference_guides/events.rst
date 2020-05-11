@@ -46,8 +46,8 @@ parameterization. This key is optional.
 ^^^^^^^^^^^
 
 A model is a function which receives ``states`` and ``params`` and returns a boolean
-series where new infections are marked with ``True``. The new infections in a period
-from contacts and multiple events are merged with a logical OR.
+series where new infections are marked with ``True``. The new infections per day from
+contacts and multiple events are merged with a logical OR.
 
 .. code-block:: python
 

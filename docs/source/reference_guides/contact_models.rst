@@ -49,18 +49,22 @@ parameterization. This key is optional.
 ``"model"``
 ^^^^^^^^^^^
 
-A function that takes states, params and date as arguments and returns a Series that has
+A function that takes states and params as arguments and returns a Series that has
 the same index as states. The values of the Series are the numbers of contacts for each
 person. An example is:
 
 .. code-block:: python
 
-    def meet_two_people(states, params, date):
+    from sid import get_date
+
+
+    def meet_two_people(states, params):
+        # date = get_date(states)  # Get date from states for conditional contacts.
+
         return pd.Series(index=states.index, data=2)
 
-The function can depend on the date in order to implement policies. The returned values
-can be floating point numbers. In that case they will be automatically rounded to
-integers in a way that preserves the total number of contacts.
+The returned values can be floating point numbers. In that case they will be
+automatically rounded to integers in a way that preserves the total number of contacts.
 
 For recurrent contact models the matching is fully assortative and exhaustive, i.e. each
 individual meets all others who have the exact same value in all ``assort_by``
@@ -68,7 +72,7 @@ variables. In that case the values of the Series are not interpreted quantitativ
 we just check if they are zero (in which case an individual will not have contacts) or
 larger than zero (in which case she will meet all people in her group). These model
 functions can be used to turn recurrent contact models on and off or to implement that
-school classes only meet on weekdays, make sick individuals stay home...
+school classes only meet on weekdays, make sick individuals stay home, etc..
 
 .. _assort_by:
 

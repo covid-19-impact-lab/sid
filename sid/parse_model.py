@@ -9,8 +9,8 @@ def parse_duration(duration=None):
             :func:`pandas.date_range`.
 
     Returns:
-        new_duration (dict): A dictionary containing start and end periods or dates and
-            an iterable of the same types.
+        new_duration (dict): A dictionary containing start and end dates and an iterable
+            of the same types.
 
     Examples:
         >>> parse_duration({"start": "2020-03-01", "end": "2020-03-10"})

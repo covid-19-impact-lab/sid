@@ -30,7 +30,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
     for model_name, model in contact_models.items():
         loc = model.get("loc", params.index)
         func = model["model"]
-        cont = func(states, params.loc[loc], date)
+        cont = func(states, params.loc[loc])
         if model_name in contact_policies:
             cp = contact_policies[model_name]
             policy_start = pd.to_datetime(cp["start"])
