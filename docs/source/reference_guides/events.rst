@@ -27,7 +27,7 @@ like ``"gangelt"``. The values of the dictionary are again dictionaries which sp
 
     {
         "gangelt": {
-            # "loc": slice(None),
+            # "loc": slice(None),  # Returns all parameters which is the default.
             "model": carnival_session,
         }
     }
@@ -45,13 +45,20 @@ parameterization. This key is optional.
 ``"model"``
 ^^^^^^^^^^^
 
-A model is a function which receives ``newly_infected``, ``states``, ``params`` and
-``date``
+A model is a function which receives ``states`` and ``params`` and returns a boolean
+series where new infections are marked with ``True``. The new infections in a period
+from contacts and multiple events are merged with a logical OR.
 
 .. code-block:: python
 
-    def carnival_session(newly_infected, states, params, date):
+    from sid import get_date
+
+
+    def carnival_session(states, params):
+        date = get_date(states)  # Helper to get the current date from states.
         date_of_carnival_session = pd.to_datetime("2020-02-15")
+
+        newly_infected = pd.Series(data=False, index=states.index)
 
         if date == date_of_carnival_session:
 
@@ -60,8 +67,10 @@ A model is a function which receives ``newly_infected``, ``states``, ``params`` 
             ).index
 
             infection_rate = params.loc[("infection_prob", "gangelt", None), "value"]
-            infected = np.random.choice(adults_in_heinsberg, size=300 * infection_prob)
+            infected_indices = np.random.choice(
+                adults_in_heinsberg, size=300 * infection_prob
+            )
 
-            newly_infected.loc[infected] = True
+            newly_infected.loc[infected_indices] = True
 
         return newly_infected
