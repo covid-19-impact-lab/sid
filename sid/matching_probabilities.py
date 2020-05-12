@@ -23,31 +23,57 @@ def create_group_transition_probs(states, assort_by, params, model_name):
 
     """
     _, group_codes_values = factorize_assortative_variables(states, assort_by)
-    probs = np.ones((len(group_codes_values), len(group_codes_values)))
 
-    if assort_by:
-        same_probs = []
-        other_probs = []
+    if not assort_by:
+        probs = np.ones((len(group_codes_values), len(group_codes_values)))
+
+    else:
+        trans_mats = []
         for var in assort_by:
-            p = params.loc[("assortative_matching", model_name, var), "value"]
-            n_vals = len(states[var].unique())
-            same_probs.append(p)
-            other_probs.append((1 - p) / (n_vals - 1))
+            tm = _get_transition_matrix_from_params(params, states, var, model_name)
+            trans_mats.append(tm)
 
-        for i, g_from in enumerate(group_codes_values):
-            for j, g_to in enumerate(group_codes_values):
-                for v, (val1, val2) in enumerate(zip(g_from, g_to)):
-                    if val1 == val2:
-                        probs[i, j] *= same_probs[v]
-                    else:
-                        probs[i, j] *= other_probs[v]
+        probs = _join_transition_matrices(trans_mats)
+        probs = probs.loc[group_codes_values, group_codes_values].to_numpy()
 
     cum_probs = probs.cumsum(axis=1)
 
     return cum_probs
 
 
-def create_transition_matrix_from_own_prob(own_prob, group_names=None):
+def _get_transition_matrix_from_params(params, states, variable, model_name):
+    """Extract transition matrix for one assort_by variable from params.
+
+    Args:
+        params (pd.DataFrame): see :ref:`params`
+        states (pd.DataFrame): see :ref:`states`
+        variable (str): Name of the assort by variable
+        model_name (str): Name of the contact model in which variable is used.
+
+    Returns:
+        pd.DataFrame: The transition matrix.
+
+    """
+    if ("assortative_matching", model_name, variable) in params.index:
+        own_prob = params.loc[("assortative_matching", model_name, variable), "value"]
+        group_names = states[variable].unique().tolist()
+        trans_mat = _create_transition_matrix_from_own_prob(own_prob, group_names)
+    else:
+        loc = f"assortative_matching_{model_name}_{variable}"
+        par = params.loc[loc]
+        from_ = par.index.get_level_values("subcategory")
+        to = par.index.get_level_values("name")
+        if (from_ == to).all():
+            own_prob = params.loc[loc, "value"]
+            own_prob.index = own_prob.index.get_level_values("name")
+            trans_mat = _create_transition_matrix_from_own_prob(own_prob)
+        else:
+            trans_mat = params.loc[loc, "value"].unstack()
+
+    return trans_mat
+
+
+def _create_transition_matrix_from_own_prob(own_prob, group_names=None):
     """Create a transition matrix.
 
     The matrix is calculated from the probability of staying inside
@@ -67,13 +93,13 @@ def create_transition_matrix_from_own_prob(own_prob, group_names=None):
 
     Example:
 
-        >>> create_transition_matrix_from_own_prob(0.6, ["a", "b"])
+        >>> _create_transition_matrix_from_own_prob(0.6, ["a", "b"])
              a    b
         a  0.6  0.4
         b  0.4  0.6
 
         >>> op = pd.Series([0.6, 0.7], index=["a", "b"])
-        >>> create_transition_matrix_from_own_prob(op)
+        >>> _create_transition_matrix_from_own_prob(op)
              a    b
         a  0.6  0.4
         b  0.3  0.7
@@ -95,7 +121,7 @@ def create_transition_matrix_from_own_prob(own_prob, group_names=None):
     return trans_df
 
 
-def join_transition_matrices(trans_mats):
+def _join_transition_matrices(trans_mats):
     """Join several transition matrices into one, assuming independence.
 
     Args:

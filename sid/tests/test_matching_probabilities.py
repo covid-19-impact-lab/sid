@@ -3,14 +3,16 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
+from sid.matching_probabilities import _create_transition_matrix_from_own_prob
+from sid.matching_probabilities import _join_transition_matrices
 from sid.matching_probabilities import create_group_transition_probs
-from sid.matching_probabilities import create_transition_matrix_from_own_prob
-from sid.matching_probabilities import join_transition_matrices
 
 
 def test_join_transition_matrices():
-    t1 = create_transition_matrix_from_own_prob(0.6, ["bla", "blubb"])
-    t2 = create_transition_matrix_from_own_prob(pd.Series([0.6, 0.7], index=["a", "b"]))
+    t1 = _create_transition_matrix_from_own_prob(0.6, ["bla", "blubb"])
+    t2 = _create_transition_matrix_from_own_prob(
+        pd.Series([0.6, 0.7], index=["a", "b"])
+    )
     exp_data = [
         [0.36, 0.24, 0.24, 0.16],
         [0.18, 0.42, 0.12, 0.28],
@@ -22,7 +24,7 @@ def test_join_transition_matrices():
     ind = pd.MultiIndex.from_tuples(ind_tups)
     expected = pd.DataFrame(exp_data, columns=ind, index=ind)
 
-    calculated = join_transition_matrices([t1, t2])
+    calculated = _join_transition_matrices([t1, t2])
 
     assert_frame_equal(calculated, expected)
 
