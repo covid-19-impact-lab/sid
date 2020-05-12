@@ -8,7 +8,6 @@ from numba.typed import List as NumbaList
 from sid.contacts import _calculate_infections_numba
 from sid.contacts import calculate_infections
 from sid.contacts import create_group_indexer
-from sid.matching_probabilities import create_group_transition_probs
 
 
 @pytest.mark.parametrize(
@@ -26,43 +25,6 @@ def test_create_group_indexer(initial_states, assort_by, expected):
     calculated = [arr.tolist() for arr in calculated]
 
     assert calculated == expected
-
-
-@pytest.mark.parametrize(
-    "assort_by, expected",
-    [
-        (
-            ["age_group", "region"],
-            np.array(
-                [
-                    [0.45, 0.025, 0.025, 0.45, 0.025, 0.025],
-                    [0.025, 0.45, 0.025, 0.025, 0.45, 0.025],
-                    [0.025, 0.025, 0.45, 0.025, 0.025, 0.45],
-                    [0.45, 0.025, 0.025, 0.45, 0.025, 0.025],
-                    [0.025, 0.45, 0.025, 0.025, 0.45, 0.025],
-                    [0.025, 0.025, 0.45, 0.025, 0.025, 0.45],
-                ]
-            ),
-        ),
-        ([], np.array([[1]])),
-    ],
-)
-def test_crgiteate_group_transition_probs(initial_states, assort_by, params, expected):
-    # append assortative matching parameters
-    assort_index = pd.MultiIndex.from_tuples(
-        [
-            ("assortative_matching", "model1", "age_group"),
-            ("assortative_matching", "model1", "region"),
-        ]
-    )
-    assort_probs = pd.DataFrame(columns=params.columns, index=assort_index)
-    assort_probs["value"] = [0.5, 0.9]
-    params = params.append(assort_probs)
-
-    transition_matrix = create_group_transition_probs(
-        states=initial_states, assort_by=assort_by, params=params, model_name="model1"
-    )
-    np.testing.assert_allclose(transition_matrix, expected.cumsum(axis=1))
 
 
 @pytest.mark.parametrize("seed", range(10))
