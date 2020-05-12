@@ -39,7 +39,7 @@ the event and could have the following keys.
 ^^^^^^^^^
 
 Expression to select a subset of ``params``. This is mostly relevant if pre-implemented
-contact models are used (e.g. ``linear_contact_model``) and the params can be used to
+events are used (e.g. ``import_cases``) and the params can be used to
 select covariates from ``states``. The same contact model could be used with a different
 parameterization. This key is optional.
 
@@ -68,9 +68,9 @@ contacts and multiple events are merged with a logical OR.
                 "county == 'Kreis Heinsberg' and age_group >= '10 - 19'"
             ).index
 
-            infection_rate = params.loc[("infection_prob", "gangelt", None), "value"]
+            infection_prob = params.loc[("infection_prob", "gangelt", None), "value"]
             infected_indices = np.random.choice(
-                adults_in_heinsberg, size=300 * infection_prob
+                adults_in_heinsberg, size=300 * infection_prob, replace=False
             )
 
             newly_infected.loc[infected_indices] = True
