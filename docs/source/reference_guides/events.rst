@@ -5,8 +5,8 @@ Events
 Motivation
 ----------
 
-Events allow to model infections which have exogenous causes and occur besides
-contacts to infectious people. Examples of such events are
+Events allow to model infections which have exogenous causes and occur besides contacts
+to infectious people. Examples of such events are
 
 - Imported cases which caused the center of infections in Munich when ski-tourists
   returned.
@@ -39,9 +39,9 @@ the event and could have the following keys.
 ^^^^^^^^^
 
 Expression to select a subset of ``params``. This is mostly relevant if pre-implemented
-events are used (e.g. ``import_cases``) and the params can be used to
-select covariates from ``states``. The same contact model could be used with a different
-parameterization. This key is optional.
+events are used (e.g. ``import_cases``) and the params can be used to select covariates
+from ``states``. The same contact model could be used with a different parameterization.
+This key is optional.
 
 
 ``"model"``
