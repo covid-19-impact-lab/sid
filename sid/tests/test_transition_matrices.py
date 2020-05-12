@@ -1,8 +1,8 @@
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-from sid.transition_matrices import create_transition_matrix_from_own_prob
-from sid.transition_matrices import join_transition_matrices
+from sid.matching_probabilities import create_transition_matrix_from_own_prob
+from sid.matching_probabilities import join_transition_matrices
 
 
 def test_join_transition_matrices():

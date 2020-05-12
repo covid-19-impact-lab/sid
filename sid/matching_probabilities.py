@@ -4,6 +4,48 @@ import pandas as pd
 from numba import njit
 from numba.typed import List as NumbaList
 
+from sid.shared import factorize_assortative_variables
+
+
+def create_group_transition_probs(states, assort_by, params, model_name):
+    """Create a transition matrix for groups.
+
+    Args:
+        states (pandas.DataFrame): see :ref:`states`
+        assort_by (list): List of variables that influence matching probabilities.
+        params (pandas.DataFrame): See :ref:`params`
+        model_name (str): name of the contact model.
+
+    Returns
+        cum_probs (numpy.ndarray): Array of shape n_group, n_groups. cum_probs[i, j]
+            is the probability that an individual from group i meets someone from group
+            j or lower.
+
+    """
+    _, group_codes_values = factorize_assortative_variables(states, assort_by)
+    probs = np.ones((len(group_codes_values), len(group_codes_values)))
+
+    if assort_by:
+        same_probs = []
+        other_probs = []
+        for var in assort_by:
+            p = params.loc[("assortative_matching", model_name, var), "value"]
+            n_vals = len(states[var].unique())
+            same_probs.append(p)
+            other_probs.append((1 - p) / (n_vals - 1))
+
+        for i, g_from in enumerate(group_codes_values):
+            for j, g_to in enumerate(group_codes_values):
+                for v, (val1, val2) in enumerate(zip(g_from, g_to)):
+                    if val1 == val2:
+                        probs[i, j] *= same_probs[v]
+                    else:
+                        probs[i, j] *= other_probs[v]
+
+    cum_probs = probs.cumsum(axis=1)
+
+    return cum_probs
+
 
 def create_transition_matrix_from_own_prob(own_prob, group_names=None):
     """Create a transition matrix.

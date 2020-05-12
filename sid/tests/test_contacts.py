@@ -8,7 +8,7 @@ from numba.typed import List as NumbaList
 from sid.contacts import _calculate_infections_numba
 from sid.contacts import calculate_infections
 from sid.contacts import create_group_indexer
-from sid.contacts import create_group_transition_probs
+from sid.matching_probabilities import create_group_transition_probs
 
 
 @pytest.mark.parametrize(
@@ -47,7 +47,7 @@ def test_create_group_indexer(initial_states, assort_by, expected):
         ([], np.array([[1]])),
     ],
 )
-def test_create_group_transition_probs(initial_states, assort_by, params, expected):
+def test_crgiteate_group_transition_probs(initial_states, assort_by, params, expected):
     # append assortative matching parameters
     assort_index = pd.MultiIndex.from_tuples(
         [
