@@ -71,18 +71,13 @@ Evolution of States
 -------------------
 
 Some of the states have stochastic transition that can be triggered by events that
-happened several periods earlier. For example, an infection in period t leads to
-symptoms only with a probability smaller than one and these symptoms set in after a
-stochastic incubation time that can last several days.
+happened several days earlier. For example, an infection on day t leads to symptoms only
+with a probability smaller than one and these symptoms set in after a stochastic
+incubation time that can last several days.
 
 Such transitions are handled by countdowns. Countdowns are integer variables. They are
-negative if no change was triggered and positive otherwise. Each period they get reduced
-by one. If they hit zero, the state variables they are associated with is changed.
-
-.. Since all variables are booleans, the end of the countdown means just that the
-.. current value is negated. Thus the same countdown can be used for switches from
-.. True to False and from False to True.
-
+negative if no change was triggered and positive otherwise. Each day they get reduced by
+one. If they hit zero, the state variables they are associated with is changed.
 
 We have the following countdowns:
 

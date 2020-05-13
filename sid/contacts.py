@@ -20,17 +20,17 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
         contact_policies (dict): See :ref:`policies`.
         states (pandas.DataFrame): See :ref:`states`.
         params (pandas.DataFrame): See :ref:`params`.
-        date (datetime.date): The current date.
+        date (pandas.Timestamp): The current date.
 
     Returns:
-        contacts (np.ndarray): DataFrame with one column for each contact model.
+        contacts (numpy.ndarray): DataFrame with one column for each contact model.
 
     """
     columns = []
     for model_name, model in contact_models.items():
         loc = model.get("loc", params.index)
         func = model["model"]
-        cont = func(states, params.loc[loc], date)
+        cont = func(states, params.loc[loc])
         if model_name in contact_policies:
             cp = contact_policies[model_name]
             policy_start = pd.to_datetime(cp["start"])
@@ -46,7 +46,9 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
     return contacts
 
 
-def calculate_infections(states, contacts, params, indexers, group_cdfs, seed):
+def calculate_infections_by_contacts(
+    states, contacts, params, indexers, group_cdfs, seed
+):
     """Calculate infections from contacts.
 
     This function mainly converts the relevant parts from states and contacts into
@@ -65,7 +67,8 @@ def calculate_infections(states, contacts, params, indexers, group_cdfs, seed):
         seed (itertools.count): Seed counter to control randomness.
 
     Returns:
-        infected_sr (pd.Series): Boolean Series that is True for newly infected people.
+        infected_sr (pandas.Series): Boolean Series that is True for newly infected
+            people.
         states (pandas.DataFrame): Copy of states with updated immune column.
 
     """
@@ -97,7 +100,12 @@ def calculate_infections(states, contacts, params, indexers, group_cdfs, seed):
     indices = np.random.choice(len(loop_entries), replace=False, size=len(loop_entries))
     loop_order = loop_entries[indices]
 
-    infected, infection_counter, immune, missed = _calculate_infections_numba(
+    (
+        infected,
+        infection_counter,
+        immune,
+        missed,
+    ) = _calculate_infections_by_contacts_numba(
         contacts,
         infectious,
         immune,
@@ -121,7 +129,7 @@ def calculate_infections(states, contacts, params, indexers, group_cdfs, seed):
 
 
 @njit
-def _calculate_infections_numba(
+def _calculate_infections_by_contacts_numba(
     contacts,
     infectious,
     immune,
@@ -154,7 +162,7 @@ def _calculate_infections_numba(
             probability of infection for each contact model.
         seed (int): Seed value to control randomness.
         is_recurrent (numpy.ndarray): Boolean array of length n_contact_models.
-        loop_orrder (np.ndarray): 2d numpy array with two columns. The first column
+        loop_orrder (numpy.ndarray): 2d numpy array with two columns. The first column
             indicates an individual. The second indicates a contact model.
 
     Returns:

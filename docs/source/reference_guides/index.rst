@@ -14,3 +14,4 @@ They assume that you are already familiar with sid.
    params
    contact_models
    policies
+   events
