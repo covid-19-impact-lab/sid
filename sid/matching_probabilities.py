@@ -147,8 +147,7 @@ def _einsum_kronecker_product(*trans_mats):
     n_groups = np.prod([i.shape[0] for i in trans_mats])
     signature = _generate_einsum_signature(len(trans_mats))
 
-    einsum = np.einsum(signature, *trans_mats)
-    kronecker_product = einsum.reshape(n_groups, n_groups)
+    kronecker_product = np.einsum(signature, *trans_mats).reshape(n_groups, n_groups)
 
     return kronecker_product
 
