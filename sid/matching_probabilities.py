@@ -1,8 +1,8 @@
 """Functions to work with transition matrices for assortative matching."""
+import string
+
 import numpy as np
 import pandas as pd
-from numba import njit
-from numba.typed import List as NumbaList
 
 from sid.shared import factorize_assortative_variables
 
@@ -135,26 +135,41 @@ def _join_transition_matrices(trans_mats):
 
     """
     readable_index = pd.MultiIndex.from_product([tm.index for tm in trans_mats])
-    indexer = np.array(
-        pd.MultiIndex.from_product([range(len(tm)) for tm in trans_mats]).to_list()
+    kronecker_product = _einsum_kronecker_product(*trans_mats)
+    transition_matrix = pd.DataFrame(
+        kronecker_product, index=readable_index, columns=readable_index
     )
-    trans_arrs = NumbaList()
-    for tm in trans_mats:
-        trans_arrs.append(tm.to_numpy())
-
-    prob_arr = _numba_join_transition_matrices(len(readable_index), trans_arrs, indexer)
-
-    prob_df = pd.DataFrame(prob_arr, index=readable_index, columns=readable_index)
-    return prob_df
+    return transition_matrix
 
 
-@njit
-def _numba_join_transition_matrices(dim_out, trans_arrs, indexer):
-    out = np.ones((dim_out, dim_out))
-    for i in range(dim_out):
-        for j in range(dim_out):
-            for k in range(len(trans_arrs)):
-                row = indexer[i, k]
-                col = indexer[j, k]
-                out[i, j] *= trans_arrs[k][row, col]
-    return out
+def _einsum_kronecker_product(*trans_mats):
+    """Compute a Kronecker product of multiple matrices with `numpy.einsum`."""
+    n_groups = np.prod([i.shape[0] for i in trans_mats])
+    signature = _generate_einsum_signature(len(trans_mats))
+
+    einsum = np.einsum(signature, *trans_mats)
+    kronecker_product = einsum.reshape(n_groups, n_groups)
+
+    return kronecker_product
+
+
+def _generate_einsum_signature(n_trans_prob):
+    """Generate the signature for `numpy.einsum` to compute a Kronecker product.
+
+    Example:
+
+        >>> _generate_einsum_signature(2)
+        'ab, cd -> acbd'
+
+        >>> _generate_einsum_signature(3)
+        'ab, cd, ef -> acebdf'
+
+
+    """
+    n_letters = n_trans_prob * 2
+    letters = string.ascii_letters[:n_letters]
+
+    inputs = [letters[i : i + 2] for i in range(0, len(letters), 2)]
+    result = ["".join([duo[i] for duo in inputs]) for i in range(len(inputs[0]))]
+
+    return ", ".join(inputs) + " -> " + "".join(result)
