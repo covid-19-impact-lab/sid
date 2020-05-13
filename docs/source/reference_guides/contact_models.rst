@@ -78,17 +78,21 @@ A single variable or list of variables according to which the matching is assort
 All ``assort_by`` variables must be categorical. Individuals who have the same value in
 all ``assort_by`` variables belong to one group.
 
+The matching probabilities for the assortative matching process are collected in
+probability matrices (also called transition matrices). A probability matrix is a square
+matrix in which rows sum to one. The element in row i and column j describes is the
+probability that someone from group i meets a person from group j.
+
 Often the total number of groups (n_groups) is very high and the full group probability
-matrix, i.e. the matrix that describes how likely it is that an individual from group
-i meets someone from group j has n_groups * n_groups entries. Thus it is not possible
+matrix has n_groups * n_groups entries. Thus it is not possible
 to estimate this matrix precisely, without imposing some further structure.
 
-There are three ways of specifying the probabilities. In all cases, we first create one
-probability matrix per assort_by variable and combine them to the full group
+There are three ways of specifying the group probability matrix. In all cases, we first
+create one probability matrix per assort_by variable and combine them to the full group
 probability matrix, assuming independence.
 
-Here are the three ways of describing the per-variable matrices (starting with the most
-parsimonious one):
+Here are the three ways of describing the per-variable probability matrices (starting
+with the most parsimonious one):
 
 1. Specifying one probability per assort_by variable. This is the probability of meeting
    someone with the same value of the assort_by variable. The remaining probability mass
