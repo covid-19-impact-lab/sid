@@ -143,7 +143,17 @@ def _join_transition_matrices(trans_mats):
 
 
 def _einsum_kronecker_product(*trans_mats):
-    """Compute a Kronecker product of multiple matrices with `numpy.einsum`."""
+    """Compute a Kronecker product of multiple matrices with :func:`numpy.einsum`.
+
+    The reshape is necessary because :func:`numpy.einsum` produces a matrix with as many
+    dimensions as transition probability matrices. Each dimension has as many values as
+    rows or columns in the transition matrix.
+
+    The ordering of letters in the :func:`numpy.einsum` signature for the result ensure
+    that the reshape to a two-dimensional matrix does produce the correct Kronecker
+    product.
+
+    """
     n_groups = np.prod([i.shape[0] for i in trans_mats])
     signature = _generate_einsum_signature(len(trans_mats))
 
@@ -153,7 +163,10 @@ def _einsum_kronecker_product(*trans_mats):
 
 
 def _generate_einsum_signature(n_trans_prob):
-    """Generate the signature for `numpy.einsum` to compute a Kronecker product.
+    """Generate the signature for :func:`numpy.einsum` to compute a Kronecker product.
+
+    The ordering of the letters in the result is necessary so that the reshape to a
+    square matrix does not fail.
 
     Example:
 
@@ -163,6 +176,8 @@ def _generate_einsum_signature(n_trans_prob):
         >>> _generate_einsum_signature(3)
         'ab, cd, ef -> acebdf'
 
+        >>> _generate_einsum_signature(4)
+        'ab, cd, ef, gh -> acegbdfh'
 
     """
     n_letters = n_trans_prob * 2
