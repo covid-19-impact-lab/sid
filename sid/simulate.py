@@ -13,8 +13,9 @@ from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import USELESS_COLUMNS
 from sid.contacts import calculate_contacts
-from sid.contacts import calculate_infections
+from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
+from sid.events import calculate_infections_by_events
 from sid.matching_probabilities import create_group_transition_probs
 from sid.parse_model import parse_duration
 from sid.pathogenesis import draw_course_of_disease
@@ -28,6 +29,7 @@ def simulate(
     initial_infections,
     contact_models,
     duration=None,
+    events=None,
     contact_policies=None,
     testing_policies=None,
     seed=None,
@@ -48,6 +50,7 @@ def simulate(
             See :ref:`contact_models`.
         duration (dict or None): Duration is a dictionary containing kwargs for
             :func:`pandas.date_range`.
+        events (dict or None): Dictionary of events which cause infections.
         contact_policies (dict): Dict of dicts with contact. See :ref:`policies`.
         testing_policies (dict): Dict of dicts with testing policies. See
             :ref:`policies`.
@@ -62,6 +65,7 @@ def simulate(
             :ref:`states`) and a column called newly_infected.
 
     """
+    events = {} if events is None else events
     contact_policies = {} if contact_policies is None else contact_policies
     testing_policies = {} if testing_policies is None else testing_policies
     seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
@@ -101,9 +105,13 @@ def simulate(
         contacts = calculate_contacts(
             contact_models, contact_policies, states, params, date
         )
-        newly_infected, states = calculate_infections(
+
+        newly_infected_contacts, states = calculate_infections_by_contacts(
             states, contacts, params, indexers, cum_probs, seed,
         )
+        newly_infected_events = calculate_infections_by_events(states, params, events)
+        newly_infected = newly_infected_contacts | newly_infected_events
+
         states = update_states(states, newly_infected, params, seed)
 
         for i, contact_model in enumerate(cum_probs):

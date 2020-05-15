@@ -4,6 +4,10 @@ import pandas as pd
 from sid.config import DTYPE_GROUP_CODE
 
 
+def get_date(states):
+    return states.date.iloc[0]
+
+
 def factorize_assortative_variables(states, assort_by):
     """Factorize assortative variables.
 
@@ -45,14 +49,14 @@ def calculate_r_effective(df, window_length=7):
 
     Args:
         df (pandas.DataFrame): states DataFrame for which to calculate R_e, usually
-            the states of one period.
-        window_length (int): how many periods to use to identify the previously
-            infectious people. The lower, the more changes in behavior can be seen,
-            but the smaller the number of people on which to calculate R_e.
+            the states of one day.
+        window_length (int): how many days to use to identify the previously infectious
+            people. The lower, the more changes in behavior can be seen, but the smaller
+            the number of people on which to calculate R_e.
 
     Returns:
         r_effective (float): mean number of people infected by someone whose infectious
-            spell ended in the last *window_length* periods.
+            spell ended in the last *window_length* days.
 
     """
     prev_infected = df[df["cd_infectious_false"].between(-window_length, 0)]
@@ -76,13 +80,13 @@ def calculate_r_zero(df, window_length=7):
     Args:
         df (pd.DataFrame): states DataFrame for which to calculate R_0, usually
             the states of one period.
-        window_length (int): how many periods to use to identify the previously
-            infectious people. The lower, the more changes in behavior can be seen,
-            but the smaller the number of people on which to calculate R_0.
+        window_length (int): how many days to use to identify the previously infectious
+            people. The lower, the more changes in behavior can be seen, but the smaller
+            the number of people on which to calculate R_0.
 
     Returns:
         r_zero (float): mean number of people that would have been infected by someone
-            whose infectious spell ended in the last *window_length* periods if everyone
+            whose infectious spell ended in the last *window_length* days if everyone
             had been susceptible, neglecting heterogeneous matching and changes in the
             rate of immunity.
 
