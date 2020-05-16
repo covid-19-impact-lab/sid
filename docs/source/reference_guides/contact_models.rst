@@ -49,8 +49,8 @@ parameterization. This key is optional.
 ``"model"``
 ^^^^^^^^^^^
 
-A function that takes states and params as arguments and returns a Series that has
-the same index as states. The values of the Series are the numbers of contacts for each
+A function that takes states and params as arguments and returns a Series that has the
+same index as states. The values of the Series are the numbers of contacts for each
 person. An example is:
 
 .. code-block:: python
@@ -81,13 +81,38 @@ school classes only meet on weekdays, make sick individuals stay home, etc..
 
 A single variable or list of variables according to which the matching is assortative.
 All ``assort_by`` variables must be categorical. Individuals who have the same value in
-all ``assort_by`` variables belong to one group. The ``params`` DataFrame contains
-entries that govern the probability of meeting people from the own group. The index
-entry of that parameter values is ``("assortative_matching", name_of_contact_model,
-variable_name)``.
+all ``assort_by`` variables belong to one group.
 
-The remaining probability mass is spread on all other groups, adjusting for group sizes
-and number of planned contacts in each group.
+The matching probabilities for the assortative matching process are collected in
+probability matrices (also called transition matrices). A probability matrix is a square
+matrix in which rows sum to one. The element in row i and column j describes is the
+probability that someone from group i meets a person from group j.
+
+Often the total number of groups (n_groups) is very high and the full group probability
+matrix has n_groups * n_groups entries. Thus it is not possible to estimate this matrix
+precisely, without imposing some further structure.
+
+There are three ways of specifying the group probability matrix. In all cases, we first
+create one probability matrix per assort_by variable and combine them to the full group
+probability matrix, assuming independence.
+
+Here are the three ways of describing the per-variable probability matrices (starting
+with the most parsimonious one):
+
+1. Specifying one probability per assort_by variable. This is the probability of meeting
+   someone with the same value of the assort_by variable. The remaining probability mass
+   is spread uniformly over all other values. The params index of this probability is
+   ``("assortative_matching", name_of_contact_model, name_of_variable)``
+2. Specifying one probability per value of the assort_by variable. This is interpreted
+   as the diagonal of the per-variable probability matrix. The remaining probability
+   mass is spread uniformly on the off diagonal elements. In this case, the params index
+   is as follows: The first level is
+   ``f"assortative_matching_{model_name}_{variable}"``. The second and third level are
+   the values of the variable, i.e. the second and third level have to be identical.
+3. Specify the full per-variable probability matrix. In this case the first index level
+   is the same as in case 2. The second index level indicates the row label of the
+   probability matrix. The third index level indicates the column of the probability
+   matrix.
 
 There are two ways to implement that a person has zero contacts in a recurrent contact
 model: The preferred is to return a zero in the "model" function for these individual.

@@ -15,8 +15,8 @@ from sid.config import USELESS_COLUMNS
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
-from sid.contacts import create_group_transition_probs
 from sid.events import calculate_infections_by_events
+from sid.matching_probabilities import create_group_transition_probs
 from sid.parse_model import parse_duration
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
