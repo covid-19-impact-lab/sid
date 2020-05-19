@@ -190,15 +190,17 @@ def _calculate_infections_by_contacts_numba(
             # skip completely if i does not have a group or is already immune
             if not immune[i] and contacts[i, cm] > 0:
                 others = indexers_list[cm][group_i]
-                # we don't have to handle the case where j == i because if i is
-                # infectious he is also immune, if not, nothing happens anyways.
                 for j in others:
-                    if infectious[j] and not immune[i] and contacts[j, cm] > 0:
-                        is_infection = _boolean_choice(infection_probs[cm])
-                        if is_infection:
-                            infection_counter[j] += 1
-                            infected[i] = 1
-                            immune[i] = True
+                    # There is no point in meeting oneself. It is not a pleasure.
+                    if i == j:
+                        pass
+                    else:
+                        if infectious[j] and not immune[i] and contacts[j, cm] > 0:
+                            is_infection = _boolean_choice(infection_probs[cm])
+                            if is_infection:
+                                infection_counter[j] += 1
+                                infected[i] = 1
+                                immune[i] = True
 
         else:
             # get the probabilities for meeting another group which depend on the
