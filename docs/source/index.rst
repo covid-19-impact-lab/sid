@@ -11,5 +11,6 @@ simulation model to analyze the spread of COVID-19.
    :caption: Table of Contents
 
    tutorials/index
+   explanations/index
    reference_guides/index
    api
