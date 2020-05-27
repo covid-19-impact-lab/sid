@@ -1,9 +1,8 @@
 Tutorials
 =========
 
-Tutorials help you to get started with sid. They cover the basics and are designed for
-everyone new to the package.
-
+Tutorials help you to get started with sid. Here you learn everything about the
+interface and how to accomplish basic tasks.
 
 .. toctree::
    :maxdepth: 1
