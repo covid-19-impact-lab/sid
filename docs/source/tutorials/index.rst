@@ -1,8 +1,8 @@
 Tutorials
 =========
 
-Tutorials help you to get started with sid. Here you learn everything about the
-interface and how to accomplish basic tasks.
+Tutorials help you get started with sid. They introduce you to the basic workings in
+simple model and show you how to use sid to simulate your own model.
 
 .. toctree::
    :maxdepth: 1
