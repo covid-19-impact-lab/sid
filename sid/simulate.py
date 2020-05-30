@@ -229,6 +229,16 @@ def _check_inputs(
             "params must have the index levels 'category', 'subcategory' and 'name'."
         )
 
+    assert (
+        len(params.loc[("health_system", "icu_limit_relative")]) == 1
+    ), "Only one icu_limit_relative entry allowed."
+    assert (
+        not params.loc["infection_prob"]
+        .index.get_level_values("subcategory")
+        .duplicated()
+        .any()
+    ), "Only one infection probability per contact model allowed."
+
     cd_names = sorted(COUNTDOWNS)
     gb = params.loc[cd_names].groupby(["category", "subcategory"])
     prob_sums = gb["value"].sum()
