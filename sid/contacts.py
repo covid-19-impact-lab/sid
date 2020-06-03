@@ -78,7 +78,7 @@ def calculate_infections_by_contacts(
     immune = states["immune"].to_numpy(copy=True)
     group_codes = states[[f"group_codes_{cm}" for cm in indexers]].to_numpy()
     infect_probs = np.array(
-        [params.loc[("infection_prob", cm, None), "value"] for cm in indexers]
+        [params.loc[("infection_prob", cm, cm), "value"] for cm in indexers]
     )
 
     group_cdfs_list = NumbaList()
