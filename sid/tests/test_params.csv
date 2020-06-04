@@ -1,19 +1,19 @@
 category,subcategory,name,value,note,source
-assortative_matching,standard,age_group,0.5
-assortative_matching,standard,region,0.9
-prob_icu_given_symptoms,Under 50,0.003087
-prob_icu_given_symptoms,Over 50,0.045484
-prob_dead_given_icu,Under 50,0.4
-prob_dead_given_icu,Over 50,0.5
-prob_symptoms_given_infection,all,0.75
-cd_infectious_true,all,3,1
-cd_infectious_false,all,8,1
-cd_immune_false,all,365,1
-cd_symptoms_true,all,3,1
-cd_symptoms_false,all,6,1
-cd_needs_icu_true,all,10,1
-cd_dead,all,2,1
-cd_needs_icu_false,all,20,1
-cd_knows_true,all,5,1
-health_system,icu_limit_relative,,0.0005
-infection_prob,standard,,0.05
+assortative_matching,standard,age_group,0.5,,
+assortative_matching,standard,region,0.9,,
+prob_icu_given_symptoms,Under 50,0.003087,,,
+prob_icu_given_symptoms,Over 50,0.045484,,,
+prob_dead_given_icu,Under 50,0.4,,,
+prob_dead_given_icu,Over 50,0.5,,,
+prob_symptoms_given_infection,all,0.75,,,
+cd_infectious_true,all,3,1,,
+cd_infectious_false,all,8,1,,
+cd_immune_false,all,365,1,,
+cd_symptoms_true,all,3,1,,
+cd_symptoms_false,all,6,1,,
+cd_needs_icu_true,all,10,1,,
+cd_dead,all,2,1,,
+cd_needs_icu_false,all,20,1,,
+cd_knows_true,all,5,1,,
+health_system,icu_limit_relative,icu_limit_relative,0.0005,,
+infection_prob,standard,standard,0.05,,

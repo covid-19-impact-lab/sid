@@ -70,6 +70,7 @@ def simulate(
     testing_policies = {} if testing_policies is None else testing_policies
     seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
     initial_states = initial_states.copy(deep=True)
+    params = _prepare_params(params)
 
     output_directory = _create_output_directory(path)
 
@@ -123,6 +124,25 @@ def simulate(
     simulation_results = _return_dask_dataframe(output_directory, assort_bys)
 
     return simulation_results
+
+
+def _prepare_params(params):
+    """Check the supplied params and set the index if not done."""
+    assert isinstance(params, pd.DataFrame), "params must be a DataFrame."
+
+    params = params.copy()
+    index_cols = ["category", "subcategory", "name"]
+    if not isinstance(params.index, pd.MultiIndex) and set(index_cols).issubset(params):
+        params.set_index(index_cols, inplace=True)
+    else:
+        assert (
+            params.index.names == index_cols
+        ), "params must have the index levels 'category', 'subcategory' and 'name'."
+    assert (
+        params.index.to_frame().notnull().all().all()
+    ), "No NaN allowed in the params index. Repeat the previous index level instead."
+
+    return params
 
 
 def _create_output_directory(path):
@@ -221,14 +241,6 @@ def _check_inputs(
     testing_policies,
 ):
     """Check the user inputs."""
-    if not isinstance(params, pd.DataFrame):
-        raise ValueError("params must be a DataFrame.")
-
-    if params.index.names != ["category", "subcategory", "name"]:
-        raise ValueError(
-            "params must have the index levels 'category', 'subcategory' and 'name'."
-        )
-
     cd_names = sorted(COUNTDOWNS)
     gb = params.loc[cd_names].groupby(["category", "subcategory"])
     prob_sums = gb["value"].sum()
