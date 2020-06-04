@@ -12,11 +12,6 @@ import sys
 sys.path.insert(0, os.path.abspath("../.."))
 
 
-# Add custom CSS
-def setup(app):
-    app.add_css_file("css/custom.css")
-
-
 # -- Project information -----------------------------------------------------
 
 project = "sid - A simulator for infectious diseases"
@@ -85,8 +80,15 @@ intersphinx_mapping = {
 # a list of builtin themes.
 #
 html_theme = "pydata_sphinx_theme"
+html_logo = "_static/images/logo.svg"
+
+html_theme_options = {
+    "github_url": "https://github.com/covid-19-impact-lab/sid",
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+html_css_files = ["css/custom.css"]

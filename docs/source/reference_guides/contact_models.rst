@@ -8,10 +8,10 @@ Motivation
 ----------
 
 One of the main design goals of SID is to achieve an interpretable model of contacts
-between individuals that can be informed by economic theory and calibrated with data.
-The contact models should allow for heterogeneity in contact rates based on age, regions
-and other observable characteristics. Moreover, different types of contacts (e.g.
-distant and close contacts) should be possible.
+between individuals that can be calibrated with data and subject to policies.
+The contact models should allow for heterogeneity in contact rates based on observable
+characteristics. Moreover, different types of contacts (e.g. work and leisure contacts)
+should be possible.
 
 ``contact_models`` are specified as a dictionary of dictionaries. The keys in the outer
 dictionary are the name of the contact model. This key is also used to map policies to
@@ -33,8 +33,8 @@ One contact model is a dictionary with the following entries:
 ``"is_recurrent"``
 ^^^^^^^^^^^^^^^^^^
 
-Boolean flag to mark models that describe recurrent contacts such as families, school
-classes and the workplace.
+Boolean flag to mark models that describe recurrent contacts such as families and school
+classes.
 
 
 ``"loc"``
@@ -85,11 +85,11 @@ all ``assort_by`` variables belong to one group.
 
 The matching probabilities for the assortative matching process are collected in
 probability matrices (also called transition matrices). A probability matrix is a square
-matrix in which rows sum to one. The element in row i and column j describes is the
+matrix in which rows sum to one. The element in row i and column j is the
 probability that someone from group i meets a person from group j.
 
 Often the total number of groups (n_groups) is very high and the full group probability
-matrix has n_groups * n_groups entries. Thus it is not possible to estimate this matrix
+matrix has n_groups * n_groups entries. Thus, it is not possible to estimate this matrix
 precisely, without imposing some further structure.
 
 There are three ways of specifying the group probability matrix. In all cases, we first
@@ -115,7 +115,7 @@ with the most parsimonious one):
    matrix.
 
 There are two ways to implement that a person has zero contacts in a recurrent contact
-model: The preferred is to return a zero in the "model" function for these individual.
+model: The preferred is to return a zero in the "model" function for this individual.
 Alternatively, people without contacts in a recurrent contact model can have unique
 values in the assort_by variables such that their group only contains them alone.
 Example: an individual who does not go to school needs a unique value in the variable
