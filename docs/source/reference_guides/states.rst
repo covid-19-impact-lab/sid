@@ -35,10 +35,10 @@ variable.
 - **infectious**: After an infection, `infectious_countdown` is triggered with a random
   time.
 - **knows**: Whether an individual knows if he is infectious or not.
-- **symptoms**: Whether an individual has symptoms. Only infectious people can have
-  symptoms
-- **icu**: Whether an individual needs intensive care. Only possible for people with
+- **symptomatic**: Whether an individual has symptoms. Only infectious people can have
   symptoms.
+- **needs_icu**: Whether an individual needs intensive care. Only possible for people
+  with symptoms.
 - **dead**: Whether an individual is dead. People die if they need icu but do not get it
   or despite icu with a certain probability.
 
