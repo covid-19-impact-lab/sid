@@ -2,9 +2,18 @@
 sid
 ===
 
-sid is a **s**\ imulator for **i**\ nfectious **d**\ iseases. It combines features of a
+SID is a **S**\ imulator for **I**\ nfectious **D**\ iseases. It combines features of a
 prototypical Susceptible-Exposed-Infected-Recovered (SEIR) model and an agent based
-simulation model to analyze the spread of COVID-19.
+simulation model.
+
+sid's focus is on predicting the effects of policies on the spread of an infectious
+disease. To do this it is built to capture important aspects of human contacts.
+In particular, sid allows:
+
+- recurrent contacts, such as school mates meeting Monday through Friday.
+- different types of contacts, such as work and leisure contacts.
+- varying number of contacts, infection probabilities, matching patterns and disease
+    progression according to individual characteristics such as age and gender.
 
 The documentation is structured into four parts.
 

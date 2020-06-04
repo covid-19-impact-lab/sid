@@ -23,7 +23,7 @@ background characteristics, the user has to impute values or drop those observat
 Health States
 -------------
 
-Our Model combines an infection, a contact and an economic model.
+Our model combines an infection, a contact and an economic model.
 
 In many ways our model is similar to a
 Susceptible-Exposed-Infected-Recovered (SEIR) model.
@@ -70,7 +70,7 @@ even if the end of infectiousness was not triggered by that countdown.
 Evolution of States
 -------------------
 
-Some of the states have stochastic transition that can be triggered by events that
+Some of the states have stochastic transitions that can be triggered by events that
 happened several days earlier. For example, an infection on day t leads to symptoms only
 with a probability smaller than one and these symptoms set in after a stochastic
 incubation time that can last several days.
@@ -102,19 +102,17 @@ calibrated from such a dataset. They can influence matching probabilities (e.g.
 assortative meetings by region and age group) and the course of the disease (e.g. higher
 fatality rate for risk groups). Moreover, they can be useful for visualization purposes.
 
+There are no mandatory background characteristics if there is only one distribution for
+every countdown. Since age is the most important predictor of disease progression, we
+assume that if countdown distributions for different subcategories are supplied that
+the `states` DataFrame contains a column named **age_group**.
+Have a look at the `params` table to see how countdowns are specified, how our age
+groups look like and where we take the estimates from.
 
-Mandatory Background Characteristics
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Other background characteristics you may want to include are:
 
-- **age_group**: There will be assortative matching in the sense that people have more
-  contact with people from their own age group. I suggest to have age groups in ten-year
-  bins, i.e. 0-9, 10-19, ...; We can take the pathogenesis data from `here
-  <https://towardsdatascience.com/agent-based-simulation-of-covid-19-health-and-economical-effects-6aa4ae0ff397>`_
-  or `the paper they cite
-  <https://spiral.imperial.ac.uk:8443/bitstream/10044/1/77482/8/2020-03-16-COVID19-Report-9.pdf>`_.
-- **region**: Region is only used for assortative matching and possibly to draw a map of
-  the simulation output. In German data we could go down to Landkreis in the time
-  series. Bundesländer would also be ok.
-
-Optional Background Characteristics
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- variables governing the assortativeness of the matching of individuals, such as
+  region of residence
+- individual characteristics that influence how many contacts a person has, such as
+  gender or occupation
+- identifiers for recurrent contact models such ass households or school classes
