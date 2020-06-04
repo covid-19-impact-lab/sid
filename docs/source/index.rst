@@ -29,22 +29,6 @@ The documentation is structured into four parts.
                     </div>
                 </a>
             </div>
-            <!-- <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 d-flex">
-                <a href="how_to_guides/index.html" id="index-link">
-                    <div class="card text-center intro-card shadow">
-                        <img src="_static/images/book.svg" class="card-img-top"
-                             alt="how-to guides icon" height="52"
-                        >
-                        <div class="card-body flex-fill">
-                            <h5 class="card-title">How-to Guides</h5>
-                            <p class="card-text">
-                                How-to guides are designed to provide detailed
-                                instructions for very specific and advanced tasks.
-                            </p>
-                        </div>
-                    </div>
-                </a>
-            </div> -->
             <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 d-flex">
                 <a href="explanations/index.html" id="index-link">
                     <div class="card text-center intro-card shadow">
@@ -87,8 +71,6 @@ The documentation is structured into four parts.
     tutorials/index
     explanations/index
     reference_guides/index
-
-.. how_to_guides/index
 
 
 .. toctree::
