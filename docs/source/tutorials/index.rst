@@ -1,9 +1,8 @@
 Tutorials
 =========
 
-Tutorials help you to get started with sid. They cover the basics and are designed for
-everyone new to the package.
-
+Tutorials help you get started with sid. They introduce you to the basic workings in
+simple model and show you how to use sid to simulate your own model.
 
 .. toctree::
    :maxdepth: 1
