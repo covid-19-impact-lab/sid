@@ -141,7 +141,7 @@ def _prepare_params(params):
     assert (
         params.index.to_frame().notnull().all().all()
     ), "No NaN allowed in the params index. Repeat the previous index level instead."
-
+    assert not params.index.duplicated().any(), "No duplicates in the index allowed."
     return params
 
 

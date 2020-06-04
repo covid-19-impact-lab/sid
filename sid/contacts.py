@@ -41,7 +41,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
             cont = _sum_preserving_round(cont.to_numpy()).astype(DTYPE_N_CONTACTS)
         columns.append(cont)
 
-    contacts = np.column_stack(columns)
+    contacts = np.column_stack(columns).astype(float)
 
     return contacts
 
