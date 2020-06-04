@@ -2,7 +2,7 @@
 sid
 ===
 
-SID is a **S**\ imulator for **I**\ nfectious **D**\ iseases. It combines features of a
+sid is a **s**\ imulator for **i**\ nfectious **d**\ iseases. It combines features of a
 prototypical Susceptible-Exposed-Infected-Recovered (SEIR) model and an agent based
 simulation model.
 
