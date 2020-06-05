@@ -68,14 +68,14 @@ def test_einsum_kronecker_product():
     trans_mats = [np.random.uniform(0, 1, size=(2, 2)) for _ in range(3)]
 
     expected = np.kron(np.kron(*trans_mats[:2]), trans_mats[2])
-    calculated = _einsum_kronecker_product(*trans_mats)
+    calculated = _einsum_kronecker_product(*trans_mats).astype("float32")
 
-    np.testing.assert_allclose(calculated, expected)
+    np.testing.assert_allclose(calculated, expected, rtol=1e-06)
 
     # Four-fold Kronecker product.
     trans_mats = [np.random.uniform(0, 1, size=(2, 2)) for _ in range(4)]
 
     expected = np.kron(np.kron(np.kron(*trans_mats[:2]), trans_mats[2]), trans_mats[3])
-    calculated = _einsum_kronecker_product(*trans_mats)
+    calculated = _einsum_kronecker_product(*trans_mats).astype("float32")
 
-    np.testing.assert_allclose(calculated, expected)
+    np.testing.assert_allclose(calculated, expected, rtol=1e-06)

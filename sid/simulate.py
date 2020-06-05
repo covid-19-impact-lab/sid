@@ -284,7 +284,7 @@ def _check_inputs(
         x for x in first_levels if x.startswith("assortative_matching_")
     ]
     for name in assort_prob_matrices:
-        meeting_prob = params.loc[name, "value"].unstack()
+        meeting_prob = params.loc[name]["value"].unstack()
         assert len(meeting_prob.index) == len(
             meeting_prob.columns
         ), f"assortative probability matrices must be square but isn't for {name}."
