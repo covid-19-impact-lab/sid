@@ -118,6 +118,7 @@ def _create_transition_matrix_from_own_prob(own_prob, group_names=None):
     trans_arr = np.tile(other_prob.to_numpy().reshape(-1, 1), n_groups)
     trans_arr[np.diag_indices(n_groups)] = own_prob
     trans_df = pd.DataFrame(trans_arr, columns=own_prob.index, index=own_prob.index)
+    trans_df = trans_df.astype("float32")
     return trans_df
 
 
@@ -157,7 +158,10 @@ def _einsum_kronecker_product(*trans_mats):
     n_groups = np.prod([i.shape[0] for i in trans_mats])
     signature = _generate_einsum_signature(len(trans_mats))
 
-    kronecker_product = np.einsum(signature, *trans_mats).reshape(n_groups, n_groups)
+    kronecker_product = np.einsum(
+        signature, *trans_mats, dtype="float32", casting="same_kind"
+    )
+    kronecker_product = kronecker_product.reshape(n_groups, n_groups)
 
     return kronecker_product
 
