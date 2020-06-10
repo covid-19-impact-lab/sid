@@ -141,7 +141,7 @@ def _prepare_params(params):
     assert (
         params.index.to_frame().notnull().all().all()
     ), "No NaN allowed in the params index. Repeat the previous index level instead."
-
+    assert not params.index.duplicated().any(), "No duplicates in the index allowed."
     return params
 
 
@@ -278,6 +278,26 @@ def _check_inputs(
 
     if testing_policies != {}:
         raise NotImplementedError
+
+    first_levels = params.index.get_level_values("category")
+    assort_prob_matrices = [
+        x for x in first_levels if x.startswith("assortative_matching_")
+    ]
+    for name in assort_prob_matrices:
+        meeting_prob = params.loc[name]["value"].unstack()
+        assert len(meeting_prob.index) == len(
+            meeting_prob.columns
+        ), f"assortative probability matrices must be square but isn't for {name}."
+        assert (
+            meeting_prob.index == meeting_prob.columns
+        ).all(), (
+            f"assortative probability matrices must be square but isn't for {name}."
+        )
+        assert (meeting_prob.sum(axis=1) > 0.9999).all() & (
+            meeting_prob.sum(axis=1) < 1.00001
+        ).all(), (
+            f"the meeting probabilities of {name} do not add up to one in every row."
+        )
 
 
 def _prepare_assortative_matching(states, assort_bys, params, contact_models):

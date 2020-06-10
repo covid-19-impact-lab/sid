@@ -31,4 +31,4 @@ def test_notebooks(nb_path):
     os.chdir(nb_path.parent)
     with open(nb_path) as f:
         notebook = nbformat.read(f, as_version=4)
-    ExecutePreprocessor(timeout=1200).preprocess(notebook)
+    ExecutePreprocessor(timeout=2400).preprocess(notebook)
