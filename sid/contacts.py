@@ -39,11 +39,10 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
                 cont *= cp["multiplier"]
         if not model["is_recurrent"]:
             cont = _sum_preserving_round(cont.to_numpy().astype(DTYPE_N_CONTACTS))
-            cont = cont.astype(DTYPE_N_CONTACTS)
+            cont = cont
         columns.append(cont)
 
-    contacts = np.column_stack(columns).astype(float)
-
+    contacts = np.column_stack(columns).astype(DTYPE_N_CONTACTS)
     return contacts
 
 

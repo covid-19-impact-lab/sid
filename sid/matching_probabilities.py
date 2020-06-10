@@ -68,6 +68,7 @@ def _get_transition_matrix_from_params(params, states, variable, model_name):
             own_prob.index = own_prob.index.get_level_values("name")
             trans_mat = _create_transition_matrix_from_own_prob(own_prob)
         else:
+            # [loc]["value"] insdeat of [loc, "value"] avoids PerformanceWarnings
             trans_mat = params.loc[loc]["value"].unstack()
 
     return trans_mat
