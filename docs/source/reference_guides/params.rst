@@ -84,3 +84,6 @@ Here is an example with hypothetical numbers:
     cd_infectious_true, 0 - 9 (age group), 7 (possible value), 0.1 (probability)
     cd_infectious_true, 10 - 20          , 3 (possible value), 0.6 (probability)
     ...               , ...              , ...               , ...
+
+The following section describes the epidemiological parameters we provide for Covid 19
+and their sources.

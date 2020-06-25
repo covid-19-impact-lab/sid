@@ -1,0 +1,13 @@
+category,subcategory,name,value
+health_system,icu_limit_relative,icu_limit_relative,0.0005
+,,,
+cd_infectious_true,all,1,0.1
+cd_infectious_true,all,2,0.25
+cd_infectious_true,all,3,0.35
+cd_infectious_true,all,4,0.15
+cd_infectious_true,all,6,0.1
+cd_infectious_true,all,8,0.05
+,,,
+cd_symptoms_true,all,2,0.33
+cd_symptoms_true,all,3,0.33
+cd_symptoms_true,all,-1,0.33
