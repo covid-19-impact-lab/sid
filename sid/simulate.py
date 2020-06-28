@@ -121,7 +121,11 @@ def simulate(
 
         _dump_periodic_states(states, output_directory, date)
 
-    simulation_results = _return_dask_dataframe(output_directory, assort_bys)
+    categoricals = {
+        column: initial_states[column].cat.categories.shape[0]
+        for column in initial_states.select_dtypes("category").columns
+    }
+    simulation_results = _return_dask_dataframe(output_directory, categoricals)
 
     return simulation_results
 
@@ -400,18 +404,14 @@ def _dump_periodic_states(states, output_directory, date):
     )
 
 
-def _return_dask_dataframe(output_directory, assort_bys):
+def _return_dask_dataframe(output_directory, categoricals):
     """Process the simulation results.
 
     Args:
         output_directory (pathlib.Path): Path to output directory.
-        assort_bys (list, optional): List of variable names. Contacts are assortative
-            by these variables.
+        categoricals (list): List of variable names which are categoricals.
     Returns:
         df (dask.dataframe): A dask DataFrame which contains the simulation results.
 
     """
-    assort_by_variables = list(
-        set(it.chain.from_iterable(a_b for a_b in assort_bys.values()))
-    )
-    return dd.read_parquet(output_directory, categories=assort_by_variables)
+    return dd.read_parquet(output_directory, categories=categoricals)
