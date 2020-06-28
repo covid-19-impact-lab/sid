@@ -17,7 +17,6 @@ References:
 """
 import copy
 import functools
-import itertools
 
 import numpy as np
 import pandas as pd
@@ -68,14 +67,14 @@ def get_msm_func(
 
     empirical_moments = _harmonize_input(empirical_moments)
     calc_moments = _harmonize_input(calc_moments)
-    replace_nans = _harmonize_input(replace_nans)
 
     # If only one replacement function is given for multiple sets of moments, duplicate
     # replacement function for all sets of simulated moments.
-    if len(replace_nans) == 1 and len(empirical_moments) > 1:
-        replace_nans = replace_nans * len(empirical_moments)
+    if callable(replace_nans):
+        replace_nans = {k: replace_nans for k in empirical_moments}
+    replace_nans = _harmonize_input(replace_nans)
 
-    elif 1 < len(replace_nans) < len(empirical_moments):
+    if 1 < len(replace_nans) < len(empirical_moments):
         raise ValueError(
             "Replacement functions can only be matched 1:1 or 1:n with sets of "
             "empirical moments."
@@ -127,16 +126,16 @@ def _msm(
 
     df = simulate(params)
 
-    simulated_moments = [func(df) for func in calc_moments]
+    simulated_moments = {name: func(df) for name, func in calc_moments.items()}
 
-    simulated_moments = [
-        sim_mom.reindex_like(emp_mom)
-        for emp_mom, sim_mom in zip(empirical_moments, simulated_moments)
-    ]
+    simulated_moments = {
+        name: sim_mom.reindex_like(empirical_moments[name])
+        for name, sim_mom in simulated_moments.items()
+    }
 
-    simulated_moments = [
-        func(mom) for mom, func in zip(simulated_moments, replace_nans)
-    ]
+    simulated_moments = {
+        name: replace_nans[name](sim_mom) for name, sim_mom in simulated_moments.items()
+    }
 
     flat_empirical_moments = _flatten_index(empirical_moments)
     flat_simulated_moments = _flatten_index(simulated_moments)
@@ -148,6 +147,7 @@ def _msm(
     if return_scalar:
         out = moment_errors.T @ weighting_matrix @ moment_errors
     else:
+        out = moment_errors @ np.sqrt(weighting_matrix)
         if isinstance(moment_errors, pd.Series):
             out = moment_errors.to_numpy()
         else:
@@ -190,10 +190,10 @@ def get_diag_weighting_matrix(empirical_moments, weights=None):
 
         # Reindex weights to ensure they are assigned to the correct moments in
         # the msm function.
-        weights = [
-            weight.reindex_like(emp_mom)
-            for emp_mom, weight in zip(empirical_moments, weights)
-        ]
+        weights = {
+            name: weight.reindex_like(empirical_moments[name])
+            for name, weight in weights.items()
+        }
 
         flat_weights = _flatten_index(weights)
 
@@ -223,7 +223,7 @@ def get_flat_moments(empirical_moments):
 
 
 def _harmonize_input(data):
-    """Harmonize different types of inputs by turning all inputs into lists.
+    """Harmonize different types of inputs by turning all inputs into dicts.
 
     - pandas.DataFrames/Series and callable functions will turn into a list containing a
       single item (i.e. the input).
@@ -233,14 +233,14 @@ def _harmonize_input(data):
     """
     # Convert single DataFrames, Series or function into list containing one item.
     if isinstance(data, (pd.DataFrame, pd.Series)) or callable(data):
-        data = [data]
+        data = {0: data}
 
     # Sort dictionary according to keys and turn into list.
     elif isinstance(data, dict):
-        data = [data[key] for key in sorted(data)]
+        pass
 
     elif isinstance(data, list):
-        pass
+        data = {i: data_ for i, data_ in enumerate(data)}
 
     else:
         raise TypeError(
@@ -254,18 +254,17 @@ def _harmonize_input(data):
 def _flatten_index(data):
     """Flatten the index as a combination of the former index and the columns."""
     data_flat = []
-    counter = itertools.count()
 
-    for series_or_df in data:
+    for name, series_or_df in data.items():
         series_or_df.index = series_or_df.index.map(str)
         # Unstack DataFrames and Series to add columns/Series name to index.
         if isinstance(series_or_df, pd.DataFrame):
-            df = series_or_df.rename(columns=str)
+            df = series_or_df.rename(columns=lambda x: f"{name}_{x}")
         # Series without a name are named using a counter to avoid duplicate indexes.
-        elif isinstance(series_or_df, pd.Series) and series_or_df.name is None:
-            df = series_or_df.to_frame(name=str(next(counter)))
+        elif isinstance(series_or_df, pd.Series):
+            df = series_or_df.to_frame(name=f"{name}")
         else:
-            df = series_or_df.to_frame(str(series_or_df.name))
+            raise NotImplementedError
 
         # Columns to the index.
         df = df.unstack()
