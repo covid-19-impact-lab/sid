@@ -12,6 +12,7 @@ They assume that you are already familiar with sid.
    caveats
    states
    params
+   epi_params
    contact_models
    policies
    events
