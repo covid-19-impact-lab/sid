@@ -69,17 +69,25 @@ percentiles for the incubation period:
         75.0%, 6.8
         97.5%, 11.5
 
-We discretize this to the following distribution:
+We interpolate these percentiles to create an empiric cdf of the incubation period:
+
+.. image:: ../_static/cd_infectious_true_cdf
+
+With the resulting distribution:
+
+.. image:: ../_static/cd_infectious_true_full
+
+We collapse rare categories to
 
 .. csv-table::
     :header: "probability", "incubation period"
 
-    10.0%, 3
-    25.0%, 4
-    35.0%, 5
-    15.0%, 6
-    10.0%, 8
-    05.0%, 10
+     6%, 3
+    12%, 4
+    17%, 5
+    19%, 6
+    24%, 8
+    10%, 10
 
 We do not separate between age groups as
 `He et al. (2020-04-15) <https://doi.org/10.1038/s41591-020-0869-5>`_
