@@ -68,11 +68,11 @@ percentiles for the incubation period:
 
 We interpolate these percentiles to create an empiric cdf of the incubation period:
 
-.. image:: ../_static/cd_infectious_true_cdf
+.. image:: ../_static/images/cd_infectious_true_cdf.png
 
 With the resulting distribution:
 
-.. image:: ../_static/cd_infectious_true_full
+.. image:: ../_static/images/cd_infectious_true_full.png
 
 For our estimates of the latency period we assume a latency period equal to the
 incubation period minus 2 days.
