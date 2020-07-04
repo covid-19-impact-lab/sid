@@ -31,7 +31,7 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
     platforms="any",
-    package_data={"sid": ["params.csv", "tests/test_states.csv"]},
+    package_data={"sid": ["covid_epi_params.csv", "tests/test_states.csv"]},
     include_package_data=True,
     zip_safe=False,
 )

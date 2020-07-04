@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 
 
@@ -79,6 +81,8 @@ DTYPE_INDEX = np.uint32
 DTYPE_INFECTED = np.bool_
 DTYPE_INFECTION_COUNTER = np.uint16
 DTYPE_N_CONTACTS = np.uint32
+
+ROOT_DIR = Path(__file__).parent
 
 USELESS_COLUMNS = [
     "cd_infectious_true",
