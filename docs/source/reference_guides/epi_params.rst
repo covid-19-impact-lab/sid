@@ -52,9 +52,6 @@ the onset of infectiousness at 2.3 days (CI: 0.8–3.0 days) before symptoms. Th
 aligns with a `study published in the Lancet
 <https://www.thelancet.com/journals/laninf/article/PIIS1473-3099(20)30361-3/fulltext>`_.
 
-For our estimates of the latency period we assume a latency period equal to the
-incubation period minus 2 days.
-
 Estimates of the incubation period usually give a range from 2 to 12 days. We follow the
 distribution reported by `Lauer et al. (2020)
 <https://www.acpjournals.org/doi/full/10.7326/M20-0504>`_. They report the following
@@ -69,17 +66,16 @@ percentiles for the incubation period:
         75.0%, 6.8
         97.5%, 11.5
 
-We discretize this to the following distribution:
+We interpolate these percentiles to create an empiric cdf of the incubation period:
 
-.. csv-table::
-    :header: "probability", "incubation period"
+.. image:: ../_static/images/cd_infectious_true_cdf.png
 
-    10.0%, 3
-    25.0%, 4
-    35.0%, 5
-    15.0%, 6
-    10.0%, 8
-    05.0%, 10
+With the resulting distribution:
+
+.. image:: ../_static/images/cd_infectious_true_full.png
+
+For our estimates of the latency period we assume a latency period equal to the
+incubation period minus 2 days.
 
 We do not separate between age groups as
 `He et al. (2020-04-15) <https://doi.org/10.1038/s41591-020-0869-5>`_
