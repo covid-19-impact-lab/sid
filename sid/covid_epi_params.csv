@@ -13,7 +13,7 @@ cd_infectious_true,all,9,0.05
 cd_infectious_true,all,11,0.05
 cd_symptoms_true,all,2,0.33
 cd_symptoms_true,all,3,0.33
-cd_symptoms_true,all,-1,0.33
+cd_symptoms_true,all,-1,0.34
 cd_infectious_false,all,17,0.1
 cd_infectious_false,all,20,0.3
 cd_infectious_false,all,24,0.3
@@ -63,10 +63,10 @@ cd_symptoms_false,80-100,18,0.2139
 cd_symptoms_false,80-100,22,0.2139
 cd_symptoms_false,80-100,27,0.2139
 cd_symptoms_false,80-100,-1,0.287
-cd_icu_true,all,4,0.25
-cd_icu_true,all,6,0.25
-cd_icu_true,all,8,0.25
-cd_icu_true,all,10,0.25
+cd_needs_icu_true,all,4,0.25
+cd_needs_icu_true,all,6,0.25
+cd_needs_icu_true,all,8,0.25
+cd_needs_icu_true,all,10,0.25
+cd_needs_icu_false,all,14,1
 cd_dead_true,all,21,0.66
-cd_dead_true,all,-1,0.33
-cd_icu_false,all,14,1
+cd_dead_true,all,-1,0.34
