@@ -12,11 +12,11 @@ Make sure to read about the basic structure of `params DataFrames
 <https://estimagic.readthedocs.io/en/latest/optimization/params.html>`_ in estimagic,
 before you continue.
 
-`params` has a three level index. The first level is "category", the second is the
+``params`` has a three level index. The first level is "category", the second is the
 "subcategory", the third is called "name". The values are stored in the "value" column.
 
-We provide epidemiological estimates for many of these variables in the `params.csv`
-with explanatory notes and links to their sources.
+We provide epidemiological estimates for many of these variables in the
+``covid_epi_params.csv`` with explanatory notes and links to their sources.
 
 Currently, we have the following categories:
 
