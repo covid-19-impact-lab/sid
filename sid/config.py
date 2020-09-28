@@ -22,7 +22,7 @@ COUNTDOWNS = {
         "changes": {"infectious": True, "n_has_infected": 0},
         "starts": ["cd_infectious_false", "cd_symptoms_true"],
     },
-    # will be overriden if a person develops symptoms. In that case
+    # will be overridden if a person develops symptoms. In that case
     # infectiousness lasts as long as symptoms.
     "cd_infectious_false": {"changes": {"infectious": False, "knows": False}},
     "cd_immune_false": {"changes": {"immune": False}},
@@ -30,7 +30,7 @@ COUNTDOWNS = {
         "changes": {"symptomatic": True, "cd_infectious_false": -1},
         "starts": ["cd_symptoms_false", "cd_needs_icu_true"],
     },
-    # will be overriden if a person needs icu. In that case symptoms
+    # will be overridden if a person needs icu. In that case symptoms
     # end with need for icu.
     "cd_symptoms_false": {
         "changes": {"symptomatic": False, "infectious": False, "knows": False}

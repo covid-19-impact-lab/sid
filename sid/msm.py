@@ -45,7 +45,7 @@ def get_msm_func(
             saved to pandas.DataFrame or pandas.Series that can either be passed to the
             function directly or as items of a list or dictionary. Index of
             pandas.DataFrames can be of type MultiIndex, but columns cannot.
-        replace_nans (callable or list): Functions(s) specifying how to handle missings
+        replace_nans (callable or list): Functions(s) specifying how to handle NANs
             in simulated_moments. Must match structure of empirical_moments. Exception:
             If only one replacement function is specified, it will be used on all sets
             of simulated moments.

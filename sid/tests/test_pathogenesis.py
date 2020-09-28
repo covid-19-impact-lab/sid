@@ -10,7 +10,11 @@ def test_draw_countdowns_single_row(params):
     states = pd.DataFrame(index=range(10))
     single_row = params.loc["cd_infectious_true"]
     res = _draw_countdowns(states, single_row)
-    expected = pd.Series(3, index=range(10), dtype=DTYPE_DRAW_COURSE_OF_DISEASE,)
+    expected = pd.Series(
+        3,
+        index=range(10),
+        dtype=DTYPE_DRAW_COURSE_OF_DISEASE,
+    )
     assert_series_equal(left=expected, right=res)
 
 
