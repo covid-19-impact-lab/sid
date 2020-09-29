@@ -16,7 +16,7 @@ status.
 All variables in `states` should be categorical with meaningful categories that can be
 directly used for plotting. Internally, we will work with the codes.
 
-No missings are allowed in `states`. If there are missings in the dataset with
+No NANs are allowed in `states`. If there are NANs in the dataset with
 background characteristics, the user has to impute values or drop those observations.
 
 

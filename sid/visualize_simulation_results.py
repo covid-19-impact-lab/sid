@@ -17,7 +17,11 @@ from sid.shared import calculate_r_zero
 
 
 def visualize_simulation_results(
-    data, outdir_path, infection_vars, background_vars, window_length=7,
+    data,
+    outdir_path,
+    infection_vars,
+    background_vars,
+    window_length=7,
 ):
     """Visualize the results one or more simulation results.
 
@@ -46,7 +50,10 @@ def visualize_simulation_results(
     _create_folders(outdir_path, background_vars)
 
     rates = _create_rates_for_all_data(
-        datasets, infection_vars, background_vars, window_length,
+        datasets,
+        infection_vars,
+        background_vars,
+        window_length,
     )
 
     for bg_var in ["general"] + background_vars:
@@ -59,7 +66,9 @@ def visualize_simulation_results(
 
         title_element = Div(text=title, style={"font-size": "150%"})
         _export_plots_and_layout(
-            title=title_element, plots=rate_plots, outdir_path=outdir_path / bg_var,
+            title=title_element,
+            plots=rate_plots,
+            outdir_path=outdir_path / bg_var,
         )
 
 

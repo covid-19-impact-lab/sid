@@ -5,7 +5,7 @@ Epidemiological Parameters
 ==========================
 
 This section presents the epidemiological parameters for CoViD-19. Their values are
-stored in ``covid-epi-params.csv``.
+stored in ``covid_epi_params.csv``.
 
 -------------
 Health System

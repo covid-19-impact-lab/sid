@@ -108,7 +108,12 @@ def simulate(
         )
 
         newly_infected_contacts, states = calculate_infections_by_contacts(
-            states, contacts, params, indexers, cum_probs, seed,
+            states,
+            contacts,
+            params,
+            indexers,
+            cum_probs,
+            seed,
         )
         newly_infected_events = calculate_infections_by_events(states, params, events)
         newly_infected = newly_infected_contacts | newly_infected_events

@@ -24,7 +24,11 @@ def test_simple_run(params, initial_states, tmpdir):
     initial_infections.iloc[0] = True
 
     df = simulate(
-        params, initial_states, initial_infections, CONTACT_MODELS, path=tmpdir,
+        params,
+        initial_states,
+        initial_infections,
+        CONTACT_MODELS,
+        path=tmpdir,
     )
     df = df.compute()
 
