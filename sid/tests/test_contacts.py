@@ -5,7 +5,9 @@ import pandas as pd
 import pytest
 from numba.typed import List as NumbaList
 
+from sid.config import DTYPE_N_CONTACTS
 from sid.contacts import _calculate_infections_by_contacts_numba
+from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
 
@@ -184,3 +186,102 @@ def test_calculate_infections():
     assert calc_infected.equals(exp_infected)
     assert calc_states["n_has_infected"].astype(np.int32).equals(exp_infection_counter)
     assert calc_states["immune"].equals(exp_immune)
+
+
+# =====================================================================================
+# calculate_contacts
+# =====================================================================================
+
+
+@pytest.fixture
+def contact_models():
+    def meet_one(states, params):
+        return pd.Series(1, index=states.index)
+
+    def first_half_meet(states, params):
+        n_contacts = pd.Series(0, index=states.index)
+        first_half = round(len(states) / 2)
+        n_contacts[:first_half] = 1
+        return n_contacts
+
+    contact_models = {
+        "meet_one": {
+            "model": meet_one,
+            "is_recurrent": False,
+        },
+        "first_half_meet": {
+            "model": first_half_meet,
+            "is_recurrent": False,
+        },
+    }
+    return contact_models
+
+
+def test_calculate_contacts_no_policy(initial_states, contact_models):
+    contact_policies = {}
+    date = pd.Timestamp("2020-09-29")
+    params = pd.DataFrame()
+    first_half = round(len(initial_states) / 2)
+    expected = np.array(
+        [[1, i < first_half] for i in range(len(initial_states))],
+        dtype=DTYPE_N_CONTACTS,
+    )
+    res = calculate_contacts(
+        contact_models=contact_models,
+        contact_policies=contact_policies,
+        states=initial_states,
+        params=params,
+        date=date,
+    )
+    np.testing.assert_array_equal(expected, res)
+
+
+def test_calculate_contacts_policy_inactive(initial_states, contact_models):
+    contact_policies = {
+        "first_half_meet": {
+            "start": "2020-08-01",
+            "end": "2020-08-30",
+            "is_active": lambda states: True,
+            "multiplier": 0.0,
+        },
+    }
+    date = pd.Timestamp("2020-09-29")
+    params = pd.DataFrame()
+    first_half = round(len(initial_states) / 2)
+    expected = np.array(
+        [[1, i < first_half] for i in range(len(initial_states))],
+        dtype=DTYPE_N_CONTACTS,
+    )
+    res = calculate_contacts(
+        contact_models=contact_models,
+        contact_policies=contact_policies,
+        states=initial_states,
+        params=params,
+        date=date,
+    )
+    np.testing.assert_array_equal(expected, res)
+
+
+def test_calculate_contacts_policy_active(initial_states, contact_models):
+    contact_policies = {
+        "first_half_meet": {
+            "start": "2020-09-01",
+            "end": "2020-09-30",
+            "is_active": lambda states: True,
+            "multiplier": 0.0,
+        },
+    }
+    date = pd.Timestamp("2020-09-29")
+    params = pd.DataFrame()
+    expected = np.array(
+        [[1, 0] for _ in range(len(initial_states))],
+        dtype=DTYPE_N_CONTACTS,
+    )
+    res = calculate_contacts(
+        contact_models=contact_models,
+        contact_policies=contact_policies,
+        states=initial_states,
+        params=params,
+        date=date,
+    )
+    np.testing.assert_array_equal(expected, res)
