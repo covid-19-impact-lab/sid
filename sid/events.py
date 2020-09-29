@@ -4,13 +4,14 @@ import pandas as pd
 def calculate_infections_by_events(states, params, events):
     """Apply events to states and return indicator for infections.
 
-        Each event is evaluated which yields a collection of series with indicators for
-        infected people. All events are merged with the logical OR.
+    Each event is evaluated which yields a collection of series with indicators for
+    infected people. All events are merged with the logical OR.
 
-        Args:
-            states (pandas.DataFrame): See :ref:`states`.
-            params (pandas.DataFrame): See :ref:`params`.
-            events (dict): Dictionary of events which cause infections.
+    Args:
+        states (pandas.DataFrame): See :ref:`states`.
+        params (pandas.DataFrame): See :ref:`params`.
+        events (dict): Dictionary of events which cause infections.
+    
     Returns:
         newly_infected_events (pandas.Series): Series marking individuals who have been
             infected through an event. The index is the same as states, values are
