@@ -11,7 +11,7 @@ def calculate_infections_by_events(states, params, events):
         states (pandas.DataFrame): See :ref:`states`.
         params (pandas.DataFrame): See :ref:`params`.
         events (dict): Dictionary of events which cause infections.
-    
+
     Returns:
         newly_infected_events (pandas.Series): Series marking individuals who have been
             infected through an event. The index is the same as states, values are
