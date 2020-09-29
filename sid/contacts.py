@@ -26,7 +26,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
         contacts (numpy.ndarray): DataFrame with one column for each contact model.
 
     """
-    # Forbid dead people and icu patients to have contacts. 
+    # Forbid dead people and icu patients to have contacts.
     contacts = np.zeros((len(states), len(contact_models)), dtype=DTYPE_N_CONTACTS)
     can_have_contacts = (~states["needs_icu"]) & (~states["dead"])
     participating_contacts = states[can_have_contacts]
@@ -42,10 +42,12 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
             if policy_start <= date <= policy_end and cp["is_active"](
                 participating_contacts
             ):
-                cont *= cp["multiplier"]
+                model_specific_contacts *= cp["multiplier"]
         if not model["is_recurrent"]:
-            cont = _sum_preserving_round(cont.to_numpy().astype(DTYPE_N_CONTACTS))
-        contacts[can_have_contacts, i] = cont
+            model_specific_contacts = _sum_preserving_round(
+                model_specific_contacts.to_numpy().astype(DTYPE_N_CONTACTS)
+            )
+        contacts[can_have_contacts, i] = model_specific_contacts
 
     return contacts
 

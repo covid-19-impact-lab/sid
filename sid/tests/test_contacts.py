@@ -257,7 +257,7 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
     params = pd.DataFrame()
     first_half = round(len(states_all_alive) / 2)
     expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
-    expected[:first_half, 1] = 0
+    expected[:first_half, 1] = 1
     res = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
