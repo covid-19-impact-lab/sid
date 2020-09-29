@@ -194,6 +194,14 @@ def test_calculate_infections():
 
 
 @pytest.fixture
+def states_all_alive(initial_states):
+    states = initial_states[:8].copy()
+    states["dead"] = False
+    states["needs_icu"] = False
+    return states
+
+
+@pytest.fixture
 def contact_models():
     def meet_one(states, params):
         return pd.Series(1, index=states.index)
@@ -217,26 +225,26 @@ def contact_models():
     return contact_models
 
 
-def test_calculate_contacts_no_policy(initial_states, contact_models):
+def test_calculate_contacts_no_policy(states_all_alive, contact_models):
     contact_policies = {}
     date = pd.Timestamp("2020-09-29")
     params = pd.DataFrame()
-    first_half = round(len(initial_states) / 2)
+    first_half = round(len(states_all_alive) / 2)
     expected = np.array(
-        [[1, i < first_half] for i in range(len(initial_states))],
+        [[1, i < first_half] for i in range(len(states_all_alive))],
         dtype=DTYPE_N_CONTACTS,
     )
     res = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
-        states=initial_states,
+        states=states_all_alive,
         params=params,
         date=date,
     )
     np.testing.assert_array_equal(expected, res)
 
 
-def test_calculate_contacts_policy_inactive(initial_states, contact_models):
+def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
     contact_policies = {
         "first_half_meet": {
             "start": "2020-08-01",
@@ -247,22 +255,22 @@ def test_calculate_contacts_policy_inactive(initial_states, contact_models):
     }
     date = pd.Timestamp("2020-09-29")
     params = pd.DataFrame()
-    first_half = round(len(initial_states) / 2)
+    first_half = round(len(states_all_alive) / 2)
     expected = np.array(
-        [[1, i < first_half] for i in range(len(initial_states))],
+        [[1, i < first_half] for i in range(len(states_all_alive))],
         dtype=DTYPE_N_CONTACTS,
     )
     res = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
-        states=initial_states,
+        states=states_all_alive,
         params=params,
         date=date,
     )
     np.testing.assert_array_equal(expected, res)
 
 
-def test_calculate_contacts_policy_active(initial_states, contact_models):
+def test_calculate_contacts_policy_active(states_all_alive, contact_models):
     contact_policies = {
         "first_half_meet": {
             "start": "2020-09-01",
@@ -274,13 +282,47 @@ def test_calculate_contacts_policy_active(initial_states, contact_models):
     date = pd.Timestamp("2020-09-29")
     params = pd.DataFrame()
     expected = np.array(
-        [[1, 0] for _ in range(len(initial_states))],
+        [[1, 0] for _ in range(len(states_all_alive))],
         dtype=DTYPE_N_CONTACTS,
     )
     res = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
-        states=initial_states,
+        states=states_all_alive,
+        params=params,
+        date=date,
+    )
+    np.testing.assert_array_equal(expected, res)
+
+
+@pytest.fixture
+def states_with_dead(states_all_alive):
+    states_all_alive.loc[:2, "dead"] = [True, False, True]
+    states_all_alive.loc[5:, "needs_icu"] = [True, False, True]
+    return states_all_alive
+
+
+def test_calculate_contacts_with_dead(states_with_dead, contact_models):
+    contact_policies = {}
+    date = pd.Timestamp("2020-09-29")
+    params = pd.DataFrame()
+    expected = np.array(
+        [
+            [0, 0],
+            [1, 1],
+            [0, 0],
+            [1, 1],
+            [1, 0],
+            [0, 0],
+            [1, 0],
+            [0, 0],
+        ],
+        dtype=DTYPE_N_CONTACTS,
+    )
+    res = calculate_contacts(
+        contact_models=contact_models,
+        contact_policies=contact_policies,
+        states=states_with_dead,
         params=params,
         date=date,
     )
