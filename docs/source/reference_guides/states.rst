@@ -101,7 +101,7 @@ We have the following countdowns:
 - **cd_needs_icu_false**:
     How long a person needs intensive care before they recover if a person does not
     die beforehand.
-- **cd_dead**:
+- **cd_dead_true**:
     Time until a person dies, from start of intensive care.
     -1 if a person will survive intensive care of any length.
 - **cd_knows_true**:
@@ -128,7 +128,7 @@ groups look like and where we take the estimates from.
 Other background characteristics you may want to include are:
 
 - variables governing the assortativeness of the matching of individuals, such as
-  region of residence
+  region of residence.
 - individual characteristics that influence how many contacts a person has, such as
-  gender or occupation
-- identifiers for recurrent contact models such ass households or school classes
+  gender or occupation.
+- identifiers for recurrent contact models such as households or school classes.
