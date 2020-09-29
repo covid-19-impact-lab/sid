@@ -249,17 +249,15 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
         "first_half_meet": {
             "start": "2020-08-01",
             "end": "2020-08-30",
-            "is_active": lambda states: True,
-            "multiplier": 0.0,
+            "is_active": lambda x: True,
+            "multiplier": 0,
         },
     }
     date = pd.Timestamp("2020-09-29")
     params = pd.DataFrame()
     first_half = round(len(states_all_alive) / 2)
-    expected = np.array(
-        [[1, i < first_half] for i in range(len(states_all_alive))],
-        dtype=DTYPE_N_CONTACTS,
-    )
+    expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
+    expected[:first_half, 1] = 0
     res = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
@@ -276,15 +274,12 @@ def test_calculate_contacts_policy_active(states_all_alive, contact_models):
             "start": "2020-09-01",
             "end": "2020-09-30",
             "is_active": lambda states: True,
-            "multiplier": 0.0,
+            "multiplier": 0,
         },
     }
     date = pd.Timestamp("2020-09-29")
     params = pd.DataFrame()
-    expected = np.array(
-        [[1, 0] for _ in range(len(states_all_alive))],
-        dtype=DTYPE_N_CONTACTS,
-    )
+    expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
     res = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
@@ -297,9 +292,10 @@ def test_calculate_contacts_policy_active(states_all_alive, contact_models):
 
 @pytest.fixture
 def states_with_dead(states_all_alive):
-    states_all_alive.loc[:2, "dead"] = [True, False, True]
-    states_all_alive.loc[5:, "needs_icu"] = [True, False, True]
-    return states_all_alive
+    states_with_dead = states_all_alive.copy()
+    states_with_dead.loc[:2, "dead"] = [True, False, True]
+    states_with_dead.loc[5:, "needs_icu"] = [True, False, True]
+    return states_with_dead
 
 
 def test_calculate_contacts_with_dead(states_with_dead, contact_models):

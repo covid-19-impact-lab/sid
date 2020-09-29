@@ -26,6 +26,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
         contacts (numpy.ndarray): DataFrame with one column for each contact model.
 
     """
+    # Forbid dead people and icu patients to have contacts. 
     contacts = np.zeros((len(states), len(contact_models)), dtype=DTYPE_N_CONTACTS)
     can_have_contacts = (~states["needs_icu"]) & (~states["dead"])
     participating_contacts = states[can_have_contacts]
@@ -33,7 +34,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
     for i, (model_name, model) in enumerate(contact_models.items()):
         loc = model.get("loc", params.index)
         func = model["model"]
-        cont = func(participating_contacts, params.loc[loc])
+        model_specific_contacts = func(participating_contacts, params.loc[loc])
         if model_name in contact_policies:
             cp = contact_policies[model_name]
             policy_start = pd.to_datetime(cp["start"])
