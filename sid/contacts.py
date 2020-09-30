@@ -29,6 +29,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
     # Forbid dead people and icu patients to have contacts.
     contacts = np.zeros((len(states), len(contact_models)), dtype=DTYPE_N_CONTACTS)
     can_have_contacts = (~states["needs_icu"]) & (~states["dead"])
+
     participating_contacts = states[can_have_contacts]
 
     for i, (model_name, model) in enumerate(contact_models.items()):
@@ -187,65 +188,58 @@ def _calculate_infections_by_contacts_numba(
     groups_list = [np.arange(len(gp)) for gp in group_cdfs]
 
     # Loop over all individual-contact_model combinations
-    for k in range(len(loop_order)):
-        i, cm = loop_order[k]
-        if is_recurrent[cm]:
-            # We only check if i gets infected by someone else from his group. Whether
-            # he infects some j is only checked, when the main loop arrives at j.
-            group_i = group_codes[i, cm]
-            # skip completely if i does not have a group or is already immune
-            if not immune[i] and contacts[i, cm] > 0:
-                others = indexers_list[cm][group_i]
-                for j in others:
-                    # There is no point in meeting oneself. It is not a pleasure.
-                    if i == j:
-                        pass
-                    else:
-                        if infectious[j] and not immune[i] and contacts[j, cm] > 0:
+    for i, cm in loop_order:
+        group_i = group_codes[i, cm]
+        group_members = indexers_list[cm][group_i]
+        if contacts[i, cm] > 0:
+            # recurrent contacts
+            if is_recurrent[cm]:
+                if not immune[i] and infectious[group_members].any():
+                    # We only check if i gets infected by someone else from his group.
+                    # He only infects some j once the loop arrives at j.
+                    # Skip completely if i does not have a group, is already immune or
+                    # no one is infectious in her group
+                    for j in group_members:
+                        if i != j and infectious[j] and contacts[j, cm] > 0:
                             is_infection = _boolean_choice(infection_probs[cm])
                             if is_infection:
                                 infection_counter[j] += 1
                                 infected[i] = 1
                                 immune[i] = True
 
-        else:
-            # get the probabilities for meeting another group which depend on the
-            # individual's group.
-            group_i = group_codes[i, cm]
-            group_i_cdf = group_cdfs[cm][group_i]
+            # non recurrent contacts
+            else:
+                # get the probabilities for meeting another group which depend on the
+                # individual's group.
+                group_i_cdf = group_cdfs[cm][group_i]
 
-            # Loop over each contact the individual has, sample the contact's group and
-            # compute the sum of possible contacts in this group.
-            n_contacts = contacts[i, cm]
-            for _ in range(n_contacts):
-                contact_takes_place = True
-                group_j = _choose_other_group(groups_list[cm], cdf=group_i_cdf)
-                choice_indices = indexers_list[cm][group_j]
-                contacts_j = contacts[choice_indices, cm]
+                # Loop over each contact the individual has, sample the contact's group
+                # and compute the sum of possible contacts in this group.
+                for _ in range(contacts[i, cm]):
+                    group_j = _choose_other_group(groups_list[cm], cdf=group_i_cdf)
+                    choice_indices = indexers_list[cm][group_j]
+                    contacts_j = contacts[choice_indices, cm]
+                    j = _choose_other_individual(choice_indices, weights=contacts_j)
+                    contact_takes_place = j != i and j >= 0
 
-                j = _choose_other_individual(choice_indices, weights=contacts_j)
+                    # If a contact takes place, find out if one individual got infected.
+                    if contact_takes_place:
+                        contacts[i, cm] -= 1
+                        contacts[j, cm] -= 1
 
-                if j < 0 or j == i:
-                    contact_takes_place = False
+                        if infectious[i] and not immune[j]:
+                            is_infection = _boolean_choice(infection_probs[cm])
+                            if is_infection:
+                                infection_counter[i] += 1
+                                infected[j] = 1
+                                immune[j] = True
 
-                # If a contact takes place, find out if one individual got infected.
-                if contact_takes_place:
-                    contacts[i, cm] -= 1
-                    contacts[j, cm] -= 1
-
-                    if infectious[i] and not immune[j]:
-                        is_infection = _boolean_choice(infection_probs[cm])
-                        if is_infection:
-                            infection_counter[i] += 1
-                            infected[j] = 1
-                            immune[j] = True
-
-                    elif infectious[j] and not immune[i]:
-                        is_infection = _boolean_choice(infection_probs[cm])
-                        if is_infection:
-                            infection_counter[j] += 1
-                            infected[i] = 1
-                            immune[i] = True
+                        elif infectious[j] and not immune[i]:
+                            is_infection = _boolean_choice(infection_probs[cm])
+                            if is_infection:
+                                infection_counter[j] += 1
+                                infected[i] = 1
+                                immune[i] = True
 
     missed = contacts
 
