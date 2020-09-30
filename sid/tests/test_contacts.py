@@ -3,6 +3,7 @@ import itertools
 import numpy as np
 import pandas as pd
 import pytest
+from numba import njit
 from numba.typed import List as NumbaList
 
 from sid.config import DTYPE_N_CONTACTS
@@ -146,17 +147,21 @@ def _sample_data_for_calculate_infections_numba(
     )
 
 
-def test_calculate_infections():
-    """test with only one recurrent contact model and very few states"""
-    # set up states
+@pytest.fixture
+def states_one_infectious():
     states = pd.DataFrame()
     states["infectious"] = [True] + [False] * 7
     states["immune"] = states["infectious"]
     states["group_codes_households"] = [0] * 4 + [1] * 4
+    states["group_codes_non_rec"] = [0] * 4 + [1] * 4
     states["households"] = [0] * 4 + [1] * 4
     states["n_has_infected"] = 0
     states["n_has_infected"] = states["n_has_infected"].astype(int)
+    return states
 
+
+def test_calculate_infections_only_recurrent_all_participate(states_one_infectious):
+    states = states_one_infectious.copy()
     contacts = np.ones((len(states), 1))
 
     params = pd.DataFrame(
@@ -183,6 +188,187 @@ def test_calculate_infections():
     exp_infected = pd.Series([False] + [True] * 3 + [False] * 4)
     exp_infection_counter = pd.Series([3] + [0] * 7).astype(np.int32)
     exp_immune = pd.Series([True] * 4 + [False] * 4)
+    assert calc_infected.equals(exp_infected)
+    assert calc_states["n_has_infected"].astype(np.int32).equals(exp_infection_counter)
+    assert calc_states["immune"].equals(exp_immune)
+
+
+def test_calculate_infections_only_recurrent_sick_skips(states_one_infectious):
+    states = states_one_infectious.copy()
+    contacts = np.ones((len(states), 1))
+    contacts[0] = 0
+
+    params = pd.DataFrame(
+        columns=["value"],
+        data=1.0,
+        index=pd.MultiIndex.from_tuples(
+            [("infection_prob", "households", "households")]
+        ),
+    )
+
+    indexers = {"households": create_group_indexer(states, ["households"])}
+
+    group_probs = {}
+
+    calc_infected, calc_states = calculate_infections_by_contacts(
+        states=states,
+        contacts=contacts,
+        params=params,
+        indexers=indexers,
+        group_cdfs=group_probs,
+        seed=itertools.count(),
+    )
+
+    exp_infected = pd.Series([False] * 8)
+    exp_infection_counter = pd.Series([0] * 8).astype(np.int32)
+    exp_immune = pd.Series([True] * 1 + [False] * 7)
+    assert calc_infected.equals(exp_infected)
+    assert calc_states["n_has_infected"].astype(np.int32).equals(exp_infection_counter)
+    assert calc_states["immune"].equals(exp_immune)
+
+
+def test_calculate_infections_only_recurrent_one_skips(states_one_infectious):
+    states = states_one_infectious.copy()
+    contacts = np.ones((len(states), 1))
+    # 2nd person does not participate in household meeting
+    contacts[1] = 0
+
+    params = pd.DataFrame(
+        columns=["value"],
+        data=1.0,
+        index=pd.MultiIndex.from_tuples(
+            [("infection_prob", "households", "households")]
+        ),
+    )
+
+    indexers = {"households": create_group_indexer(states, ["households"])}
+
+    group_probs = {}
+
+    calc_infected, calc_states = calculate_infections_by_contacts(
+        states=states,
+        contacts=contacts,
+        params=params,
+        indexers=indexers,
+        group_cdfs=group_probs,
+        seed=itertools.count(),
+    )
+
+    exp_infected = pd.Series([False, False] + [True] * 2 + [False] * 4)
+    exp_infection_counter = pd.Series([2] + [0] * 7).astype(np.int32)
+    exp_immune = pd.Series([True, False, True, True] + [False] * 4)
+    assert calc_infected.equals(exp_infected)
+    assert calc_states["n_has_infected"].astype(np.int32).equals(exp_infection_counter)
+    assert calc_states["immune"].equals(exp_immune)
+
+
+def test_calculate_infections_only_recurrent_one_immune(states_one_infectious):
+    states = states_one_infectious.copy()
+    contacts = np.ones((len(states), 1))
+    states.loc[1, "immune"] = True
+
+    params = pd.DataFrame(
+        columns=["value"],
+        data=1.0,
+        index=pd.MultiIndex.from_tuples(
+            [("infection_prob", "households", "households")]
+        ),
+    )
+
+    indexers = {"households": create_group_indexer(states, ["households"])}
+
+    group_probs = {}
+
+    calc_infected, calc_states = calculate_infections_by_contacts(
+        states=states,
+        contacts=contacts,
+        params=params,
+        indexers=indexers,
+        group_cdfs=group_probs,
+        seed=itertools.count(),
+    )
+
+    exp_infected = pd.Series([False, False] + [True] * 2 + [False] * 4)
+    exp_infection_counter = pd.Series([2] + [0] * 7).astype(np.int32)
+    exp_immune = pd.Series([True, True, True, True] + [False] * 4)
+    assert calc_infected.equals(exp_infected)
+    assert calc_states["n_has_infected"].astype(np.int32).equals(exp_infection_counter)
+    assert calc_states["immune"].equals(exp_immune)
+
+
+def set_deterministic_context(m):
+    """Replace all randomness in the model with specified orders."""
+
+    @njit
+    def fake_choose_other_group(a, cdf):
+        """Deterministically switch between groups."""
+        return a[0]
+
+    m.setattr("sid.contacts._choose_other_group", fake_choose_other_group)
+
+    @njit
+    def fake_choose_j(a, weights):
+        """Deterministically switch between groups."""
+        return a[1]
+
+    m.setattr("sid.contacts._choose_other_individual", fake_choose_j)
+
+    @njit
+    def fix_loop_order(x, replace, size):
+        return NumbaList(range(x))
+
+    m.setattr("sid.contacts.np.random.choice", fix_loop_order)
+
+
+def test_calculate_infections_only_non_recurrent(states_one_infectious, monkeypatch):
+    states = states_one_infectious
+    contacts = np.ones((len(states), 1))
+    contacts[0] = 1
+    contacts = contacts.astype(int)
+    params = pd.DataFrame(
+        columns=["value"],
+        data=1.0,
+        index=pd.MultiIndex.from_tuples([("infection_prob", "non_rec", "non_rec")]),
+    )
+    indexers = {"non_rec": create_group_indexer(states, ["group_codes_non_rec"])}
+    group_probs = {"non_rec": np.array([[0.8, 1.0], [0.2, 1.0]])}
+
+    with monkeypatch.context() as m:
+        set_deterministic_context(m)
+        calc_infected, calc_states = calculate_infections_by_contacts(
+            states=states,
+            contacts=contacts,
+            params=params,
+            indexers=indexers,
+            group_cdfs=group_probs,
+            seed=itertools.count(),
+        )
+
+    exp_infected = pd.Series(
+        [
+            False,
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+        ]
+    )
+    exp_infection_counter = pd.Series([1] + [0] * 7).astype(np.int32)
+    exp_immune = pd.Series(
+        [
+            True,
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+        ]
+    )
     assert calc_infected.equals(exp_infected)
     assert calc_states["n_has_infected"].astype(np.int32).equals(exp_infection_counter)
     assert calc_states["immune"].equals(exp_immune)
