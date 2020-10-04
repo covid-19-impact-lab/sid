@@ -52,7 +52,7 @@ def calculate_infections_by_contacts(
 
     This function mainly converts the relevant parts from states and contacts into
     numpy arrays or other objects that are supported in numba nopython mode and
-    then calls ``calculate_infections_numba``.
+    then calls :func:`_calculate_infections_by_contacts_numba`.
 
     Args:
         states (pandas.DataFrame): see :ref:`states`.
@@ -66,9 +66,11 @@ def calculate_infections_by_contacts(
         seed (itertools.count): Seed counter to control randomness.
 
     Returns:
-        infected_sr (pandas.Series): Boolean Series that is True for newly infected
-            people.
-        states (pandas.DataFrame): Copy of states with updated immune column.
+        (tuple): Tuple containing
+
+            - infected_sr (pandas.Series): Boolean Series that is True for newly
+              infected people.
+            - states (pandas.DataFrame): Copy of states with updated immune column.
 
     """
     is_recurrent = np.array([k not in group_cdfs for k in indexers])
@@ -165,12 +167,15 @@ def _calculate_infections_by_contacts_numba(
             indicates an individual. The second indicates a contact model.
 
     Returns:
-        infected (numpy.ndarray): 1d boolean array that is True for individuals who got
-            newly infected.
-        infection_counter (numpy.ndarray): 1d integer array
-        immune (numpy.ndarray): 1-D boolean array that indicates if a person is immune.
-        missed (numpy.ndarray): 1d integer array with missed contacts. Same length as
-            contacts.
+        (tuple) Tuple containing
+
+            - infected (numpy.ndarray): 1d boolean array that is True for individuals
+              who got newly infected.
+            - infection_counter (numpy.ndarray): 1d integer array
+            - immune (numpy.ndarray): 1-D boolean array that indicates if a person is
+              immune.
+            - missed (numpy.ndarray): 1d integer array with missed contacts. Same length
+              as contacts.
 
     """
     np.random.seed(seed)
@@ -307,7 +312,7 @@ def _get_index_refining_search(u, cdf):
 
     Args:
         u (float): A uniform random draw.
-        cdf (np.ndarray): 1d array with cumulative probabilities.
+        cdf (numpy.ndarray): 1d array with cumulative probabilities.
 
     Returns:
         int: The selected index.

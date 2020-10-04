@@ -80,10 +80,3 @@ The documentation is structured into four parts.
     tutorials/index
     explanations/index
     reference_guides/index
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Other Topics
-
-   api

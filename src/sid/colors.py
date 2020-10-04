@@ -10,6 +10,7 @@ from matplotlib.colors import LinearSegmentedColormap
 
 def get_colors(palette, number, as_cmap=False, skip_dark=0, skip_bright=0):
     """Return a list with hex codes representing a color palette.
+
     Args:
         palette (str): One of ["categorical", "ordered", "blue", "red", "yellow",
             "green", "orange", "purple"] or combinations of two colors, e.g.
@@ -21,8 +22,10 @@ def get_colors(palette, number, as_cmap=False, skip_dark=0, skip_bright=0):
             available for monochrome and combined color palettes.
         skip_bright (int): How many colors to skip from the bright side. Only
             available for monochrome and combined color palettes.
+
     Returns:
         list or cmap: List of hex codes or cmap.
+
     """
     if palette in ["categorical", "ordered"]:
         assert skip_bright == skip_dark == 0
@@ -74,11 +77,13 @@ def _get_mono_colors(palette, number, skip_dark, skip_bright):
 
 def plot_colors(palette, number, skip_dark=0, skip_bright=0, size=1):
     """Plot a color palette.
+
     Args:
         palette (str): One of ["categorical", "ordered", "blue", "red", "yellow",
             "green", "orange", "purple"]
         number (int): Between 1 and 12.
         size (float): Scaling factor for the plot size.
+
     """
     return sns.palplot(
         get_colors(palette, number, skip_dark=skip_dark, skip_bright=skip_bright),

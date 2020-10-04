@@ -30,9 +30,12 @@ dependencies:
   - pytest-xdist
   - scipy
   - seaborn
-  - sphinx
   - pydata-sphinx-theme
   - python-snappy
+
+  - sphinx
+  - sphinx-copybutton
+  - sphinx-autoapi
 
   # for bokeh png export
   - selenium

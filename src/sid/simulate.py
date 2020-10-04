@@ -316,7 +316,7 @@ def _prepare_assortative_matching(states, assort_bys, params, contact_models):
         assort_bys (dict): Keys are names of contact models, values are lists with the
             assort_by variables of the model.
         params (pd.DataFrame): see :ref:`params`.
-        contact_models (dict): see :ret:`contact_models`.
+        contact_models (dict): see :ref:`contact_models`.
 
     returns:
         indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
