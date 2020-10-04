@@ -31,7 +31,6 @@ requirements:
     - pytest
     - pytest-regressions
     - python-snappy
-    - utilities >=0.2.6
 
 test:
   requires:
@@ -41,6 +40,8 @@ test:
   source_files:
     - tox.ini
     - tests
+  imports:
+    - sid
   commands:
     - pytest -m "not optional"
 

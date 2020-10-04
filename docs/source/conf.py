@@ -56,7 +56,6 @@ autodoc_mock_imports = [
     "numba",
     "numpy",
     "pandas",
-    "utilities",
 ]
 
 # Configuration for autodoc
