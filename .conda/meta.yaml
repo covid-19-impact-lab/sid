@@ -42,7 +42,7 @@ test:
     - tox.ini
     - tests
   commands:
-    - pytest
+    - pytest -m "not optional"
 
 about:
   home: https://github.com/covid-19-impact-lab/sid
