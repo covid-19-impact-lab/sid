@@ -6,7 +6,6 @@ from pathlib import Path
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import COUNTDOWNS
 from sid.config import DTYPE_COUNTDOWNS
@@ -108,7 +107,12 @@ def simulate(
         )
 
         newly_infected_contacts, states = calculate_infections_by_contacts(
-            states, contacts, params, indexers, cum_probs, seed,
+            states,
+            contacts,
+            params,
+            indexers,
+            cum_probs,
+            seed,
         )
         newly_infected_events = calculate_infections_by_events(states, params, events)
         newly_infected = newly_infected_contacts | newly_infected_events

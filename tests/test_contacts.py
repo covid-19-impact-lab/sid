@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from numba.typed import List as NumbaList
-
 from sid.contacts import _calculate_infections_by_contacts_numba
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer

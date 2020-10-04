@@ -18,10 +18,10 @@ requirements:
     - python
     - setuptools
   host:
-    - python >=3.6,<3.8
+    - python >=3.6
 
   run:
-    - python >=3.6,<3.8
+    - python >=3.6
     - bokeh
     - dask
     - fastparquet
@@ -31,7 +31,7 @@ requirements:
     - pytest
     - pytest-regressions
     - python-snappy
-    - utilities
+    - utilities >=0.2.6
 
 test:
   requires:
@@ -40,7 +40,7 @@ test:
     - pytest-xdist
   source_files:
     - tox.ini
-    - sid
+    - tests
   commands:
     - pytest
 

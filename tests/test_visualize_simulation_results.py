@@ -2,7 +2,6 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-
 from sid.visualize_simulation_results import _create_folders
 from sid.visualize_simulation_results import _load_data
 from sid.visualize_simulation_results import _nice_str

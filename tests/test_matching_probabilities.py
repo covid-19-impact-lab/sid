@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
-
 from sid.matching_probabilities import _create_transition_matrix_from_own_prob
 from sid.matching_probabilities import _einsum_kronecker_product
 from sid.matching_probabilities import _join_transition_matrices
