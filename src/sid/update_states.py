@@ -49,8 +49,8 @@ def update_states(states, newly_infected, params, seed):
     if abs_limit < len(need_icu_locs):
         excess = int(len(need_icu_locs) - abs_limit)
         to_kill = np.random.choice(need_icu_locs, size=excess, replace=False)
-        for to_change, new_val in COUNTDOWNS["cd_dead"]["changes"].items():
+        for to_change, new_val in COUNTDOWNS["cd_dead_true"]["changes"].items():
             states.loc[to_kill, to_change] = new_val
-        states.loc[to_kill, "cd_dead"] = 0
+        states.loc[to_kill, "cd_dead_true"] = 0
 
     return states
