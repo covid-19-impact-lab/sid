@@ -70,7 +70,8 @@ def calculate_infections_by_contacts(
 
             - infected_sr (pandas.Series): Boolean Series that is True for newly
               infected people.
-            - states (pandas.DataFrame): Copy of states with updated immune column.
+            - states (pandas.DataFrame): Copy of states with updated immune column and
+              information on missed contacts for each contact model.
 
     """
     is_recurrent = np.array([k not in group_cdfs for k in indexers])

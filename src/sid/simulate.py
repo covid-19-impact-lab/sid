@@ -32,7 +32,9 @@ def simulate(
     duration=None,
     events=None,
     contact_policies=None,
-    testing_policies=None,
+    testing_demand_models=None,
+    testing_allocation_models=None,
+    testing_processing_models=None,
     seed=None,
     path=None,
     debug=False,
@@ -54,8 +56,12 @@ def simulate(
             :func:`pandas.date_range`.
         events (dict or None): Dictionary of events which cause infections.
         contact_policies (dict): Dict of dicts with contact. See :ref:`policies`.
-        testing_policies (dict): Dict of dicts with testing policies. See
-            :ref:`policies`.
+        testing_demand_models (dict): Dict of dicts with demand models for tests. See
+            :ref:`testing_demand_models` for more information.
+        testing_allocation_models (dict): Dict of dicts with allocation models for
+            tests. See :ref:`testing_allocation_models` for more information.
+        testing_processing_models (dict): Dict of dicts with processing models for
+            tests. See :ref:`testing_processing_models` for more information.
         seed (int, optional): Seed is used as the starting point of a sequence of seeds
             used to control randomness internally.
         path (str or pathlib.Path): Path to the directory where the simulated data is
@@ -71,7 +77,15 @@ def simulate(
     """
     events = {} if events is None else events
     contact_policies = {} if contact_policies is None else contact_policies
-    testing_policies = {} if testing_policies is None else testing_policies
+    testing_demand_models = (
+        {} if testing_demand_models is None else testing_demand_models
+    )
+    testing_allocation_models = (
+        {} if testing_allocation_models is None else testing_allocation_models
+    )
+    testing_processing_models = (
+        {} if testing_processing_models is None else testing_processing_models
+    )
     seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
     initial_states = initial_states.copy(deep=True)
     params = _prepare_params(params)
@@ -84,7 +98,9 @@ def simulate(
         initial_infections,
         contact_models,
         contact_policies,
-        testing_policies,
+        testing_demand_models,
+        testing_allocation_models,
+        testing_processing_models,
     )
 
     contact_models = _sort_contact_models(contact_models)
@@ -260,7 +276,9 @@ def _check_inputs(
     initial_infections,
     contact_models,
     contact_policies,
-    testing_policies,
+    testing_demand_models,
+    testing_allocation_models,
+    testing_processing_models,
 ):
     """Check the user inputs."""
     cd_names = sorted(COUNTDOWNS)
@@ -298,8 +316,19 @@ def _check_inputs(
                 f"contact_policy refers to non existent contact model: {name}."
             )
 
-    if testing_policies != {}:
-        raise NotImplementedError
+    for testing_model in [
+        testing_demand_models,
+        testing_allocation_models,
+        testing_processing_models,
+    ]:
+        for name in testing_model:
+            if not isinstance(testing_model[name], dict):
+                raise ValueError(f"Each testing model must be a dictionary: {name}.")
+
+            if "model" not in testing_model[name]:
+                raise ValueError(
+                    f"Each testing model must have a 'model' entry: {name}."
+                )
 
     first_levels = params.index.get_level_values("category")
     assort_prob_matrices = [

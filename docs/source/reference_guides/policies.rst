@@ -39,37 +39,3 @@ problem if the multiplication leads to non-integer number of contacts. We will
 automatically round them in a way that preserves the total number of contacts as well as
 possible. ``"is_active"`` is a function that returns a bool. This is also optional. A
 policy is only active if ``is_active & pol["start"] <= date <= pol["end"]``.
-
-
-``testing_policies``
---------------------
-
-*This feature is under development.*
-
-Testing policies determine which individuals receive a test. Testing policies are not
-implemented yet, but will be a dict of dicts of the following form:
-
-.. code-block:: python
-
-    def testing_policy_is_active(states):
-        return states["immune"].mean() < 0.5
-
-
-    {
-        "test_old_people": {
-            "start": "2020-02-20",
-            "end": "2020-05-30",
-            "query": "age_group == '> 60' & symptoms",
-            "probability": 0.7,
-            "is_active": testing_policy_is_active,
-        }
-    }
-
-
-``"test_old_people"`` is the name of the testing policy. ``"start"`` and ``"end"``
-define the time period in dates when the policy is active. They are optional.
-``"query"`` selects the people who get the test. We will handle the case where
-individuals are selected by multiple testing policies automatically and test them just
-once. ``"probability"`` can be used to incorporate randomness in the testing policy.
-This is the probability that the test takes place, not that it is correct. It is
-optional. ``"is_active"`` is a function that returns a bool. This is also optional.
