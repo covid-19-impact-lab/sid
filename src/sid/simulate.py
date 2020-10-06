@@ -142,16 +142,12 @@ def _prepare_params(params):
         raise ValueError("params must be a DataFrame.")
 
     params = params.copy()
-    if not isinstance(params.index, pd.MultiIndex) and set(INDEX_NAMES).issubset(
-        params
+    if not (
+        isinstance(params.index, pd.MultiIndex) and params.index.names == INDEX_NAMES
     ):
-        params.set_index(INDEX_NAMES, inplace=True)
-    else:
-        if params.index.names != INDEX_NAMES:
-            raise ValueError(
-                "params must have the index levels 'category', 'subcategory' and "
-                "'name'."
-            )
+        raise ValueError(
+            "params must have the index levels 'category', 'subcategory' and 'name'."
+        )
 
     if np.any(params.index.to_frame().isna()):
         raise ValueError(
@@ -161,6 +157,9 @@ def _prepare_params(params):
 
     if params.index.duplicated().any():
         raise ValueError("No duplicates in the params index allowed.")
+
+    if params["value"].isna().any():
+        raise ValueError("The 'value' column of params must not contain NaNs.")
 
     return params
 

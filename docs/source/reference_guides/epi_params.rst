@@ -1,13 +1,12 @@
 .. _epi-params:
 
-==========================
 Epidemiological Parameters
 ==========================
 
 This section presents the epidemiological parameters for CoViD-19. Their values are
 stored in ``covid-epi-params.csv``.
 
--------------
+
 Health System
 -------------
 
@@ -19,7 +18,7 @@ Sources:
       <https://www.dkgev.de/dkg/coronavirus-fakten-und-infos/>`_
     - `Intensivregister <https://www.intensivregister.de/#/intensivregister>`_
 
-------------------
+
 Immunity Countdown
 ------------------
 
@@ -30,7 +29,7 @@ reported to develop specific anti bodies within two weeks of infection and evide
 the related SARS and MERS viruses suggest immunity of up to 3 years. We set the immunity
 to 1000 days (2.7 years).
 
--------------------------------------------------------
+
 Countdown from Infection to the Begin of Infectiousness
 -------------------------------------------------------
 
@@ -60,7 +59,7 @@ percentiles for the incubation period:
 .. csv-table::
     :header: "percentile", "incubation period"
 
-        02.5%, 2.2
+        2.5%, 2.2
         25.0%, 4
         50.0%, 5.2
         75.0%, 6.8
@@ -92,7 +91,7 @@ cases unclear. To our knowledge no estimates for the latency period of asymptoma
 cases of CoViD-19 exist. We assume it to be the same for symptomatic and asymptomatic
 cases.
 
-----------------------------------
+
 Length of the Presymptomatic Stage
 ----------------------------------
 
@@ -126,7 +125,7 @@ Other sources with more or less similar estimates of asymptomatic cases include:
       <https://onlinelibrary.wiley.com/doi/full/10.1002/jmv.26041>`_)
 
 
------------------------------------------
+
 Duration of Symptoms (and Infectiousness)
 -----------------------------------------
 
@@ -191,7 +190,7 @@ According to the information provided by the `RKI <https://www.rki.de/DE/Content
 hospitalized cases in Germany was around 20%. `In Shanghai the rate is reported to be
 8.8%. <https://doi.org/10.1016/j.jinf.2020.03.004>`_
 
--------------------------------------------
+
 Time from Symptom Onset to Admission to ICU
 -------------------------------------------
 
@@ -209,7 +208,7 @@ and ICU takes 4, 6, 8 or 10 days with equal probabilities.
 These times mostly matter for the ICU capacities rather than the spread of the disease
 as symptomatic individuals reduce their social contacts in our model.
 
----------------------------
+
 Death and Recovery from ICU
 ---------------------------
 
@@ -230,9 +229,9 @@ We assume that patiens in ICU that die do so after 3 weeks. This follows the `3 
 weeks of hospital duration reported by the RKI <https://www.rki.de/DE/Content/InfAZ/N/
 Neuartiges_Coronavirus/Steckbrief.html#doc13776792bodyText18>`_.
 
-This also aligns with
-`Chen et al. (2020-04-02) <https://doi.org/10.1016/j.jinf.2020.03.004>`_
-where over 50% of ICU patients still had fever after 20 days at the hospital.
+This also aligns with `Chen et al. (2020-04-02)
+<https://doi.org/10.1016/j.jinf.2020.03.004>`_ where over 50% of ICU patients still had
+fever after 20 days at the hospital.
 
 We use a smaller time until ICU exit for those surviving, assuming they "only" require 2
 weeks of ICU care.

@@ -78,3 +78,12 @@ def test_prepare_params_no_duplicates_in_index(params):
 
     with pytest.raises(ValueError):
         _prepare_params(params)
+
+
+@pytest.mark.unit
+def test_prepare_params_value_with_nan(params):
+    params = params.copy()
+    params["value"].iloc[0] = np.nan
+
+    with pytest.raises(ValueError):
+        _prepare_params(params)
