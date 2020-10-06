@@ -35,6 +35,7 @@ def simulate(
     testing_policies=None,
     seed=None,
     path=None,
+    debug=False,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -59,6 +60,8 @@ def simulate(
             used to control randomness internally.
         path (str or pathlib.Path): Path to the directory where the simulated data is
             stored.
+        debug (bool): Indicates whether the debug modus is turned on which means that
+            the simulated data contains more (technical) information to debug a model.
 
     Returns:
         simulation_results (dask.dataframe): The simulation results in form of a long
@@ -125,7 +128,7 @@ def simulate(
             states[f"n_contacts_{contact_model}"] = contacts[:, i]
         states["newly_infected"] = newly_infected
 
-        _dump_periodic_states(states, output_directory, date)
+        _dump_periodic_states(states, output_directory, date, debug)
 
     categoricals = {
         column: initial_states[column].cat.categories.shape[0]
@@ -410,13 +413,14 @@ def _process_initial_states(states, assort_bys):
     return states
 
 
-def _dump_periodic_states(states, output_directory, date):
+def _dump_periodic_states(states, output_directory, date, debug):
     group_codes = states.filter(like="group_codes_").columns.tolist()
-    useless_columns = USELESS_COLUMNS + group_codes
 
-    states.drop(columns=useless_columns).to_parquet(
-        output_directory / f"{date.date()}.parquet"
-    )
+    if not debug:
+        useless_columns = USELESS_COLUMNS + group_codes
+        states = states.drop(columns=useless_columns)
+
+    states.to_parquet(output_directory / f"{date.date()}.parquet")
 
 
 def _return_dask_dataframe(output_directory, categoricals):
