@@ -1,11 +1,6 @@
 category,subcategory,name,value,note,source
 assortative_matching,standard,age_group,0.5,,
 assortative_matching,standard,region,0.9,,
-prob_icu_given_symptoms,Under 50,Under 50,0.003087,,
-prob_icu_given_symptoms,Over 50,Over 50,0.045484,,
-prob_dead_given_icu,Under 50,Under 50,0.4,,
-prob_dead_given_icu,Over 50,Over 50,0.5,,
-prob_symptoms_given_infection,all,all,0.75,,
 cd_infectious_true,all,3,1,,
 cd_infectious_false,all,8,1,,
 cd_immune_false,all,365,1,,
