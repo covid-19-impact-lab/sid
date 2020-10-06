@@ -10,6 +10,8 @@ from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import COUNTDOWNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
+from sid.config import DTYPE_PERIOD
+from sid.config import INDEX_NAMES
 from sid.config import USELESS_COLUMNS
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
@@ -45,8 +47,8 @@ def simulate(
         initial_infections (pandas.Series): Series with the same index as states with
             initial infections.
         contact_models (dict): Dictionary of dictionaries where each dictionary
-            describes a channel by which contacts can be formed.
-            See :ref:`contact_models`.
+            describes a channel by which contacts can be formed. See
+            :ref:`contact_models`.
         duration (dict or None): Duration is a dictionary containing kwargs for
             :func:`pandas.date_range`.
         events (dict or None): Dictionary of events which cause infections.
@@ -60,8 +62,8 @@ def simulate(
 
     Returns:
         simulation_results (dask.dataframe): The simulation results in form of a long
-            dask DataFrame. The DataFrame contains the states of each period (see
-            :ref:`states`) and a column called newly_infected.
+            :class:`dask.dataframe`. The DataFrame contains the states of each period
+            (see :ref:`states`) and a column called newly_infected.
 
     """
     events = {} if events is None else events
@@ -100,7 +102,7 @@ def simulate(
 
     for period, date in enumerate(duration["dates"]):
         states["date"] = date
-        states["period"] = np.uint16(period)
+        states["period"] = DTYPE_PERIOD(period)
 
         contacts = calculate_contacts(
             contact_models, contact_policies, states, params, date
@@ -136,20 +138,30 @@ def simulate(
 
 def _prepare_params(params):
     """Check the supplied params and set the index if not done."""
-    assert isinstance(params, pd.DataFrame), "params must be a DataFrame."
+    if not isinstance(params, pd.DataFrame):
+        raise ValueError("params must be a DataFrame.")
 
     params = params.copy()
-    index_cols = ["category", "subcategory", "name"]
-    if not isinstance(params.index, pd.MultiIndex) and set(index_cols).issubset(params):
-        params.set_index(index_cols, inplace=True)
+    if not isinstance(params.index, pd.MultiIndex) and set(INDEX_NAMES).issubset(
+        params
+    ):
+        params.set_index(INDEX_NAMES, inplace=True)
     else:
-        assert (
-            params.index.names == index_cols
-        ), "params must have the index levels 'category', 'subcategory' and 'name'."
-    assert (
-        params.index.to_frame().notnull().all().all()
-    ), "No NaN allowed in the params index. Repeat the previous index level instead."
-    assert not params.index.duplicated().any(), "No duplicates in the index allowed."
+        if params.index.names != INDEX_NAMES:
+            raise ValueError(
+                "params must have the index levels 'category', 'subcategory' and "
+                "'name'."
+            )
+
+    if np.any(params.index.to_frame().isna()):
+        raise ValueError(
+            "No NaNs allowed in the params index. Repeat the previous index level "
+            "instead."
+        )
+
+    if params.index.duplicated().any():
+        raise ValueError("No duplicates in the params index allowed.")
+
     return params
 
 
@@ -250,7 +262,7 @@ def _check_inputs(
 ):
     """Check the user inputs."""
     cd_names = sorted(COUNTDOWNS)
-    gb = params.loc[cd_names].groupby(["category", "subcategory"])
+    gb = params.loc[cd_names].groupby(INDEX_NAMES[:2])
     prob_sums = gb["value"].sum()
     problematic = prob_sums[~prob_sums.between(1 - 1e-08, 1 + 1e-08)].index.tolist()
     assert (

@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from sid.config import INDEX_NAMES
 
 
 @pytest.fixture
@@ -15,5 +16,5 @@ def initial_states():
 def params():
     return pd.read_csv(
         Path(__file__).resolve().parent / "test_params.csv",
-        index_col=["category", "subcategory", "name"],
+        index_col=INDEX_NAMES,
     )

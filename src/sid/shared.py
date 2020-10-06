@@ -1,13 +1,12 @@
 import numpy as np
 import pandas as pd
 from sid.config import DTYPE_GROUP_CODE
+from sid.config import INDEX_NAMES
 from sid.config import ROOT_DIR
 
 
 def get_epidemiological_parameters():
-    return pd.read_csv(
-        ROOT_DIR / "covid_epi_params.csv", index_col=["category", "subcategory", "name"]
-    )
+    return pd.read_csv(ROOT_DIR / "covid_epi_params.csv", index_col=INDEX_NAMES)
 
 
 def get_date(states):
