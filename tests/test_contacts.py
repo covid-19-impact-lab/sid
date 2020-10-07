@@ -146,19 +146,21 @@ def _sample_data_for_calculate_infections_numba(
 def test_calculate_infections():
     """test with only one recurrent contact model and very few states"""
     # set up states
-    states = pd.DataFrame()
-    states["infectious"] = [True] + [False] * 7
-    states["immune"] = states["infectious"]
-    states["group_codes_households"] = [0] * 4 + [1] * 4
-    states["households"] = [0] * 4 + [1] * 4
-    states["n_has_infected"] = 0
-    states["n_has_infected"] = states["n_has_infected"].astype(int)
+    states = pd.DataFrame(
+        {
+            "infectious": [True] + [False] * 7,
+            "immune": [True] + [False] * 7,
+            "group_codes_households": [0] * 4 + [1] * 4,
+            "households": [0] * 4 + [1] * 4,
+            "n_has_infected": 0,
+        }
+    )
 
     contacts = np.ones((len(states), 1))
 
     params = pd.DataFrame(
         columns=["value"],
-        data=1.0,
+        data=1,
         index=pd.MultiIndex.from_tuples(
             [("infection_prob", "households", "households")]
         ),
@@ -168,7 +170,11 @@ def test_calculate_infections():
 
     group_probs = {}
 
-    calc_infected, calc_states = calculate_infections_by_contacts(
+    (
+        calc_infected,
+        calc_n_has_additionally_infected,
+        calc_missed_contacts,
+    ) = calculate_infections_by_contacts(
         states=states,
         contacts=contacts,
         params=params,
@@ -181,5 +187,10 @@ def test_calculate_infections():
     exp_infection_counter = pd.Series([3] + [0] * 7).astype(np.int32)
     exp_immune = pd.Series([True] * 4 + [False] * 4)
     assert calc_infected.equals(exp_infected)
-    assert calc_states["n_has_infected"].astype(np.int32).equals(exp_infection_counter)
-    assert calc_states["immune"].equals(exp_immune)
+    assert (
+        (states["n_has_infected"] + calc_n_has_additionally_infected)
+        .astype(np.int32)
+        .equals(exp_infection_counter)
+    )
+    assert (states["immune"] | calc_infected).equals(exp_immune)
+    assert np.all(calc_missed_contacts == 0)

@@ -8,9 +8,7 @@ from sid.visualize_simulation_results import _nice_str
 from sid.visualize_simulation_results import visualize_simulation_results
 
 
-@pytest.fixture
-def keep_vars():
-    return ["immune", "n_has_infected", "cd_infectious_false"]
+KEEP_VARS = ["immune", "n_has_infected", "cd_infectious_false"]
 
 
 def test_nice_str():
@@ -35,21 +33,21 @@ def test_create_folders(tmp_path):
 
 
 @pytest.mark.optional
-def test_load_data_path(keep_vars):
+def test_load_data_path():
     path = Path(__file__).resolve().parent / "simulation_results" / "1.parquet"
     expected_name = "1"
-    expected_df = pd.read_parquet(path)[keep_vars]
-    name, df = _load_data(path, keep_vars=keep_vars, i=100)
+    expected_df = pd.read_parquet(path)[KEEP_VARS]
+    name, df = _load_data(path, keep_vars=KEEP_VARS, i=100)
     assert expected_name == name
     pd.testing.assert_frame_equal(expected_df, df)
 
 
 @pytest.mark.optional
-def test_load_data_df(keep_vars):
+def test_load_data_df():
     path = Path(__file__).resolve().parent / "simulation_results" / "1.parquet"
     input_df = pd.read_parquet(path)
-    expected_df = pd.read_parquet(path)[keep_vars]
-    name, df = _load_data(input_df, keep_vars=keep_vars, i=100)
+    expected_df = pd.read_parquet(path)[KEEP_VARS]
+    name, df = _load_data(input_df, keep_vars=KEEP_VARS, i=100)
     assert name == 100
     pd.testing.assert_frame_equal(expected_df, df)
 
