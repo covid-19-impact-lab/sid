@@ -1,14 +1,12 @@
 import numpy as np
 import pandas as pd
-
 from sid.config import DTYPE_GROUP_CODE
+from sid.config import INDEX_NAMES
 from sid.config import ROOT_DIR
 
 
-def get_epidemological_parameters():
-    return pd.read_csv(
-        ROOT_DIR / "covid_epi_params.csv", index_col=["category", "subcategory", "name"]
-    )
+def get_epidemiological_parameters():
+    return pd.read_csv(ROOT_DIR / "covid_epi_params.csv", index_col=INDEX_NAMES)
 
 
 def get_date(states):
@@ -30,9 +28,11 @@ def factorize_assortative_variables(states, assort_by):
             these variables.
 
     Returns:
-        group_codes (numpy.ndarray): Array containing the code for each states.
-        group_codes_values (numpy.ndarray): One-dimensional array where positions
-            correspond the values of assortative variables to form the group.
+        (tuple): Tuple containing
+
+        - group_codes (numpy.ndarray): Array containing the code for each states.
+        - group_codes_values (numpy.ndarray): One-dimensional array where positions
+          correspond the values of assortative variables to form the group.
 
     """
     if assort_by:
@@ -52,7 +52,7 @@ def factorize_assortative_variables(states, assort_by):
 def calculate_r_effective(df, window_length=7):
     """Calculate the effective reproduction number.
 
-    source: https://bit.ly/2VZOR5a
+    More information can be found here: https://bit.ly/2VZOR5a.
 
     Args:
         df (pandas.DataFrame): states DataFrame for which to calculate R_e, usually
@@ -78,15 +78,15 @@ def calculate_r_zero(df, window_length=7):
     """Calculate the basic replication number R_0.
 
     This is done by dividing the effective reproduction number by the share of
-    susceptible people in the dataframe. Using R_e and the share of the susceptible
+    susceptible people in the DataFrame. Using R_e and the share of the susceptible
     people from the very last period of the time means that heterogeneous matching and
     changes in the rate of immunity are neglected.
 
-    source: https://bit.ly/2VZOR5a
+    More explanation can be found here: https://bit.ly/2VZOR5a.
 
     Args:
-        df (pd.DataFrame): states DataFrame for which to calculate R_0, usually
-            the states of one period.
+        df (pandas.DataFrame): states DataFrame for which to calculate R_0, usually the
+            states of one period.
         window_length (int): how many days to use to identify the previously infectious
             people. The lower, the more changes in behavior can be seen, but the smaller
             the number of people on which to calculate R_0.

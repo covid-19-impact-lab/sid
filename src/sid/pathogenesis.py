@@ -6,7 +6,6 @@ countdown lengths. Currently, most of it is deterministic.
 """
 import numpy as np
 import pandas as pd
-
 from sid.config import COUNTDOWNS
 from sid.config import DTYPE_DRAW_COURSE_OF_DISEASE
 

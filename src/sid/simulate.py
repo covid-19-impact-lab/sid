@@ -6,11 +6,12 @@ from pathlib import Path
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import COUNTDOWNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
+from sid.config import DTYPE_PERIOD
+from sid.config import INDEX_NAMES
 from sid.config import USELESS_COLUMNS
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
@@ -20,6 +21,7 @@ from sid.matching_probabilities import create_group_transition_probs
 from sid.parse_model import parse_duration
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
+from sid.update_states import add_debugging_information
 from sid.update_states import update_states
 
 
@@ -34,6 +36,7 @@ def simulate(
     testing_policies=None,
     seed=None,
     path=None,
+    debug=False,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -46,8 +49,8 @@ def simulate(
         initial_infections (pandas.Series): Series with the same index as states with
             initial infections.
         contact_models (dict): Dictionary of dictionaries where each dictionary
-            describes a channel by which contacts can be formed.
-            See :ref:`contact_models`.
+            describes a channel by which contacts can be formed. See
+            :ref:`contact_models`.
         duration (dict or None): Duration is a dictionary containing kwargs for
             :func:`pandas.date_range`.
         events (dict or None): Dictionary of events which cause infections.
@@ -58,11 +61,13 @@ def simulate(
             used to control randomness internally.
         path (str or pathlib.Path): Path to the directory where the simulated data is
             stored.
+        debug (bool): Indicates whether the debug modus is turned on which means that
+            the simulated data contains more (technical) information to debug a model.
 
     Returns:
         simulation_results (dask.dataframe): The simulation results in form of a long
-            dask DataFrame. The DataFrame contains the states of each period (see
-            :ref:`states`) and a column called newly_infected.
+            :class:`dask.dataframe`. The DataFrame contains the states of each period
+            (see :ref:`states`) and a column called newly_infected.
 
     """
     events = {} if events is None else events
@@ -93,7 +98,7 @@ def simulate(
         key: _add_defaults_to_policy_dict(val, duration)
         for key, val in contact_policies.items()
     }
-    states = update_states(states, initial_infections, params, seed)
+    states = update_states(states, initial_infections, initial_infections, params, seed)
 
     indexers, cum_probs = _prepare_assortative_matching(
         states, assort_bys, params, contact_models
@@ -101,25 +106,41 @@ def simulate(
 
     for period, date in enumerate(duration["dates"]):
         states["date"] = date
-        states["period"] = np.uint16(period)
+        states["period"] = DTYPE_PERIOD(period)
 
         contacts = calculate_contacts(
             contact_models, contact_policies, states, params, date
         )
 
-        newly_infected_contacts, states = calculate_infections_by_contacts(
-            states, contacts, params, indexers, cum_probs, seed,
+        (
+            newly_infected_contacts,
+            n_has_additionally_infected,
+            newly_missed_contacts,
+        ) = calculate_infections_by_contacts(
+            states,
+            contacts,
+            params,
+            indexers,
+            cum_probs,
+            seed,
         )
         newly_infected_events = calculate_infections_by_events(states, params, events)
-        newly_infected = newly_infected_contacts | newly_infected_events
 
-        states = update_states(states, newly_infected, params, seed)
+        states = update_states(
+            states,
+            newly_infected_contacts,
+            newly_infected_events,
+            params,
+            seed,
+            n_has_additionally_infected,
+            cum_probs,
+            contacts,
+        )
 
-        for i, contact_model in enumerate(cum_probs):
-            states[f"n_contacts_{contact_model}"] = contacts[:, i]
-        states["newly_infected"] = newly_infected
+        if debug:
+            states = add_debugging_information(states, newly_missed_contacts)
 
-        _dump_periodic_states(states, output_directory, date)
+        _dump_periodic_states(states, output_directory, date, debug)
 
     categoricals = {
         column: initial_states[column].cat.categories.shape[0]
@@ -132,20 +153,29 @@ def simulate(
 
 def _prepare_params(params):
     """Check the supplied params and set the index if not done."""
-    assert isinstance(params, pd.DataFrame), "params must be a DataFrame."
+    if not isinstance(params, pd.DataFrame):
+        raise ValueError("params must be a DataFrame.")
 
     params = params.copy()
-    index_cols = ["category", "subcategory", "name"]
-    if not isinstance(params.index, pd.MultiIndex) and set(index_cols).issubset(params):
-        params.set_index(index_cols, inplace=True)
-    else:
-        assert (
-            params.index.names == index_cols
-        ), "params must have the index levels 'category', 'subcategory' and 'name'."
-    assert (
-        params.index.to_frame().notnull().all().all()
-    ), "No NaN allowed in the params index. Repeat the previous index level instead."
-    assert not params.index.duplicated().any(), "No duplicates in the index allowed."
+    if not (
+        isinstance(params.index, pd.MultiIndex) and params.index.names == INDEX_NAMES
+    ):
+        raise ValueError(
+            "params must have the index levels 'category', 'subcategory' and 'name'."
+        )
+
+    if np.any(params.index.to_frame().isna()):
+        raise ValueError(
+            "No NaNs allowed in the params index. Repeat the previous index level "
+            "instead."
+        )
+
+    if params.index.duplicated().any():
+        raise ValueError("No duplicates in the params index allowed.")
+
+    if params["value"].isna().any():
+        raise ValueError("The 'value' column of params must not contain NaNs.")
+
     return params
 
 
@@ -246,7 +276,7 @@ def _check_inputs(
 ):
     """Check the user inputs."""
     cd_names = sorted(COUNTDOWNS)
-    gb = params.loc[cd_names].groupby(["category", "subcategory"])
+    gb = params.loc[cd_names].groupby(INDEX_NAMES[:2])
     prob_sums = gb["value"].sum()
     problematic = prob_sums[~prob_sums.between(1 - 1e-08, 1 + 1e-08)].index.tolist()
     assert (
@@ -312,7 +342,7 @@ def _prepare_assortative_matching(states, assort_bys, params, contact_models):
         assort_bys (dict): Keys are names of contact models, values are lists with the
             assort_by variables of the model.
         params (pd.DataFrame): see :ref:`params`.
-        contact_models (dict): see :ret:`contact_models`.
+        contact_models (dict): see :ref:`contact_models`.
 
     returns:
         indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
@@ -395,13 +425,13 @@ def _process_initial_states(states, assort_bys):
     return states
 
 
-def _dump_periodic_states(states, output_directory, date):
-    group_codes = states.filter(like="group_codes_").columns.tolist()
-    useless_columns = USELESS_COLUMNS + group_codes
+def _dump_periodic_states(states, output_directory, date, debug):
+    if not debug:
+        group_codes = states.filter(like="group_codes_").columns.tolist()
+        useless_columns = USELESS_COLUMNS + group_codes
+        states = states.drop(columns=useless_columns)
 
-    states.drop(columns=useless_columns).to_parquet(
-        output_directory / f"{date.date()}.parquet"
-    )
+    states.to_parquet(output_directory / f"{date.date()}.parquet")
 
 
 def _return_dask_dataframe(output_directory, categoricals):

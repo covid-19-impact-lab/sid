@@ -1,8 +1,10 @@
 channels:
   - conda-forge
 dependencies:
-  - python=3.7
+  - python
   - ipython
   - sphinx
+  - sphinx-copybutton
+  - sphinx-autoapi
   - nbsphinx
   - pydata-sphinx-theme

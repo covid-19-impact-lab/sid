@@ -1,6 +1,6 @@
 """Estimate models with the method of simulated moments (MSM).
 
-The method of simulated moments is developed by [1], [2], and [3] and an estimation
+The method of simulated moments is developed by [1]_, [2]_, and [3]_ and an estimation
 technique where the distance between the moments of the actual data and the moments
 implied by the model parameters is minimized.
 
@@ -52,7 +52,7 @@ def get_msm_func(
         weighting_matrix (numpy.ndarray): Square matrix of dimension (NxN) with N
             denoting the number of empirical_moments. Used to weight squared moment
             errors.
-        return_scalar (bool, default True): Indicates whether to return moment error
+        return_scalar (bool): Indicates whether to return moment error
             vector (False) or weighted square product of moment error vector (True).
 
     Returns:
@@ -167,12 +167,12 @@ def get_diag_weighting_matrix(empirical_moments, weights=None):
         weights (pandas.DataFrame or pandas.Series or dict or list): Contains weights
             (usually variances) of empirical moments. Must match structure of
             empirical_moments i.e. if empirical_moments is a list of
-            :class:`pandas.DataFrame`s, weights be list of pandas.DataFrames as well
+            :class:`pandas.DataFrame`, weights be list of pandas.DataFrames as well
             where each DataFrame entry contains the weight for the corresponding moment
             in empirical_moments.
 
     Returns:
-        numpy.ndarray: Array contains a diagonal weighting matrix.
+        (numpy.ndarray): Array contains a diagonal weighting matrix.
 
     """
     weights = copy.deepcopy(weights)

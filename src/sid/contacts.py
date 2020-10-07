@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from numba import njit
 from numba.typed import List as NumbaList
-
 from sid.config import DTYPE_INDEX
 from sid.config import DTYPE_INFECTED
 from sid.config import DTYPE_INFECTION_COUNTER
@@ -51,9 +50,10 @@ def calculate_infections_by_contacts(
 ):
     """Calculate infections from contacts.
 
-    This function mainly converts the relevant parts from states and contacts into
-    numpy arrays or other objects that are supported in numba nopython mode and
-    then calls ``calculate_infections_numba``.
+    This function mainly converts the relevant parts from states and contacts into numpy
+    arrays or other objects that are supported in numba nopython mode and then calls
+    :func:`_calculate_infections_by_contacts_numba` to calculate the infections by
+    contact.
 
     Args:
         states (pandas.DataFrame): see :ref:`states`.
@@ -67,9 +67,14 @@ def calculate_infections_by_contacts(
         seed (itertools.count): Seed counter to control randomness.
 
     Returns:
-        infected_sr (pandas.Series): Boolean Series that is True for newly infected
-            people.
-        states (pandas.DataFrame): Copy of states with updated immune column.
+        (tuple): Tuple containing
+
+            - infected (pandas.Series): Boolean Series that is True for newly infected
+              people.
+            - n_has_additionally_infected (pandas.Series): A series with counts of
+              people an individual has infected in this period by contact.
+            - missed_contacts (pandas.DataFrame): Counts of missed contacts for each
+              contact model.
 
     """
     is_recurrent = np.array([k not in group_cdfs for k in indexers])
@@ -118,14 +123,18 @@ def calculate_infections_by_contacts(
         loop_order,
     )
 
-    infected_sr = pd.Series(infected, index=states.index)
-    states["n_has_infected"] += infection_counter
-    for i, contact_model in enumerate(group_cdfs):
-        states[f"missed_{contact_model}"] = missed[:, i]
+    infected = pd.Series(infected, index=states.index)
+    n_has_additionally_infected = pd.Series(infection_counter, index=states.index)
 
-    states["immune"] = immune
+    # Save missed contacts and set missed contacts of recurrent models to zero which
+    # happens in :func:`_calculate_infections_by_contacts_numba` since ``missed`` is set
+    # to ``contacts``.
+    missed_contacts = pd.DataFrame(
+        missed, columns=[f"missed_{name}" for name in indexers]
+    )
+    missed_contacts.loc[:, is_recurrent] = 0
 
-    return infected_sr, states
+    return infected, n_has_additionally_infected, missed_contacts
 
 
 @njit
@@ -166,12 +175,15 @@ def _calculate_infections_by_contacts_numba(
             indicates an individual. The second indicates a contact model.
 
     Returns:
-        infected (numpy.ndarray): 1d boolean array that is True for individuals who got
-            newly infected.
-        infection_counter (numpy.ndarray): 1d integer array
-        immune (numpy.ndarray): 1-D boolean array that indicates if a person is immune.
-        missed (numpy.ndarray): 1d integer array with missed contacts. Same length as
-            contacts.
+        (tuple) Tuple containing
+
+            - infected (numpy.ndarray): 1d boolean array that is True for individuals
+              who got newly infected.
+            - infection_counter (numpy.ndarray): 1d integer array
+            - immune (numpy.ndarray): 1-D boolean array that indicates if a person is
+              immune.
+            - missed (numpy.ndarray): 1d integer array with missed contacts. Same length
+              as contacts.
 
     """
     np.random.seed(seed)
@@ -308,7 +320,7 @@ def _get_index_refining_search(u, cdf):
 
     Args:
         u (float): A uniform random draw.
-        cdf (np.ndarray): 1d array with cumulative probabilities.
+        cdf (numpy.ndarray): 1d array with cumulative probabilities.
 
     Returns:
         int: The selected index.

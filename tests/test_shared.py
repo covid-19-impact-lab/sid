@@ -1,7 +1,6 @@
 import pandas as pd
 import pytest
 from pytest import approx
-
 from sid.shared import calculate_r_effective
 from sid.shared import calculate_r_zero
 from sid.shared import factorize_assortative_variables
@@ -32,10 +31,13 @@ def test_factorize_assortative_variables(initial_states, assort_by, expected):
 
 @pytest.fixture
 def data_for_replication_numbers():
-    df = pd.DataFrame()
-    df["cd_infectious_false"] = [-2, -1, -1, 0] + [2, 5]
-    df["n_has_infected"] = [2, 1, 1, 1] + [0, 0]
-    df["immune"] = [True] * 4 + [False, False]
+    df = pd.DataFrame(
+        {
+            "cd_infectious_false": [-2, -1, -1, 0] + [2, 5],
+            "n_has_infected": [2, 1, 1, 1] + [0, 0],
+            "immune": [True] * 4 + [False, False],
+        }
+    )
     return df
 
 

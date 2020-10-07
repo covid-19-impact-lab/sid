@@ -9,7 +9,7 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../.."))
+sys.path.insert(0, os.path.abspath("../../src"))
 
 
 # -- Project information -----------------------------------------------------
@@ -35,6 +35,8 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
     "nbsphinx",
+    "sphinx_copybutton",
+    "autoapi.extension",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -48,7 +50,10 @@ exclude_patterns = ["**.ipynb_checkpoints"]
 
 # -- Package configuration ---------------------------------------------------
 
+# Configuration for autodoc.
 autodoc_member_order = "bysource"
+autosummary_generate = True
+add_module_names = False
 
 autodoc_mock_imports = [
     "bokeh",
@@ -56,11 +61,7 @@ autodoc_mock_imports = [
     "numba",
     "numpy",
     "pandas",
-    "utilities",
 ]
-
-# Configuration for autodoc
-autosummary_generate = True
 
 extlinks = {
     "ghuser": ("https://github.com/%s", "@"),
@@ -68,10 +69,16 @@ extlinks = {
 }
 
 intersphinx_mapping = {
-    "numpy": ("https://docs.scipy.org/doc/numpy", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
-    "python": ("https://docs.python.org/3.7", None),
+    "python": ("https://docs.python.org/3.8", None),
 }
+
+# Configuration for autoapi
+autoapi_type = "python"
+autoapi_dirs = ["../../src"]
+autoapi_keep_files = False
+autoapi_add_toctree_entry = False
 
 
 # -- Options for HTML output -------------------------------------------------
