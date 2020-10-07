@@ -28,8 +28,6 @@ def update_states(
     """
     # Reduce all existing countdowns by 1.
     for countdown in COUNTDOWNS:
-        # TODO: Investigate whether countdowns should all be reduced by 1 or only active
-        # ones.
         states[countdown] -= 1
 
     # Make changes where the countdown is zero.
