@@ -21,6 +21,7 @@ from sid.matching_probabilities import create_group_transition_probs
 from sid.parse_model import parse_duration
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
+from sid.update_states import add_debugging_information
 from sid.update_states import update_states
 
 
@@ -113,7 +114,7 @@ def simulate(
         key: _add_defaults_to_policy_dict(val, duration)
         for key, val in contact_policies.items()
     }
-    states = update_states(states, initial_infections, params, seed)
+    states = update_states(states, initial_infections, initial_infections, params, seed)
 
     indexers, cum_probs = _prepare_assortative_matching(
         states, assort_bys, params, contact_models
@@ -127,7 +128,11 @@ def simulate(
             contact_models, contact_policies, states, params, date
         )
 
-        newly_infected_contacts, states = calculate_infections_by_contacts(
+        (
+            newly_infected_contacts,
+            n_has_additionally_infected,
+            newly_missed_contacts,
+        ) = calculate_infections_by_contacts(
             states,
             contacts,
             params,
@@ -136,13 +141,20 @@ def simulate(
             seed,
         )
         newly_infected_events = calculate_infections_by_events(states, params, events)
-        newly_infected = newly_infected_contacts | newly_infected_events
 
-        states = update_states(states, newly_infected, params, seed)
+        states = update_states(
+            states,
+            newly_infected_contacts,
+            newly_infected_events,
+            params,
+            seed,
+            n_has_additionally_infected,
+            cum_probs,
+            contacts,
+        )
 
-        for i, contact_model in enumerate(cum_probs):
-            states[f"n_contacts_{contact_model}"] = contacts[:, i]
-        states["newly_infected"] = newly_infected
+        if debug:
+            states = add_debugging_information(states, newly_missed_contacts)
 
         _dump_periodic_states(states, output_directory, date, debug)
 
@@ -443,9 +455,8 @@ def _process_initial_states(states, assort_bys):
 
 
 def _dump_periodic_states(states, output_directory, date, debug):
-    group_codes = states.filter(like="group_codes_").columns.tolist()
-
     if not debug:
+        group_codes = states.filter(like="group_codes_").columns.tolist()
         useless_columns = USELESS_COLUMNS + group_codes
         states = states.drop(columns=useless_columns)
 

@@ -50,9 +50,10 @@ def calculate_infections_by_contacts(
 ):
     """Calculate infections from contacts.
 
-    This function mainly converts the relevant parts from states and contacts into
-    numpy arrays or other objects that are supported in numba nopython mode and
-    then calls :func:`_calculate_infections_by_contacts_numba`.
+    This function mainly converts the relevant parts from states and contacts into numpy
+    arrays or other objects that are supported in numba nopython mode and then calls
+    :func:`_calculate_infections_by_contacts_numba` to calculate the infections by
+    contact.
 
     Args:
         states (pandas.DataFrame): see :ref:`states`.
@@ -68,10 +69,12 @@ def calculate_infections_by_contacts(
     Returns:
         (tuple): Tuple containing
 
-            - infected_sr (pandas.Series): Boolean Series that is True for newly
-              infected people.
-            - states (pandas.DataFrame): Copy of states with updated immune column and
-              information on missed contacts for each contact model.
+            - infected (pandas.Series): Boolean Series that is True for newly infected
+              people.
+            - n_has_additionally_infected (pandas.Series): A series with counts of
+              people an individual has infected in this period by contact.
+            - missed_contacts (pandas.DataFrame): Counts of missed contacts for each
+              contact model.
 
     """
     is_recurrent = np.array([k not in group_cdfs for k in indexers])
@@ -120,14 +123,18 @@ def calculate_infections_by_contacts(
         loop_order,
     )
 
-    infected_sr = pd.Series(infected, index=states.index)
-    states["n_has_infected"] += infection_counter
-    for i, contact_model in enumerate(group_cdfs):
-        states[f"missed_{contact_model}"] = missed[:, i]
+    infected = pd.Series(infected, index=states.index)
+    n_has_additionally_infected = pd.Series(infection_counter, index=states.index)
 
-    states["immune"] = immune
+    # Save missed contacts and set missed contacts of recurrent models to zero which
+    # happens in :func:`_calculate_infections_by_contacts_numba` since ``missed`` is set
+    # to ``contacts``.
+    missed_contacts = pd.DataFrame(
+        missed, columns=[f"missed_{name}" for name in indexers]
+    )
+    missed_contacts.loc[:, is_recurrent] = 0
 
-    return infected_sr, states
+    return infected, n_has_additionally_infected, missed_contacts
 
 
 @njit
