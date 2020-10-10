@@ -102,3 +102,72 @@ def calculate_r_zero(df, window_length=7):
     pct_susceptible = 1 - df["immune"].mean()
     r_zero = r_effective / pct_susceptible
     return r_zero
+
+
+def random_choice(choices, probabilities=None, decimals=5):
+    """Return elements of choices for a two-dimensional array of probabilities.
+
+    It is assumed that probabilities are ordered (n_samples, n_choices).
+
+    The function is taken from this `StackOverflow post
+    <https://stackoverflow.com/questions/40474436>`_ as a workaround for
+    :func:`numpy.random.choice` as it can only handle one-dimensional probabilities.
+
+    Examples:
+        Here is an example with non-zero probabilities.
+
+        >>> n_samples = 100_000
+        >>> n_choices = 3
+        >>> p = np.array([0.15, 0.35, 0.5])
+        >>> ps = np.tile(p, (n_samples, 1))
+        >>> choices = random_choice(n_choices, ps)
+        >>> np.round(np.bincount(choices), decimals=-3) / n_samples
+        array([0.15, 0.35, 0.5 ])
+
+        Here is an example where one choice has probability zero.
+
+        >>> choices = np.arange(3)
+        >>> p = np.array([0.4, 0, 0.6])
+        >>> ps = np.tile(p, (n_samples, 1))
+        >>> choices = random_choice(3, ps)
+        >>> np.round(np.bincount(choices), decimals=-3) / n_samples
+        array([0.4, 0. , 0.6])
+
+    """
+    if isinstance(choices, int):
+        choices = np.arange(choices)
+    elif isinstance(choices, (dict, list, tuple)):
+        choices = np.array(list(choices))
+    elif isinstance(choices, np.ndarray):
+        pass
+    else:
+        raise TypeError(f"'choices' has invalid type {type(choices)}.")
+
+    if probabilities is None:
+        n_choices = choices.shape[-1]
+        probabilities = np.ones((1, n_choices)) / n_choices
+        probabilities = np.broadcast_to(probabilities, choices.shape)
+    elif isinstance(probabilities, (pd.Series, pd.DataFrame)):
+        probabilities = probabilities.to_numpy()
+    elif isinstance(probabilities, np.ndarray):
+        pass
+    else:
+        raise TypeError(f"'probabilities' has invalid type {type(probabilities)}.")
+
+    cumulative_distribution = probabilities.cumsum(axis=1)
+    # Probabilities often do not sum to one but 0.99999999999999999.
+    cumulative_distribution[:, -1] = np.round(cumulative_distribution[:, -1], decimals)
+
+    if not (cumulative_distribution[:, -1] == 1).all():
+        raise ValueError("Probabilities do not sum to one.")
+
+    u = np.random.rand(cumulative_distribution.shape[0], 1)
+
+    # Note that :func:`np.argmax` returns the first index for multiple maximum values.
+    indices = (u < cumulative_distribution).argmax(axis=1)
+
+    out = np.take(choices, indices)
+    if out.shape == (1,):
+        out = out[0]
+
+    return out

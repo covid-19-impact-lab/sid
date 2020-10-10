@@ -65,6 +65,7 @@ COUNTDOWNS = {
         }
     },
     "cd_knows_true": {"changes": {"knows": True}},
+    "cd_knows_false": {"changes": {"knows": False}},
 }
 
 
@@ -96,6 +97,7 @@ USELESS_COLUMNS = [
     "cd_dead_true",
     "cd_needs_icu_false",
     "cd_knows_true",
+    "cd_knows_false",
     "cd_immune_false_draws",
     "cd_symptoms_true_draws",
     "cd_needs_icu_true_draws",

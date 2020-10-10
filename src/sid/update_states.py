@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from sid.config import COUNTDOWNS
 
 
@@ -9,8 +10,9 @@ def update_states(
     params,
     seed,
     n_has_additionally_infected=None,
-    cum_probs=None,
+    indexers=None,
     contacts=None,
+    to_be_processed_test=None,
 ):
     """Update the states with new infections and advance it by one period.
 
@@ -21,6 +23,12 @@ def update_states(
         newly_infected (pandas.Series): Boolean Series with same index as states.
         params (pandas.DataFrame): See :ref:`params`.
         seed (itertools.count): Seed counter to control randomness.
+        n_has_additionally_infected (pandas.Series): Additionally infected persons by
+            this individual.
+        indexers (dict): Dictionary with contact models as keys in the same order as the
+            contacts matrix.
+        contacts (numpy.ndarray): Matrix with number of contacts for each contact model.
+        to_be_processed_test (pandas.Series): Tests which are going to be processed.
 
     Returns: states (pandas.DataFrame): Updated states with reduced countdown lengths,
         newly started countdowns, and killed people over the ICU limit.
@@ -43,13 +51,17 @@ def update_states(
     states["immune"] = states["immune"] | states["newly_infected"]
 
     # Save channel of infection.
-    states["newly_infected_reason"] = "contact or event"
-    states.loc[
-        newly_infected_contacts & ~newly_infected_events, "newly_infected_reason"
-    ] = "contact"
-    states.loc[
-        newly_infected_events & ~newly_infected_contacts, "newly_infected_reason"
-    ] = "event"
+    if "newly_infected_reason" not in states:
+        states["newly_infected_reason"] = pd.Categorical(
+            np.full(len(states), np.nan),
+            categories=["contact", "contact or event", "event"],
+        )
+    for condition, label in [
+        (states.index, "contact or event"),
+        (newly_infected_contacts & ~newly_infected_events, "contact"),
+        (newly_infected_events & ~newly_infected_contacts, "event"),
+    ]:
+        states.loc[condition, "newly_infected_reason"] = label
     states["newly_infected_reason"] = states["newly_infected_reason"].astype("category")
 
     # Update states with new infections and add corresponding countdowns.
@@ -63,12 +75,35 @@ def update_states(
     states = _kill_people_over_icu_limit(states, params, seed)
 
     # Add additional information.
-    if cum_probs is not None and contacts is not None:
-        for i, contact_model in enumerate(cum_probs):
+    if indexers is not None and contacts is not None:
+        for i, contact_model in enumerate(indexers):
             states[f"n_contacts_{contact_model}"] = contacts[:, i]
 
     if n_has_additionally_infected is not None:
         states["n_has_infected"] += n_has_additionally_infected
+
+    # Perform steps if testing is enabled.
+    if to_be_processed_test is not None:
+        # Remove information on pending tests for tests which are processed.
+        states.loc[to_be_processed_test, "pending_test"] = False
+        states.loc[to_be_processed_test, "pending_test_date"] = np.nan
+        states.loc[to_be_processed_test, "pending_test_period"] = np.nan
+
+        # Start the countdown for processed tests.
+        states.loc[to_be_processed_test, "cd_knows_true"] = states.loc[
+            to_be_processed_test, "cd_knows_true_draws"
+        ]
+
+        # For everyone who knows, the countdown for the test processing has expired. If
+        # you have a positive test result (knows & is immune) you will leave the state
+        # of knowing until your immunity expires.
+        has_antibodies = states.knows & states.immune
+        states.loc[has_antibodies, "cd_knows_false"] = states.loc[
+            has_antibodies, "cd_immune_false"
+        ]
+        # For everyone who knows, but who is not immune, you immediately loose your
+        # knowledge.
+        states.loc[states.knows & ~states.immune, "knows"] = False
 
     return states
 

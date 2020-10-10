@@ -21,6 +21,10 @@ from sid.matching_probabilities import create_group_transition_probs
 from sid.parse_model import parse_duration
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
+from sid.testing_allocation import allocate_tests
+from sid.testing_allocation import update_pending_tests
+from sid.testing_demand import calculate_demand_for_tests
+from sid.testing_processing import process_tests
 from sid.update_states import add_debugging_information
 from sid.update_states import update_states
 
@@ -142,6 +146,22 @@ def simulate(
         )
         newly_infected_events = calculate_infections_by_events(states, params, events)
 
+        if testing_demand_models:
+            demands_test, demands_test_reason = calculate_demand_for_tests(
+                states, testing_demand_models, params, seed
+            )
+            allocated_tests = allocate_tests(
+                states, testing_allocation_models, demands_test, params
+            )
+
+            states = update_pending_tests(states, allocated_tests)
+
+            to_be_processed_tests = process_tests(
+                states, testing_processing_models, params
+            )
+        else:
+            to_be_processed_tests = None
+
         states = update_states(
             states,
             newly_infected_contacts,
@@ -149,8 +169,9 @@ def simulate(
             params,
             seed,
             n_has_additionally_infected,
-            cum_probs,
+            indexers,
             contacts,
+            to_be_processed_tests,
         )
 
         if debug:
