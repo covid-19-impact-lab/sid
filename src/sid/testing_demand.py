@@ -142,5 +142,12 @@ def _normalize_probabilities(probabilities):
     Returns:
         (pandas.Series): A series with normalized probabilities summing up to one.
 
+    Examples:
+        >>> df = pd.DataFrame([[0.1, 0.1], [0.1, 0.3]])
+        >>> _normalize_probabilities(df)
+              0     1
+        0  0.50  0.50
+        1  0.25  0.75
+
     """
     return probabilities.divide(probabilities.sum(axis=1), axis=0)
