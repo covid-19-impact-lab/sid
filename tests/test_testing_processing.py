@@ -6,6 +6,7 @@ import pytest
 from sid.testing_processing import process_tests
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     "excess, expectation",
     [(True, pytest.warns(UserWarning)), (False, does_not_warn_or_raise())],
@@ -30,6 +31,7 @@ def test_issue_warning_if_processed_tests_exceed_available_tests(
     assert to_be_processed_tests.all()
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     "return_, expectation",
     [

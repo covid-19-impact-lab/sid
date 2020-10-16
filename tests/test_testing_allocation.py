@@ -6,6 +6,7 @@ import pytest
 from sid.testing_allocation import allocate_tests
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     "excess, expectation",
     [(True, pytest.warns(UserWarning)), (False, does_not_warn_or_raise())],
@@ -29,6 +30,7 @@ def test_issue_warning_if_allocated_tests_exceed_available_tests(
     assert allocated_tests.all()
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     "return_, expectation",
     [
