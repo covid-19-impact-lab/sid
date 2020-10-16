@@ -1,5 +1,6 @@
 import warnings
 
+import numpy as np
 import pandas as pd
 
 
@@ -30,8 +31,13 @@ def allocate_tests(states, testing_allocation_models, demands_test, params):
 
         allocated_tests = func(allocated_tests, demands_test, states, params.loc[loc])
 
-        if not isinstance(allocated_tests, pd.Series):
-            allocated_tests = pd.Series(index=states.index, data=allocated_tests)
+    if isinstance(allocated_tests, (pd.Series, np.ndarray)):
+        allocated_tests = pd.Series(index=states.index, data=allocated_tests)
+    else:
+        raise ValueError(
+            "'testing_allocation_models' must always return a pd.Series or a "
+            "np.ndarray."
+        )
 
     n_available_tests = params.loc[
         ("testing", "allocation", "available_tests"), "value"
@@ -47,9 +53,6 @@ def allocate_tests(states, testing_allocation_models, demands_test, params):
 
 def update_pending_tests(states, allocated_tests):
     """Update information regarding pending tests."""
-    if "pending_test" not in states:
-        states["pending_test"] = False
-
     states.loc[allocated_tests, "pending_test"] = True
     states.loc[allocated_tests, "pending_test_date"] = states.loc[
         allocated_tests, "date"

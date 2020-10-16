@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sid.config import COUNTDOWNS
+from sid.countdowns import COUNTDOWNS
 
 
 def update_states(
@@ -41,7 +41,7 @@ def update_states(
     # Make changes where the countdown is zero.
     for countdown, info in COUNTDOWNS.items():
         locs = states.index[states[countdown] == 0]
-        for to_change, new_val in info["changes"].items():
+        for to_change, new_val in info.get("changes", {}).items():
             states.loc[locs, to_change] = new_val
 
         for new_countdown in info.get("starts", []):
@@ -67,6 +67,7 @@ def update_states(
     # Update states with new infections and add corresponding countdowns.
     locs = states.query("newly_infected").index
     states.loc[locs, "ever_infected"] = True
+    states.loc[locs, "cd_ever_infected"] = 0
     states.loc[locs, "cd_immune_false"] = states.loc[locs, "cd_immune_false_draws"]
     states.loc[locs, "cd_infectious_true"] = states.loc[
         locs, "cd_infectious_true_draws"
@@ -86,32 +87,47 @@ def update_states(
     if to_be_processed_test is not None:
         # Remove information on pending tests for tests which are processed.
         states.loc[to_be_processed_test, "pending_test"] = False
-        states.loc[to_be_processed_test, "pending_test_date"] = np.nan
+        states.loc[to_be_processed_test, "pending_test_date"] = pd.NaT
         states.loc[to_be_processed_test, "pending_test_period"] = np.nan
 
         # Start the countdown for processed tests.
-        states.loc[to_be_processed_test, "cd_knows_true"] = states.loc[
-            to_be_processed_test, "cd_knows_true_draws"
+        states.loc[to_be_processed_test, "cd_received_test_result_true"] = states.loc[
+            to_be_processed_test, "cd_received_test_result_true_draws"
         ]
 
-        # For everyone who knows, the countdown for the test processing has expired. If
-        # you have a positive test result (knows & is immune) you will leave the state
-        # of knowing until your immunity expires.
-        has_antibodies = states.knows & states.immune
-        states.loc[has_antibodies, "cd_knows_false"] = states.loc[
-            has_antibodies, "cd_immune_false"
+        # For everyone who received a test result, the countdown for the test processing
+        # has expired. If you have a positive test result (received_test_result &
+        # immune) you will leave the state of knowing until your immunity expires.
+        knows_immune = states.received_test_result & states.immune
+        states.loc[knows_immune, "cd_knows_immune_false"] = states.loc[
+            knows_immune, "cd_immune_false"
         ]
-        # For everyone who knows, but who is not immune, you immediately loose your
-        # knowledge.
-        states.loc[states.knows & ~states.immune, "knows"] = False
+        states.loc[knows_immune, "knows_immune"] = True
+
+        knows_infectious = knows_immune & states.infectious
+        states.loc[knows_infectious, "cd_knows_infectious_false"] = states.loc[
+            knows_infectious, "cd_infectious_false"
+        ]
+        states.loc[knows_infectious, "knows_infectious"] = True
+
+        # Everyone looses ``received_test_result == True`` because it is passed to the
+        # more specific knows attributes.
+        states.loc[states.received_test_result, "received_test_result"] = False
 
     return states
 
 
-def add_debugging_information(states, newly_missed_contacts):
+def add_debugging_information(
+    states, newly_missed_contacts, demands_test, allocated_tests, to_be_processed_tests
+):
     """Add some information to states which is more useful to debug the model."""
     for column in newly_missed_contacts:
         states[column] = newly_missed_contacts[column]
+    if demands_test is not None:
+        states["demands_test"] = demands_test
+        states["allocated_test"] = allocated_tests
+        states["to_be_processed_test"] = to_be_processed_tests
+
     return states
 
 

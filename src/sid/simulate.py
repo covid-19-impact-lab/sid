@@ -7,7 +7,6 @@ import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
-from sid.config import COUNTDOWNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_PERIOD
@@ -16,6 +15,7 @@ from sid.config import USELESS_COLUMNS
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
+from sid.countdowns import COUNTDOWNS
 from sid.events import calculate_infections_by_events
 from sid.matching_probabilities import create_group_transition_probs
 from sid.parse_model import parse_duration
@@ -160,6 +160,8 @@ def simulate(
                 states, testing_processing_models, params
             )
         else:
+            demands_test = None
+            allocated_tests = None
             to_be_processed_tests = None
 
         states = update_states(
@@ -175,7 +177,13 @@ def simulate(
         )
 
         if debug:
-            states = add_debugging_information(states, newly_missed_contacts)
+            states = add_debugging_information(
+                states,
+                newly_missed_contacts,
+                demands_test,
+                allocated_tests,
+                to_be_processed_tests,
+            )
 
         _dump_periodic_states(states, output_directory, date, debug)
 
@@ -466,6 +474,8 @@ def _process_initial_states(states, assort_bys):
         states[col] = states[col].astype(DTYPE_COUNTDOWNS)
 
     states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
+    states["pending_test_date"] = pd.NaT
+    states["pending_test_period"] = np.nan
 
     for model_name, assort_by in assort_bys.items():
         states[f"group_codes_{model_name}"], _ = factorize_assortative_variables(

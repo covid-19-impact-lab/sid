@@ -70,5 +70,7 @@ cd_needs_icu_true,all,10,0.25
 cd_dead_true,all,21,0.66
 cd_dead_true,all,-1,0.34
 cd_needs_icu_false,all,14,1
-cd_knows_true,all,2,1
-cd_knows_false,all,-1,1
+cd_received_test_result_true,all,2,1
+cd_knows_immune_false,all,-1,1
+cd_knows_infectious_false,all,-1,1
+cd_ever_infected,all,-1,1

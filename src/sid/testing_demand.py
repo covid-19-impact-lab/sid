@@ -116,6 +116,21 @@ def _sample_reason_for_demanding_a_test(demand_probabilities, demands_test, seed
     Returns:
         demands_test_reason (pandas.Series): Shows which demand model caused the bid.
 
+    Examples:
+        >>> import itertools
+        >>> demand_probabilities = pd.DataFrame(
+        ...     [[0.1, 0.2], [0.8, 0.4]], columns=["a", "b"]
+        ... )
+        >>> demands_test = pd.Series([True, True])
+        >>> seed = itertools.count(2)
+        >>> _sample_reason_for_demanding_a_test(
+        ...     demand_probabilities, demands_test, seed
+        ... )
+        0    b
+        1    a
+        dtype: category
+        Categories (2, object): ['a', 'b']
+
     """
     np.random.seed(next(seed))
 
@@ -126,7 +141,12 @@ def _sample_reason_for_demanding_a_test(demand_probabilities, demands_test, seed
         demand_probabilities.columns.tolist(), normalized_probabilities
     )
 
-    demands_test_reason = pd.Series(index=demands_test.index, data="")
+    demands_test_reason = pd.Series(
+        index=demands_test.index,
+        data=pd.Categorical(
+            np.full(len(demands_test), np.nan), categories=demand_probabilities.columns
+        ),
+    )
     demands_test_reason.loc[demands_test] = sampled_reason
 
     return demands_test_reason
