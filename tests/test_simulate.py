@@ -22,7 +22,7 @@ CONTACT_MODELS = {
 
 
 @pytest.mark.parametrize("debug", [True, False])
-def test_simple_run(params, initial_states, tmpdir, debug):
+def test_simple_run(params, initial_states, tmp_path, debug):
     initial_infections = pd.Series(index=initial_states.index, data=False)
     initial_infections.iloc[0] = True
 
@@ -31,7 +31,7 @@ def test_simple_run(params, initial_states, tmpdir, debug):
         initial_states,
         initial_infections,
         CONTACT_MODELS,
-        path=tmpdir,
+        path=tmp_path,
         debug=debug,
     )
     df = df.compute()

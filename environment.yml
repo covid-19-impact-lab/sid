@@ -29,6 +29,7 @@ dependencies:
   - pytest-xdist
   - scipy
   - seaborn
+  - snakeviz
   - pydata-sphinx-theme
   - python-snappy
 
@@ -46,6 +47,5 @@ dependencies:
   - jupyterlab_code_formatter
   - nodejs
 
-  - snakeviz
   - pip:
     - blackcellmagic

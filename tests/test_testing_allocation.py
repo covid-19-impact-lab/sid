@@ -34,7 +34,7 @@ def test_issue_warning_if_allocated_tests_exceed_available_tests(
 @pytest.mark.parametrize(
     "return_, expectation",
     [
-        (pd.Series(data=[True] * 15), does_not_warn_or_raise()),
+        (pd.Series(data=np.full(15, True)), does_not_warn_or_raise()),
         (np.full(15, True), does_not_warn_or_raise()),
         (1, pytest.raises(ValueError)),
         ([True] * 15, pytest.raises(ValueError)),
