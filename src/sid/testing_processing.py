@@ -1,7 +1,7 @@
 import warnings
 
-import numpy as np
 import pandas as pd
+from sid.shared import validate_return_is_series_or_ndarray
 
 
 def process_tests(states, testing_processing_models, params):
@@ -30,15 +30,9 @@ def process_tests(states, testing_processing_models, params):
 
         to_be_processed_tests = func(to_be_processed_tests, states, params.loc[loc])
 
-    if isinstance(to_be_processed_tests, (pd.Series, np.ndarray)):
-        to_be_processed_tests = pd.Series(
-            index=states.index, data=to_be_processed_tests
-        )
-    else:
-        raise ValueError(
-            "'testing_processing_models' must always return a pd.Series or a "
-            "np.ndarray."
-        )
+    to_be_processed_tests = validate_return_is_series_or_ndarray(
+        to_be_processed_tests, states.index, "testing_processing_models"
+    )
 
     n_available_tests = params.loc[
         ("testing", "processing", "available_capacity"), "value"

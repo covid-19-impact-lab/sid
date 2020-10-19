@@ -1,7 +1,7 @@
 import warnings
 
-import numpy as np
 import pandas as pd
+from sid.shared import validate_return_is_series_or_ndarray
 
 
 def allocate_tests(states, testing_allocation_models, demands_test, params):
@@ -31,13 +31,9 @@ def allocate_tests(states, testing_allocation_models, demands_test, params):
 
         allocated_tests = func(allocated_tests, demands_test, states, params.loc[loc])
 
-    if isinstance(allocated_tests, (pd.Series, np.ndarray)):
-        allocated_tests = pd.Series(index=states.index, data=allocated_tests)
-    else:
-        raise ValueError(
-            "'testing_allocation_models' must always return a pd.Series or a "
-            "np.ndarray."
-        )
+    allocated_tests = validate_return_is_series_or_ndarray(
+        allocated_tests, states.index, "testing_allocation_models"
+    )
 
     n_available_tests = params.loc[
         ("testing", "allocation", "available_tests"), "value"

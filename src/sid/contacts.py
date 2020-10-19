@@ -9,6 +9,7 @@ from sid.config import DTYPE_INFECTED
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_N_CONTACTS
 from sid.shared import factorize_assortative_variables
+from sid.shared import validate_return_is_series_or_ndarray
 
 
 def calculate_contacts(contact_models, contact_policies, states, params, date):
@@ -27,21 +28,29 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
     """
     columns = []
     for model_name, model in contact_models.items():
+
         loc = model.get("loc", params.index)
         func = model["model"]
         cont = func(states, params.loc[loc])
+        cont = validate_return_is_series_or_ndarray(
+            cont, when=f"Contact model {model_name}"
+        )
+
         if model_name in contact_policies:
             cp = contact_policies[model_name]
             policy_start = pd.to_datetime(cp["start"])
             policy_end = pd.to_datetime(cp["end"])
+
             if policy_start <= date <= policy_end and cp["is_active"](states):
                 cont *= cp["multiplier"]
+
         if not model["is_recurrent"]:
             cont = _sum_preserving_round(cont.to_numpy().astype(DTYPE_N_CONTACTS))
-            cont = cont
+
         columns.append(cont)
 
     contacts = np.column_stack(columns).astype(DTYPE_N_CONTACTS)
+
     return contacts
 
 
