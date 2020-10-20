@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from pandas.api.types import is_categorical_dtype
 from sid.config import INDEX_NAMES
 from sid.simulate import _prepare_params
 from sid.simulate import _process_assort_bys
@@ -45,8 +46,9 @@ def test_check_assort_by_are_categoricals(initial_states):
     _ = _process_initial_states(initial_states, assort_bys)
 
     initial_states = initial_states.astype(str)
-    with pytest.raises(TypeError):
-        _process_initial_states(initial_states, assort_bys)
+    processed = _process_initial_states(initial_states, assort_bys)
+    for var in ["age_group", "region"]:
+        assert is_categorical_dtype(processed[var].dtype)
 
 
 @pytest.mark.unit
