@@ -38,7 +38,6 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
                 cont *= cp["multiplier"]
         if not model["is_recurrent"]:
             cont = _sum_preserving_round(cont.to_numpy().astype(DTYPE_N_CONTACTS))
-            cont = cont
         columns.append(cont)
 
     contacts = np.column_stack(columns).astype(DTYPE_N_CONTACTS)
@@ -86,6 +85,10 @@ def calculate_infections_by_contacts(
         [params.loc[("infection_prob", cm, cm), "value"] for cm in indexers]
     )
 
+    reduced_contacts = reduce_contacts_with_infection_probs(
+        contacts, is_recurrent, infect_probs, next(seed)
+    )
+
     group_cdfs_list = NumbaList()
     for gp in group_cdfs.values():
         group_cdfs_list.append(gp)
@@ -111,7 +114,7 @@ def calculate_infections_by_contacts(
         immune,
         missed,
     ) = _calculate_infections_by_contacts_numba(
-        contacts,
+        reduced_contacts,
         infectious,
         immune,
         group_codes,
@@ -135,6 +138,42 @@ def calculate_infections_by_contacts(
     missed_contacts.loc[:, is_recurrent] = 0
 
     return infected, n_has_additionally_infected, missed_contacts
+
+
+@njit
+def reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, seed):
+    """Reduce the number of contacts stochastically.
+
+    The remaining contats have the interpretation that they would lead
+    to an infection if one person is susceptible and one is infectious.
+
+    Args:
+        contacts (numpy.ndarray): 2d integer array with number of contacts per
+            individual. There is one row per individual in the state and one column
+            for each contact model where model["model"] != "meet_group".
+        is_recurrent (numpy.ndarray): One entry per contact model.
+        probs (numpy.ndarray): Infection probabilities. One entry per contact model.
+        seed (int):
+
+    Returns
+        reduced_contacts (np.ndarray): Same shape as contacts. Equal to contacts
+            for recurrent contact models. Less or equal to contacts otherwise.
+
+    """
+
+    reduced_contacts = contacts.copy()
+    np.random.seed(seed)
+    n_obs, n_contacts = contacts.shape
+    for i in range(n_obs):
+        for j in range(n_contacts):
+            if not is_recurrent[j] and contacts[i, j] != 0:
+                success = 0
+                for _ in range(contacts[i, j]):
+                    u = np.random.uniform(0, 1)
+                    if u <= probs[j]:
+                        success += 1
+                reduced_contacts[i, j] = success
+    return reduced_contacts
 
 
 @njit
@@ -240,18 +279,14 @@ def _calculate_infections_by_contacts_numba(
                     contacts[j, cm] -= 1
 
                     if infectious[i] and not immune[j]:
-                        is_infection = _boolean_choice(infection_probs[cm])
-                        if is_infection:
-                            infection_counter[i] += 1
-                            infected[j] = 1
-                            immune[j] = True
+                        infection_counter[i] += 1
+                        infected[j] = 1
+                        immune[j] = True
 
                     elif infectious[j] and not immune[i]:
-                        is_infection = _boolean_choice(infection_probs[cm])
-                        if is_infection:
-                            infection_counter[j] += 1
-                            infected[i] = 1
-                            immune[i] = True
+                        infection_counter[j] += 1
+                        infected[i] = 1
+                        immune[i] = True
 
     missed = contacts
 

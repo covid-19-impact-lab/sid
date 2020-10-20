@@ -27,6 +27,7 @@ def test_create_group_indexer(initial_states, assort_by, expected):
 
 
 @pytest.mark.parametrize("seed", range(10))
+@pytest.mark.xfail(reason="We redefined how contacts are matched")
 def test_calculate_infections_numba_with_single_group(num_regression, seed):
     (
         contacts,
