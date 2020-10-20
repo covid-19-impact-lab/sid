@@ -454,10 +454,7 @@ def _process_initial_states(states, assort_bys):
     )
     for assort_by in assort_by_variables:
         if states[assort_by].dtype.name != "category":
-            raise TypeError(
-                "All 'assort_by' variables need to be pandas.Categoricals. "
-                f"'{assort_by}' is not."
-            )
+            states[assort_by] = states[assort_by].astype("category")
 
     # Sort index for deterministic shuffling and reset index because otherwise it will
     # be dropped while writing to parquet. Parquet stores an efficient range index
