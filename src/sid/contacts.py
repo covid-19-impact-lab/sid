@@ -1,5 +1,3 @@
-import itertools
-
 import numpy as np
 import pandas as pd
 from numba import njit
@@ -101,9 +99,7 @@ def calculate_infections_by_contacts(
         indexers_list.append(ind)
 
     np.random.seed(next(seed))
-    loop_entries = np.array(
-        list(itertools.product(range(len(states)), range(len(indexers))))
-    )
+    loop_entries = get_loop_entries(len(states), len(indexers))
 
     indices = np.random.choice(len(loop_entries), replace=False, size=len(loop_entries))
     loop_order = loop_entries[indices]
@@ -138,6 +134,18 @@ def calculate_infections_by_contacts(
     missed_contacts.loc[:, is_recurrent] = 0
 
     return infected, n_has_additionally_infected, missed_contacts
+
+
+@njit
+def get_loop_entries(n_states, n_contact_models):
+    res = np.empty((n_states * n_contact_models, 2), dtype=np.int64)
+    counter = 0
+    for i in range(n_states):
+        for j in range(n_contact_models):
+            res[counter, 0] = i
+            res[counter, 1] = j
+            counter += 1
+    return res
 
 
 @njit
