@@ -95,7 +95,7 @@ def simulate(
     initial_states = initial_states.copy(deep=True)
     params = _prepare_params(params)
 
-    output_directory = _create_output_directory(path)
+    path = _create_output_directory(path)
 
     _check_inputs(
         params,
@@ -112,18 +112,20 @@ def simulate(
     assort_bys = _process_assort_bys(contact_models)
     states = _process_initial_states(initial_states, assort_bys)
     duration = parse_duration(duration)
-
-    states = draw_course_of_disease(states, params, seed)
     contact_policies = {
         key: _add_defaults_to_policy_dict(val, duration)
         for key, val in contact_policies.items()
     }
-    states = update_states(states, initial_infections, initial_infections, params, seed)
 
-    indexers, cum_probs = _prepare_assortative_matching(
+    indexers = _prepare_assortative_matching_indexers(states, assort_bys)
+
+    # ================================================================
+    cum_probs = _prepare_assortative_matching_probabilities(
         states, assort_bys, params, contact_models
     )
 
+    states = draw_course_of_disease(states, params, seed)
+    states = update_states(states, initial_infections, initial_infections, params, seed)
     for period, date in enumerate(duration["dates"]):
         states["date"] = date
         states["period"] = DTYPE_PERIOD(period)
@@ -185,13 +187,13 @@ def simulate(
                 to_be_processed_tests,
             )
 
-        _dump_periodic_states(states, output_directory, date, debug)
+        _dump_periodic_states(states, path, date, debug)
 
     categoricals = {
         column: initial_states[column].cat.categories.shape[0]
         for column in initial_states.select_dtypes("category").columns
     }
-    simulation_results = _return_dask_dataframe(output_directory, categoricals)
+    simulation_results = _return_dask_dataframe(path, categoricals)
 
     return simulation_results
 
@@ -392,7 +394,29 @@ def _check_inputs(
         )
 
 
-def _prepare_assortative_matching(states, assort_bys, params, contact_models):
+def _prepare_assortative_matching_indexers(states, assort_bys):
+    """Create indexers and first stage probabilities for assortative matching.
+
+    Args:
+        states (pd.DataFrame): see :ref:`states`.
+        assort_bys (dict): Keys are names of contact models, values are lists with the
+            assort_by variables of the model.
+
+    returns:
+        indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
+            indices of the i_th group.
+
+    """
+    indexers = {}
+    for model_name, assort_by in assort_bys.items():
+        indexers[model_name] = create_group_indexer(states, assort_by)
+
+    return indexers
+
+
+def _prepare_assortative_matching_probabilities(
+    states, assort_bys, params, contact_models
+):
     """Create indexers and first stage probabilities for assortative matching.
 
     Args:
@@ -403,22 +427,19 @@ def _prepare_assortative_matching(states, assort_bys, params, contact_models):
         contact_models (dict): see :ref:`contact_models`.
 
     returns:
-        indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
-            indices of the i_th group.
-        first_probs (dict): dict of arrays of shape
-            n_group, n_groups. probs[i, j] is the cumulative probability that an
-            individual from group i meets someone from group j.
+        first_probs (dict): dict of arrays of shape n_group, n_groups with probabilities
+        for the first stage of sampling when matching contacts. probs[i, j] is the
+        cumulative probability that an individual from group i meets someone from
+        group j.
 
     """
-    indexers = {}
     first_probs = {}
     for model_name, assort_by in assort_bys.items():
-        indexers[model_name] = create_group_indexer(states, assort_by)
         if not contact_models[model_name]["is_recurrent"]:
             first_probs[model_name] = create_group_transition_probs(
                 states, assort_by, params, model_name
             )
-    return indexers, first_probs
+    return first_probs
 
 
 def _add_defaults_to_policy_dict(pol_dict, duration):
