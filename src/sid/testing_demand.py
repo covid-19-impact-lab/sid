@@ -1,10 +1,11 @@
 """Contains the code for calculating the demand for tests."""
 import numpy as np
 import pandas as pd
+from sid.shared import date_is_within_start_and_end_date
 from sid.shared import random_choice
 
 
-def calculate_demand_for_tests(states, testing_demand_models, params, seed):
+def calculate_demand_for_tests(states, testing_demand_models, params, date, seed):
     """Calculate the demand for tests.
 
     The following is a three-staged process:
@@ -24,6 +25,7 @@ def calculate_demand_for_tests(states, testing_demand_models, params, seed):
         testing_demand_models (dict): A dictionary containing the demand models for
             testing.
         params (pandas.DataFrame): The parameter DataFrame.
+        date (pandas.Timestamp): Current date.
         seed (itertools.count): The seed counter.
 
     Returns:
@@ -36,7 +38,7 @@ def calculate_demand_for_tests(states, testing_demand_models, params, seed):
 
     """
     demand_probabilities = _calculate_demand_probabilities(
-        states, testing_demand_models, params
+        states, testing_demand_models, params, date
     )
 
     demands_test = _sample_which_individuals_demand_a_test(demand_probabilities, seed)
@@ -47,7 +49,7 @@ def calculate_demand_for_tests(states, testing_demand_models, params, seed):
     return demands_test, demands_test_reason
 
 
-def _calculate_demand_probabilities(states, testing_demand_models, params):
+def _calculate_demand_probabilities(states, testing_demand_models, params, date):
     """Calculate the demand probabilities for each test demand model.
 
     Args:
@@ -55,6 +57,7 @@ def _calculate_demand_probabilities(states, testing_demand_models, params):
         testing_demand_models (dict): A dictionary containing the demand models for
             testing.
         params (pandas.DataFrame): The parameter DataFrame.
+        date (pandas.Timestamp): Current date.
 
     Returns:
         demand_probabilities (pandas.DataFrame): Contains for each individual and every
@@ -66,7 +69,14 @@ def _calculate_demand_probabilities(states, testing_demand_models, params):
         loc = model.get("loc", params.index)
         func = model["model"]
 
-        demand_probabilities[name] = func(states, params.loc[loc])
+        if date_is_within_start_and_end_date(
+            date, model.get("start"), model.get("end")
+        ):
+            probabilities = func(states, params.loc[loc])
+        else:
+            probabilities = 0
+
+        demand_probabilities[name] = probabilities
 
     return demand_probabilities
 

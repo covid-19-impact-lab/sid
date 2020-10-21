@@ -25,7 +25,7 @@ def test_issue_warning_if_processed_tests_exceed_available_tests(
 
     with expectation:
         to_be_processed_tests = process_tests(
-            initial_states, testing_processing_models, params
+            initial_states, testing_processing_models, params, "2020-01-01"
         )
 
     assert to_be_processed_tests.all()
@@ -48,9 +48,10 @@ def test_raise_error_if_processed_tests_have_invalid_return(
     params.loc[("testing", "processing", "available_capacity"), "value"] = len(
         initial_states
     )
+    initial_states["pending_test"] = True
 
     with expectation:
         to_be_processed_tests = process_tests(
-            initial_states, testing_processing_models, params
+            initial_states, testing_processing_models, params, "2020-01-01"
         )
         assert to_be_processed_tests.all()

@@ -24,7 +24,11 @@ def test_issue_warning_if_allocated_tests_exceed_available_tests(
 
     with expectation:
         allocated_tests = allocate_tests(
-            initial_states, testing_allocation_models, demands_test, params
+            initial_states,
+            testing_allocation_models,
+            demands_test,
+            params,
+            "2020-01-01",
         )
 
     assert allocated_tests.all()
@@ -51,6 +55,10 @@ def test_raise_error_if_allocated_tests_have_invalid_return(
 
     with expectation:
         allocated_tests = allocate_tests(
-            initial_states, testing_allocation_models, demands_test, params
+            initial_states,
+            testing_allocation_models,
+            demands_test,
+            params,
+            "2020-01-01",
         )
         assert allocated_tests.all()
