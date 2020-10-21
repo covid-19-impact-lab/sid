@@ -6,7 +6,7 @@ from sid.config import INDEX_NAMES
 from sid.simulate import _prepare_params
 from sid.simulate import _process_assort_bys
 from sid.simulate import _process_initial_states
-from sid.simulate import simulate
+from sid.simulate import get_simulate_func
 
 
 def meet_two(states, params):  # noqa: U100
@@ -27,7 +27,7 @@ def test_simple_run(params, initial_states, tmp_path, debug):
     initial_infections = pd.Series(index=initial_states.index, data=False)
     initial_infections.iloc[0] = True
 
-    df = simulate(
+    simulate = get_simulate_func(
         params,
         initial_states,
         initial_infections,
@@ -35,6 +35,9 @@ def test_simple_run(params, initial_states, tmp_path, debug):
         path=tmp_path,
         debug=debug,
     )
+
+    df = simulate(params)
+
     df = df.compute()
 
     assert isinstance(df, pd.DataFrame)

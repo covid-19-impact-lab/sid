@@ -1,3 +1,4 @@
+import functools
 import itertools as it
 import shutil
 import warnings
@@ -29,7 +30,7 @@ from sid.update_states import add_debugging_information
 from sid.update_states import update_states
 
 
-def simulate(
+def get_simulate_func(
     params,
     initial_states,
     initial_infections,
@@ -44,7 +45,12 @@ def simulate(
     path=None,
     debug=False,
 ):
-    """Simulate the spread of an infectious disease.
+    """Get a function that simulates the spread of an infectious disease.
+
+    The resulting function only depends on parameters. The computational time it takes
+    to process the user input is only incurred once in ``get_simulate_func`` and not
+    when the resulting function is called.
+
 
     Args:
         params (pandas.DataFrame): DataFrame with parameters that influence the number
@@ -75,9 +81,7 @@ def simulate(
             the simulated data contains more (technical) information to debug a model.
 
     Returns:
-        simulation_results (dask.dataframe): The simulation results in form of a long
-            :class:`dask.dataframe`. The DataFrame contains the states of each period
-            (see :ref:`states`) and a column called newly_infected.
+        callable: simulates dataset based on params.
 
     """
     events = {} if events is None else events
@@ -91,7 +95,6 @@ def simulate(
     testing_processing_models = (
         {} if testing_processing_models is None else testing_processing_models
     )
-    seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
     initial_states = initial_states.copy(deep=True)
     params = _prepare_params(params)
 
@@ -110,21 +113,94 @@ def simulate(
 
     contact_models = _sort_contact_models(contact_models)
     assort_bys = _process_assort_bys(contact_models)
-    states = _process_initial_states(initial_states, assort_bys)
+    initial_states = _process_initial_states(initial_states, assort_bys)
     duration = parse_duration(duration)
     contact_policies = {
         key: _add_defaults_to_policy_dict(val, duration)
         for key, val in contact_policies.items()
     }
 
-    indexers = _prepare_assortative_matching_indexers(states, assort_bys)
+    indexers = _prepare_assortative_matching_indexers(initial_states, assort_bys)
 
-    # ================================================================
+    sim_func = functools.partial(
+        _simulate,
+        initial_states=initial_states,
+        assort_bys=assort_bys,
+        initial_infections=initial_infections,
+        contact_models=contact_models,
+        duration=duration,
+        events=events,
+        contact_policies=contact_policies,
+        testing_demand_models=testing_demand_models,
+        testing_allocation_models=testing_allocation_models,
+        testing_processing_models=testing_processing_models,
+        seed=seed,
+        path=path,
+        debug=debug,
+        indexers=indexers,
+    )
+    return sim_func
+
+
+def _simulate(
+    params,
+    initial_states,
+    assort_bys,
+    initial_infections,
+    contact_models,
+    duration,
+    events,
+    contact_policies,
+    testing_demand_models,
+    testing_allocation_models,
+    testing_processing_models,
+    seed,
+    path,
+    debug,
+    indexers,
+):
+    """Simulate the spread of an infectious disease.
+
+    Args:
+        params (pandas.DataFrame): DataFrame with parameters that influence the number
+            of contacts, contagiousness and dangerousness of the disease, ... .
+        initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the
+            columnns "id", "date" or "period" because those are used internally. The
+            index of initial_states will be used as "id".
+        initial_infections (pandas.Series): Series with the same index as states with
+            initial infections.
+        contact_models (dict): Dictionary of dictionaries where each dictionary
+            describes a channel by which contacts can be formed. See
+            :ref:`contact_models`.
+        duration (dict): Duration is a dictionary containing kwargs for
+            :func:`pandas.date_range`.
+        events (dict): Dictionary of events which cause infections.
+        contact_policies (dict): Dict of dicts with contact. See :ref:`policies`.
+        testing_demand_models (dict): Dict of dicts with demand models for tests. See
+            :ref:`testing_demand_models` for more information.
+        testing_allocation_models (dict): Dict of dicts with allocation models for
+            tests. See :ref:`testing_allocation_models` for more information.
+        testing_processing_models (dict): Dict of dicts with processing models for
+            tests. See :ref:`testing_processing_models` for more information.
+        seed (int): Seed is used as the starting point of a sequence of seeds
+            used to control randomness internally.
+        path (pathlib.Path): Path to the directory where the simulated data is stored.
+        debug (bool): Indicates whether the debug modus is turned on which means that
+            the simulated data contains more (technical) information to debug a model.
+
+    Returns:
+        simulation_results (dask.dataframe): The simulation results in form of a long
+            :class:`dask.dataframe`. The DataFrame contains the states of each period
+            (see :ref:`states`) and a column called newly_infected.
+
+    """
+    seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
+
     cum_probs = _prepare_assortative_matching_probabilities(
-        states, assort_bys, params, contact_models
+        initial_states, assort_bys, params, contact_models
     )
 
-    states = draw_course_of_disease(states, params, seed)
+    states = draw_course_of_disease(initial_states, params, seed)
     states = update_states(states, initial_infections, initial_infections, params, seed)
     for period, date in enumerate(duration["dates"]):
         states["date"] = date
