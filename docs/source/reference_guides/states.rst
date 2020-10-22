@@ -16,8 +16,8 @@ status.
 All variables in ``states`` should be categorical with meaningful categories that can be
 directly used for plotting. Internally, we will work with the codes.
 
-No missings are allowed in ``states``. If there are missings in the dataset with
-background characteristics, the user has to impute values or drop those observations.
+No NaNs are allowed in ``states``. If there are NaNs in the dataset with background
+characteristics, the user has to impute values or drop those observations.
 
 
 Health States
@@ -109,7 +109,7 @@ We have the following countdowns:
 The following countdowns are related to testing.
 
 - ``cd_received_test_result_true``: Time until a test is processed.
-- ``cd_knows_immune_false``: Time between receiving a positive test result and loosing
+- ``cd_knows_immune_false``: Time between receiving a positive test result and losing
   immunity.
 - ``cd_knows_infectious_false``: Time between receiving a positive test result and being
   infectious to stop spreading the disease.
