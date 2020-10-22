@@ -7,66 +7,17 @@ BOOLEAN_STATE_COLUMNS = [
     "ever_infected",
     "immune",
     "infectious",
-    "knows",
     "symptomatic",
     "needs_icu",
     "dead",
+    "pending_test",
+    "received_test_result",
+    "knows_immune",
+    "knows_infectious",
+    "demands_test",
+    "allocated_test",
+    "to_be_processed_test",
 ]
-
-
-# cd_infectious_true and cd_immune_false are triggered by an infection
-# cd_knows is triggered by tests
-# all other countdowns are triggered by chain reactions.
-COUNTDOWNS = {
-    "cd_infectious_true": {
-        "changes": {"infectious": True, "n_has_infected": 0},
-        "starts": ["cd_infectious_false", "cd_symptoms_true"],
-    },
-    # will be overriden if a person develops symptoms. In that case
-    # infectiousness lasts as long as symptoms.
-    "cd_infectious_false": {"changes": {"infectious": False, "knows": False}},
-    "cd_immune_false": {"changes": {"immune": False}},
-    "cd_symptoms_true": {
-        "changes": {"symptomatic": True, "cd_infectious_false": -1},
-        "starts": ["cd_symptoms_false", "cd_needs_icu_true"],
-    },
-    # will be overriden if a person needs icu. In that case symptoms
-    # end with need for icu.
-    "cd_symptoms_false": {
-        "changes": {"symptomatic": False, "infectious": False, "knows": False}
-    },
-    "cd_needs_icu_true": {
-        "changes": {"needs_icu": True, "cd_symptoms_false": -1},
-        "starts": ["cd_dead_true", "cd_needs_icu_false"],
-    },
-    "cd_dead_true": {
-        "changes": {
-            "dead": True,
-            "symptomatic": False,
-            "needs_icu": False,
-            "knows": False,
-            "cd_immune_false": -1,
-            # cd_infectious_false is set to 0 instead of -1 because this is needed
-            # for the calculation of r_zero
-            "cd_infectious_false": 0,
-            "cd_symptoms_false": -1,
-            "cd_needs_icu_false": -1,
-        }
-    },
-    "cd_needs_icu_false": {
-        "changes": {
-            "needs_icu": False,
-            "symptomatic": False,
-            "infectious": False,
-            "knows": False,
-            # cd_infectious_false is set to 0 instead of -1 because this is needed
-            # for the calculation of r_zero
-            "cd_infectious_false": 0,
-        }
-    },
-    "cd_knows_true": {"changes": {"knows": True}},
-}
-
 
 DTYPE_COUNTDOWNS = np.int16
 """Dtype for the countdowns.
@@ -88,6 +39,7 @@ INDEX_NAMES = ["category", "subcategory", "name"]
 ROOT_DIR = Path(__file__).parent
 
 USELESS_COLUMNS = [
+    # General countdowns.
     "cd_infectious_true",
     "cd_immune_false",
     "cd_symptoms_true",
@@ -95,14 +47,22 @@ USELESS_COLUMNS = [
     "cd_needs_icu_true",
     "cd_dead_true",
     "cd_needs_icu_false",
-    "cd_knows_true",
     "cd_immune_false_draws",
     "cd_symptoms_true_draws",
     "cd_needs_icu_true_draws",
     "cd_dead_true_draws",
     "cd_symptoms_false_draws",
     "cd_needs_icu_false_draws",
-    "cd_knows_true_draws",
     "cd_infectious_true_draws",
     "cd_infectious_false_draws",
+    # Countdowns related to testing.
+    "cd_received_test_result_true_draws",
+    "cd_knows_immune_false",
+    "cd_knows_infectious_false",
+    # Others.
+    "demands_test",
+    "allocated_test",
+    "to_be_processed_test",
+    "pending_test_date",
+    "pending_test_period",
 ]

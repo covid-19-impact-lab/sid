@@ -7,7 +7,7 @@ from setuptools import setup
 DESCRIPTION = "Simulate the spread of covid-19 with different policies."
 PROJECT_URLS = {
     "Bug Tracker": "https://github.com/covid-19-impact-lab/sid/issues",
-    "Documentation": "https://sid-.readthedocs.io/en/latest",
+    "Documentation": "https://sid-dev.readthedocs.io/en/latest",
     "Source Code": "https://github.com/covid-19-impact-lab/sid",
 }
 README = Path("README.rst").read_text()

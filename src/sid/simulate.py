@@ -7,7 +7,6 @@ import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
-from sid.config import COUNTDOWNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_PERIOD
@@ -16,11 +15,16 @@ from sid.config import USELESS_COLUMNS
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
+from sid.countdowns import COUNTDOWNS
 from sid.events import calculate_infections_by_events
 from sid.matching_probabilities import create_group_transition_probs
 from sid.parse_model import parse_duration
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
+from sid.testing_allocation import allocate_tests
+from sid.testing_allocation import update_pending_tests
+from sid.testing_demand import calculate_demand_for_tests
+from sid.testing_processing import process_tests
 from sid.update_states import add_debugging_information
 from sid.update_states import update_states
 
@@ -33,7 +37,9 @@ def simulate(
     duration=None,
     events=None,
     contact_policies=None,
-    testing_policies=None,
+    testing_demand_models=None,
+    testing_allocation_models=None,
+    testing_processing_models=None,
     seed=None,
     path=None,
     debug=False,
@@ -55,8 +61,12 @@ def simulate(
             :func:`pandas.date_range`.
         events (dict or None): Dictionary of events which cause infections.
         contact_policies (dict): Dict of dicts with contact. See :ref:`policies`.
-        testing_policies (dict): Dict of dicts with testing policies. See
-            :ref:`policies`.
+        testing_demand_models (dict): Dict of dicts with demand models for tests. See
+            :ref:`testing_demand_models` for more information.
+        testing_allocation_models (dict): Dict of dicts with allocation models for
+            tests. See :ref:`testing_allocation_models` for more information.
+        testing_processing_models (dict): Dict of dicts with processing models for
+            tests. See :ref:`testing_processing_models` for more information.
         seed (int, optional): Seed is used as the starting point of a sequence of seeds
             used to control randomness internally.
         path (str or pathlib.Path): Path to the directory where the simulated data is
@@ -72,7 +82,15 @@ def simulate(
     """
     events = {} if events is None else events
     contact_policies = {} if contact_policies is None else contact_policies
-    testing_policies = {} if testing_policies is None else testing_policies
+    testing_demand_models = (
+        {} if testing_demand_models is None else testing_demand_models
+    )
+    testing_allocation_models = (
+        {} if testing_allocation_models is None else testing_allocation_models
+    )
+    testing_processing_models = (
+        {} if testing_processing_models is None else testing_processing_models
+    )
     seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
     initial_states = initial_states.copy(deep=True)
     params = _prepare_params(params)
@@ -85,7 +103,9 @@ def simulate(
         initial_infections,
         contact_models,
         contact_policies,
-        testing_policies,
+        testing_demand_models,
+        testing_allocation_models,
+        testing_processing_models,
     )
 
     contact_models = _sort_contact_models(contact_models)
@@ -126,6 +146,24 @@ def simulate(
         )
         newly_infected_events = calculate_infections_by_events(states, params, events)
 
+        if testing_demand_models:
+            demands_test, demands_test_reason = calculate_demand_for_tests(
+                states, testing_demand_models, params, date, seed
+            )
+            allocated_tests = allocate_tests(
+                states, testing_allocation_models, demands_test, params, date
+            )
+
+            states = update_pending_tests(states, allocated_tests)
+
+            to_be_processed_tests = process_tests(
+                states, testing_processing_models, params, date
+            )
+        else:
+            demands_test = None
+            allocated_tests = None
+            to_be_processed_tests = None
+
         states = update_states(
             states,
             newly_infected_contacts,
@@ -133,12 +171,19 @@ def simulate(
             params,
             seed,
             n_has_additionally_infected,
-            cum_probs,
+            indexers,
             contacts,
+            to_be_processed_tests,
         )
 
         if debug:
-            states = add_debugging_information(states, newly_missed_contacts)
+            states = add_debugging_information(
+                states,
+                newly_missed_contacts,
+                demands_test,
+                allocated_tests,
+                to_be_processed_tests,
+            )
 
         _dump_periodic_states(states, output_directory, date, debug)
 
@@ -272,7 +317,9 @@ def _check_inputs(
     initial_infections,
     contact_models,
     contact_policies,
-    testing_policies,
+    testing_demand_models,
+    testing_allocation_models,
+    testing_processing_models,
 ):
     """Check the user inputs."""
     cd_names = sorted(COUNTDOWNS)
@@ -310,8 +357,19 @@ def _check_inputs(
                 f"contact_policy refers to non existent contact model: {name}."
             )
 
-    if testing_policies != {}:
-        raise NotImplementedError
+    for testing_model in [
+        testing_demand_models,
+        testing_allocation_models,
+        testing_processing_models,
+    ]:
+        for name in testing_model:
+            if not isinstance(testing_model[name], dict):
+                raise ValueError(f"Each testing model must be a dictionary: {name}.")
+
+            if "model" not in testing_model[name]:
+                raise ValueError(
+                    f"Each testing model must have a 'model' entry: {name}."
+                )
 
     first_levels = params.index.get_level_values("category")
     assort_prob_matrices = [
@@ -416,6 +474,8 @@ def _process_initial_states(states, assort_bys):
         states[col] = states[col].astype(DTYPE_COUNTDOWNS)
 
     states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
+    states["pending_test_date"] = pd.NaT
+    states["pending_test_period"] = np.nan
 
     for model_name, assort_by in assort_bys.items():
         states[f"group_codes_{model_name}"], _ = factorize_assortative_variables(
