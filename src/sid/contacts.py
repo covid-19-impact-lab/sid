@@ -1,8 +1,6 @@
-import itertools
-
+import numba as nb
 import numpy as np
 import pandas as pd
-from numba import njit
 from numba.typed import List as NumbaList
 from sid.config import DTYPE_INDEX
 from sid.config import DTYPE_INFECTED
@@ -95,6 +93,10 @@ def calculate_infections_by_contacts(
         [params.loc[("infection_prob", cm, cm), "value"] for cm in indexers]
     )
 
+    reduced_contacts = _reduce_contacts_with_infection_probs(
+        contacts, is_recurrent, infect_probs, next(seed)
+    )
+
     group_cdfs_list = NumbaList()
     for gp in group_cdfs.values():
         group_cdfs_list.append(gp)
@@ -107,9 +109,7 @@ def calculate_infections_by_contacts(
         indexers_list.append(ind)
 
     np.random.seed(next(seed))
-    loop_entries = np.array(
-        list(itertools.product(range(len(states)), range(len(indexers))))
-    )
+    loop_entries = _get_loop_entries(len(states), len(indexers))
 
     indices = np.random.choice(len(loop_entries), replace=False, size=len(loop_entries))
     loop_order = loop_entries[indices]
@@ -120,7 +120,7 @@ def calculate_infections_by_contacts(
         immune,
         missed,
     ) = _calculate_infections_by_contacts_numba(
-        contacts,
+        reduced_contacts,
         infectious,
         immune,
         group_codes,
@@ -146,7 +146,65 @@ def calculate_infections_by_contacts(
     return infected, n_has_additionally_infected, missed_contacts
 
 
-@njit
+@nb.njit
+def _get_loop_entries(n_states, n_contact_models):
+    """Create an array of loop entries.
+
+    Examples:
+        >>> _get_loop_entries(2, 2)
+        array([[0, 0],
+               [0, 1],
+               [1, 0],
+               [1, 1]]...
+
+    """
+    res = np.empty((n_states * n_contact_models, 2), dtype=np.int64)
+    counter = 0
+    for i in range(n_states):
+        for j in range(n_contact_models):
+            res[counter, 0] = i
+            res[counter, 1] = j
+            counter += 1
+    return res
+
+
+@nb.njit
+def _reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, seed):
+    """Reduce the number of contacts stochastically.
+
+    The remaining contacts have the interpretation that they would lead
+    to an infection if one person is susceptible and one is infectious.
+
+    Args:
+        contacts (numpy.ndarray): 2d integer array with number of contacts per
+            individual. There is one row per individual in the state and one column
+            for each contact model where model["model"] != "meet_group".
+        is_recurrent (numpy.ndarray): One entry per contact model.
+        probs (numpy.ndarray): Infection probabilities. One entry per contact model.
+        seed (int): The seed.
+
+    Returns
+        reduced_contacts (numpy.ndarray): Same shape as contacts. Equal to contacts for
+            recurrent contact models. Less or equal to contacts otherwise.
+
+    """
+
+    reduced_contacts = contacts.copy()
+    np.random.seed(seed)
+    n_obs, n_contacts = contacts.shape
+    for i in range(n_obs):
+        for j in range(n_contacts):
+            if not is_recurrent[j] and contacts[i, j] != 0:
+                success = 0
+                for _ in range(contacts[i, j]):
+                    u = np.random.uniform(0, 1)
+                    if u <= probs[j]:
+                        success += 1
+                reduced_contacts[i, j] = success
+    return reduced_contacts
+
+
+@nb.njit
 def _calculate_infections_by_contacts_numba(
     contacts,
     infectious,
@@ -249,25 +307,21 @@ def _calculate_infections_by_contacts_numba(
                     contacts[j, cm] -= 1
 
                     if infectious[i] and not immune[j]:
-                        is_infection = _boolean_choice(infection_probs[cm])
-                        if is_infection:
-                            infection_counter[i] += 1
-                            infected[j] = 1
-                            immune[j] = True
+                        infection_counter[i] += 1
+                        infected[j] = 1
+                        immune[j] = True
 
                     elif infectious[j] and not immune[i]:
-                        is_infection = _boolean_choice(infection_probs[cm])
-                        if is_infection:
-                            infection_counter[j] += 1
-                            infected[i] = 1
-                            immune[i] = True
+                        infection_counter[j] += 1
+                        infected[i] = 1
+                        immune[i] = True
 
     missed = contacts
 
     return infected, infection_counter, immune, missed
 
 
-@njit
+@nb.njit
 def _choose_other_group(a, cdf):
     """Choose a group out of a, given cumulative choice probabilities."""
     u = np.random.uniform(0, 1)
@@ -275,7 +329,7 @@ def _choose_other_group(a, cdf):
     return a[index]
 
 
-@njit
+@nb.njit
 def _choose_other_individual(a, weights):
     """Return an element of a, if weights are not all zero, else return -1.
 
@@ -315,7 +369,7 @@ def _choose_other_individual(a, weights):
     return chosen
 
 
-@njit
+@nb.njit
 def _get_index_refining_search(u, cdf):
     """Get the index of the first element in cdf that is larger than u.
 
@@ -362,7 +416,7 @@ def _get_index_refining_search(u, cdf):
     return i
 
 
-@njit
+@nb.njit
 def _boolean_choice(truth_prob):
     """Return True with probability truth_prob.
 
@@ -424,7 +478,7 @@ def create_group_indexer(states, assort_by):
     return indexer
 
 
-@njit
+@nb.njit
 def _sum_preserving_round(arr):
     """Round values in an array, preserving the sum as good as possible.
 

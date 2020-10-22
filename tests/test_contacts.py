@@ -4,7 +4,10 @@ import numpy as np
 import pandas as pd
 import pytest
 from numba.typed import List as NumbaList
+from numpy.testing import assert_array_equal
 from sid.contacts import _calculate_infections_by_contacts_numba
+from sid.contacts import _get_loop_entries
+from sid.contacts import _reduce_contacts_with_infection_probs
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
 
@@ -28,6 +31,7 @@ def test_create_group_indexer(initial_states, assort_by, expected):
 
 @pytest.mark.parametrize("seed", range(10))
 def test_calculate_infections_numba_with_single_group(num_regression, seed):
+    """If you need to regenerate the test data, use ``pytest --force-regen``."""
     (
         contacts,
         infectious,
@@ -194,3 +198,54 @@ def test_calculate_infections():
     )
     assert (states["immune"] | calc_infected).equals(exp_immune)
     assert np.all(calc_missed_contacts == 0)
+
+
+def test_get_loop_entries():
+    calculated = _get_loop_entries(10, 15)
+    expected = np.array(list(itertools.product(range(10), range(15)))).astype(int)
+    assert_array_equal(calculated, expected)
+
+
+def test_reduce_contacts_with_infection_prob_one():
+    choices = [0, 1, 2, 3, 4]
+    weights = [0.5, 0.2, 0.1, 0.1, 0.1]
+    contacts = np.random.choice(choices, p=weights, size=(100, 10)).astype(int)
+    is_recurrent = np.array([True, False] * 5)
+    probs = np.full(10, 1)
+
+    reduced = _reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, 1234)
+
+    assert_array_equal(reduced, contacts)
+
+
+def test_reduce_contacts_with_infection_prob_zero():
+    choices = [0, 1, 2, 3, 4]
+    weights = [0.5, 0.2, 0.1, 0.1, 0.1]
+    contacts = np.random.choice(choices, p=weights, size=(100, 10)).astype(int)
+    is_recurrent = np.array([True, False] * 5)
+    probs = np.full(10, 0)
+
+    reduced = _reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, 1234)
+
+    assert (reduced[:, ~is_recurrent] == 0).all()
+    assert_array_equal(reduced[:, is_recurrent], contacts[:, is_recurrent])
+
+
+def test_reduce_contacts_approximately():
+    choices = [0, 1, 2, 3, 4]
+    weights = [0.5, 0.2, 0.1, 0.1, 0.1]
+    contacts = np.random.choice(choices, p=weights, size=(100_000, 10)).astype(int)
+    is_recurrent = np.array([True, False] * 5)
+    probs = np.arange(10) / 20
+
+    reduced = _reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, 1234)
+
+    expected_ratios = probs[~is_recurrent]
+
+    calculated_ratios = reduced[:, ~is_recurrent].sum(axis=0) / contacts[
+        :, ~is_recurrent
+    ].sum(axis=0)
+
+    diff = calculated_ratios - expected_ratios
+
+    assert (diff <= 0.005).all()

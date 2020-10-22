@@ -1,3 +1,4 @@
+import functools
 import itertools as it
 import shutil
 import warnings
@@ -29,7 +30,7 @@ from sid.update_states import add_debugging_information
 from sid.update_states import update_states
 
 
-def simulate(
+def get_simulate_func(
     params,
     initial_states,
     initial_infections,
@@ -44,7 +45,12 @@ def simulate(
     path=None,
     debug=False,
 ):
-    """Simulate the spread of an infectious disease.
+    """Get a function that simulates the spread of an infectious disease.
+
+    The resulting function only depends on parameters. The computational time it takes
+    to process the user input is only incurred once in :func:`get_simulate_func` and not
+    when the resulting function is called.
+
 
     Args:
         params (pandas.DataFrame): DataFrame with parameters that influence the number
@@ -75,9 +81,7 @@ def simulate(
             the simulated data contains more (technical) information to debug a model.
 
     Returns:
-        simulation_results (dask.dataframe): The simulation results in form of a long
-            :class:`dask.dataframe`. The DataFrame contains the states of each period
-            (see :ref:`states`) and a column called newly_infected.
+        callable: Simulates dataset based on parameters.
 
     """
     events = {} if events is None else events
@@ -91,11 +95,10 @@ def simulate(
     testing_processing_models = (
         {} if testing_processing_models is None else testing_processing_models
     )
-    seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
     initial_states = initial_states.copy(deep=True)
     params = _prepare_params(params)
 
-    output_directory = _create_output_directory(path)
+    path = _create_output_directory(path)
 
     _check_inputs(
         params,
@@ -110,20 +113,95 @@ def simulate(
 
     contact_models = _sort_contact_models(contact_models)
     assort_bys = _process_assort_bys(contact_models)
-    states = _process_initial_states(initial_states, assort_bys)
+    initial_states = _process_initial_states(initial_states, assort_bys)
     duration = parse_duration(duration)
-
-    states = draw_course_of_disease(states, params, seed)
     contact_policies = {
         key: _add_defaults_to_policy_dict(val, duration)
         for key, val in contact_policies.items()
     }
-    states = update_states(states, initial_infections, initial_infections, params, seed)
 
-    indexers, cum_probs = _prepare_assortative_matching(
-        states, assort_bys, params, contact_models
+    indexers = _prepare_assortative_matching_indexers(initial_states, assort_bys)
+
+    sim_func = functools.partial(
+        _simulate,
+        initial_states=initial_states,
+        assort_bys=assort_bys,
+        initial_infections=initial_infections,
+        contact_models=contact_models,
+        duration=duration,
+        events=events,
+        contact_policies=contact_policies,
+        testing_demand_models=testing_demand_models,
+        testing_allocation_models=testing_allocation_models,
+        testing_processing_models=testing_processing_models,
+        seed=seed,
+        path=path,
+        debug=debug,
+        indexers=indexers,
+    )
+    return sim_func
+
+
+def _simulate(
+    params,
+    initial_states,
+    assort_bys,
+    initial_infections,
+    contact_models,
+    duration,
+    events,
+    contact_policies,
+    testing_demand_models,
+    testing_allocation_models,
+    testing_processing_models,
+    seed,
+    path,
+    debug,
+    indexers,
+):
+    """Simulate the spread of an infectious disease.
+
+    Args:
+        params (pandas.DataFrame): DataFrame with parameters that influence the number
+            of contacts, contagiousness and dangerousness of the disease, ... .
+        initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the
+            columnns "id", "date" or "period" because those are used internally. The
+            index of initial_states will be used as "id".
+        initial_infections (pandas.Series): Series with the same index as states with
+            initial infections.
+        contact_models (dict): Dictionary of dictionaries where each dictionary
+            describes a channel by which contacts can be formed. See
+            :ref:`contact_models`.
+        duration (dict): Duration is a dictionary containing kwargs for
+            :func:`pandas.date_range`.
+        events (dict): Dictionary of events which cause infections.
+        contact_policies (dict): Dict of dicts with contact. See :ref:`policies`.
+        testing_demand_models (dict): Dict of dicts with demand models for tests. See
+            :ref:`testing_demand_models` for more information.
+        testing_allocation_models (dict): Dict of dicts with allocation models for
+            tests. See :ref:`testing_allocation_models` for more information.
+        testing_processing_models (dict): Dict of dicts with processing models for
+            tests. See :ref:`testing_processing_models` for more information.
+        seed (int): Seed is used as the starting point of a sequence of seeds
+            used to control randomness internally.
+        path (pathlib.Path): Path to the directory where the simulated data is stored.
+        debug (bool): Indicates whether the debug modus is turned on which means that
+            the simulated data contains more (technical) information to debug a model.
+
+    Returns:
+        simulation_results (dask.dataframe): The simulation results in form of a long
+            :class:`dask.dataframe`. The DataFrame contains the states of each period
+            (see :ref:`states`) and a column called newly_infected.
+
+    """
+    seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
+
+    cum_probs = _prepare_assortative_matching_probabilities(
+        initial_states, assort_bys, params, contact_models
     )
 
+    states = draw_course_of_disease(initial_states, params, seed)
+    states = update_states(states, initial_infections, initial_infections, params, seed)
     for period, date in enumerate(duration["dates"]):
         states["date"] = date
         states["period"] = DTYPE_PERIOD(period)
@@ -185,13 +263,13 @@ def simulate(
                 to_be_processed_tests,
             )
 
-        _dump_periodic_states(states, output_directory, date, debug)
+        _dump_periodic_states(states, path, date, debug)
 
     categoricals = {
         column: initial_states[column].cat.categories.shape[0]
         for column in initial_states.select_dtypes("category").columns
     }
-    simulation_results = _return_dask_dataframe(output_directory, categoricals)
+    simulation_results = _return_dask_dataframe(path, categoricals)
 
     return simulation_results
 
@@ -392,7 +470,29 @@ def _check_inputs(
         )
 
 
-def _prepare_assortative_matching(states, assort_bys, params, contact_models):
+def _prepare_assortative_matching_indexers(states, assort_bys):
+    """Create indexers and first stage probabilities for assortative matching.
+
+    Args:
+        states (pd.DataFrame): see :ref:`states`.
+        assort_bys (dict): Keys are names of contact models, values are lists with the
+            assort_by variables of the model.
+
+    returns:
+        indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
+            indices of the i_th group.
+
+    """
+    indexers = {}
+    for model_name, assort_by in assort_bys.items():
+        indexers[model_name] = create_group_indexer(states, assort_by)
+
+    return indexers
+
+
+def _prepare_assortative_matching_probabilities(
+    states, assort_bys, params, contact_models
+):
     """Create indexers and first stage probabilities for assortative matching.
 
     Args:
@@ -403,22 +503,19 @@ def _prepare_assortative_matching(states, assort_bys, params, contact_models):
         contact_models (dict): see :ref:`contact_models`.
 
     returns:
-        indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
-            indices of the i_th group.
-        first_probs (dict): dict of arrays of shape
-            n_group, n_groups. probs[i, j] is the cumulative probability that an
-            individual from group i meets someone from group j.
+        first_probs (dict): dict of arrays of shape n_group, n_groups with probabilities
+        for the first stage of sampling when matching contacts. probs[i, j] is the
+        cumulative probability that an individual from group i meets someone from
+        group j.
 
     """
-    indexers = {}
     first_probs = {}
     for model_name, assort_by in assort_bys.items():
-        indexers[model_name] = create_group_indexer(states, assort_by)
         if not contact_models[model_name]["is_recurrent"]:
             first_probs[model_name] = create_group_transition_probs(
                 states, assort_by, params, model_name
             )
-    return indexers, first_probs
+    return first_probs
 
 
 def _add_defaults_to_policy_dict(pol_dict, duration):
@@ -454,10 +551,7 @@ def _process_initial_states(states, assort_bys):
     )
     for assort_by in assort_by_variables:
         if states[assort_by].dtype.name != "category":
-            raise TypeError(
-                "All 'assort_by' variables need to be pandas.Categoricals. "
-                f"'{assort_by}' is not."
-            )
+            states[assort_by] = states[assort_by].astype("category")
 
     # Sort index for deterministic shuffling and reset index because otherwise it will
     # be dropped while writing to parquet. Parquet stores an efficient range index
