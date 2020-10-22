@@ -147,3 +147,4 @@ docs/source/_generated/
 
 # sid
 .sid/
+src/__init__.py

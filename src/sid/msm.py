@@ -45,10 +45,10 @@ def get_msm_func(
             saved to pandas.DataFrame or pandas.Series that can either be passed to the
             function directly or as items of a list or dictionary. Index of
             pandas.DataFrames can be of type MultiIndex, but columns cannot.
-        replace_nans (callable or list): Functions(s) specifying how to handle missings
-            in simulated_moments. Must match structure of empirical_moments. Exception:
-            If only one replacement function is specified, it will be used on all sets
-            of simulated moments.
+        replace_nans (callable or list): Functions(s) specifying how to handle NaNs in
+            simulated_moments. Must match structure of empirical_moments. Exception: If
+            only one replacement function is specified, it will be used on all sets of
+            simulated moments.
         weighting_matrix (numpy.ndarray): Square matrix of dimension (NxN) with N
             denoting the number of empirical_moments. Used to weight squared moment
             errors.

@@ -226,16 +226,16 @@ def _simulate(
 
         if testing_demand_models:
             demands_test, demands_test_reason = calculate_demand_for_tests(
-                states, testing_demand_models, params, seed
+                states, testing_demand_models, params, date, seed
             )
             allocated_tests = allocate_tests(
-                states, testing_allocation_models, demands_test, params
+                states, testing_allocation_models, demands_test, params, date
             )
 
             states = update_pending_tests(states, allocated_tests)
 
             to_be_processed_tests = process_tests(
-                states, testing_processing_models, params
+                states, testing_processing_models, params, date
             )
         else:
             demands_test = None

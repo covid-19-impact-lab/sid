@@ -171,3 +171,33 @@ def random_choice(choices, probabilities=None, decimals=5):
         out = out[0]
 
     return out
+
+
+def validate_return_is_series_or_ndarray(x, index=None, when=None):
+    if isinstance(x, (pd.Series, np.ndarray)):
+        return pd.Series(data=x, index=index)
+    else:
+        raise ValueError(f"'{when}' must always return a pd.Series or a np.ndarray.")
+
+
+def date_is_within_start_and_end_date(date, start, end):
+    """Indicate whether date lies within the start and end dates.
+
+    ``None``s are interpreted as open boundaries.
+
+    Examples:
+        >>> date_is_within_start_and_end_date("2020-01-02", "2020-01-01", "2020-01-03")
+        True
+        >>> date_is_within_start_and_end_date("2020-01-01", "2020-01-02", "2020-01-03")
+        False
+        >>> date_is_within_start_and_end_date("2020-01-01", None, "2020-01-03")
+        True
+
+    """
+    is_within = True
+    if start is not None and pd.Timestamp(start) > pd.Timestamp(date):
+        is_within = False
+    if end is not None and pd.Timestamp(end) < pd.Timestamp(date):
+        is_within = False
+
+    return is_within
