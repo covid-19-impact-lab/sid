@@ -6,10 +6,10 @@ import pytest
 from numba.typed import List as NumbaList
 from numpy.testing import assert_array_equal
 from sid.contacts import _calculate_infections_by_contacts_numba
+from sid.contacts import _get_loop_entries
+from sid.contacts import _reduce_contacts_with_infection_probs
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
-from sid.contacts import get_loop_entries
-from sid.contacts import reduce_contacts_with_infection_probs
 
 
 @pytest.mark.parametrize(
@@ -201,7 +201,7 @@ def test_calculate_infections():
 
 
 def test_get_loop_entries():
-    calculated = get_loop_entries(10, 15)
+    calculated = _get_loop_entries(10, 15)
     expected = np.array(list(itertools.product(range(10), range(15)))).astype(int)
     assert_array_equal(calculated, expected)
 
@@ -213,7 +213,7 @@ def test_reduce_contacts_with_infection_prob_one():
     is_recurrent = np.array([True, False] * 5)
     probs = np.full(10, 1)
 
-    reduced = reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, 1234)
+    reduced = _reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, 1234)
 
     assert_array_equal(reduced, contacts)
 
@@ -225,7 +225,7 @@ def test_reduce_contacts_with_infection_prob_zero():
     is_recurrent = np.array([True, False] * 5)
     probs = np.full(10, 0)
 
-    reduced = reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, 1234)
+    reduced = _reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, 1234)
 
     assert (reduced[:, ~is_recurrent] == 0).all()
     assert_array_equal(reduced[:, is_recurrent], contacts[:, is_recurrent])
@@ -238,7 +238,7 @@ def test_reduce_contacts_approximately():
     is_recurrent = np.array([True, False] * 5)
     probs = np.arange(10) / 20
 
-    reduced = reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, 1234)
+    reduced = _reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, 1234)
 
     expected_ratios = probs[~is_recurrent]
 

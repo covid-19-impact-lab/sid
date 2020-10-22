@@ -48,7 +48,7 @@ def get_simulate_func(
     """Get a function that simulates the spread of an infectious disease.
 
     The resulting function only depends on parameters. The computational time it takes
-    to process the user input is only incurred once in ``get_simulate_func`` and not
+    to process the user input is only incurred once in :func:`get_simulate_func` and not
     when the resulting function is called.
 
 
@@ -81,7 +81,7 @@ def get_simulate_func(
             the simulated data contains more (technical) information to debug a model.
 
     Returns:
-        callable: simulates dataset based on params.
+        callable: Simulates dataset based on parameters.
 
     """
     events = {} if events is None else events

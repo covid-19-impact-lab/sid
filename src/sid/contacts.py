@@ -1,6 +1,6 @@
+import numba as nb
 import numpy as np
 import pandas as pd
-from numba import njit
 from numba.typed import List as NumbaList
 from sid.config import DTYPE_INDEX
 from sid.config import DTYPE_INFECTED
@@ -93,7 +93,7 @@ def calculate_infections_by_contacts(
         [params.loc[("infection_prob", cm, cm), "value"] for cm in indexers]
     )
 
-    reduced_contacts = reduce_contacts_with_infection_probs(
+    reduced_contacts = _reduce_contacts_with_infection_probs(
         contacts, is_recurrent, infect_probs, next(seed)
     )
 
@@ -109,7 +109,7 @@ def calculate_infections_by_contacts(
         indexers_list.append(ind)
 
     np.random.seed(next(seed))
-    loop_entries = get_loop_entries(len(states), len(indexers))
+    loop_entries = _get_loop_entries(len(states), len(indexers))
 
     indices = np.random.choice(len(loop_entries), replace=False, size=len(loop_entries))
     loop_order = loop_entries[indices]
@@ -146,8 +146,18 @@ def calculate_infections_by_contacts(
     return infected, n_has_additionally_infected, missed_contacts
 
 
-@njit
-def get_loop_entries(n_states, n_contact_models):
+@nb.njit
+def _get_loop_entries(n_states, n_contact_models):
+    """Create an array of loop entries.
+
+    Examples:
+        >>> _get_loop_entries(2, 2)
+        array([[0, 0],
+               [0, 1],
+               [1, 0],
+               [1, 1]], dtype=int64)
+
+    """
     res = np.empty((n_states * n_contact_models, 2), dtype=np.int64)
     counter = 0
     for i in range(n_states):
@@ -158,11 +168,11 @@ def get_loop_entries(n_states, n_contact_models):
     return res
 
 
-@njit
-def reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, seed):
+@nb.njit
+def _reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, seed):
     """Reduce the number of contacts stochastically.
 
-    The remaining contats have the interpretation that they would lead
+    The remaining contacts have the interpretation that they would lead
     to an infection if one person is susceptible and one is infectious.
 
     Args:
@@ -171,11 +181,11 @@ def reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, seed):
             for each contact model where model["model"] != "meet_group".
         is_recurrent (numpy.ndarray): One entry per contact model.
         probs (numpy.ndarray): Infection probabilities. One entry per contact model.
-        seed (int):
+        seed (int): The seed.
 
     Returns
-        reduced_contacts (np.ndarray): Same shape as contacts. Equal to contacts
-            for recurrent contact models. Less or equal to contacts otherwise.
+        reduced_contacts (numpy.ndarray): Same shape as contacts. Equal to contacts for
+            recurrent contact models. Less or equal to contacts otherwise.
 
     """
 
@@ -194,7 +204,7 @@ def reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, seed):
     return reduced_contacts
 
 
-@njit
+@nb.njit
 def _calculate_infections_by_contacts_numba(
     contacts,
     infectious,
@@ -311,7 +321,7 @@ def _calculate_infections_by_contacts_numba(
     return infected, infection_counter, immune, missed
 
 
-@njit
+@nb.njit
 def _choose_other_group(a, cdf):
     """Choose a group out of a, given cumulative choice probabilities."""
     u = np.random.uniform(0, 1)
@@ -319,7 +329,7 @@ def _choose_other_group(a, cdf):
     return a[index]
 
 
-@njit
+@nb.njit
 def _choose_other_individual(a, weights):
     """Return an element of a, if weights are not all zero, else return -1.
 
@@ -359,7 +369,7 @@ def _choose_other_individual(a, weights):
     return chosen
 
 
-@njit
+@nb.njit
 def _get_index_refining_search(u, cdf):
     """Get the index of the first element in cdf that is larger than u.
 
@@ -406,7 +416,7 @@ def _get_index_refining_search(u, cdf):
     return i
 
 
-@njit
+@nb.njit
 def _boolean_choice(truth_prob):
     """Return True with probability truth_prob.
 
@@ -468,7 +478,7 @@ def create_group_indexer(states, assort_by):
     return indexer
 
 
-@njit
+@nb.njit
 def _sum_preserving_round(arr):
     """Round values in an array, preserving the sum as good as possible.
 
