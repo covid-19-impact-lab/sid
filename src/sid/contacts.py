@@ -155,7 +155,7 @@ def _get_loop_entries(n_states, n_contact_models):
         array([[0, 0],
                [0, 1],
                [1, 0],
-               [1, 1]], ...
+               [1, 1]]...
 
     """
     res = np.empty((n_states * n_contact_models, 2), dtype=np.int64)
