@@ -40,7 +40,16 @@ repos:
 -   repo: https://github.com/PyCQA/doc8
     rev: 0.9.0a1
     hooks:
-        -   id: doc8
+    -   id: doc8
+-   repo: https://github.com/econchick/interrogate
+    rev: 1.3.1
+    hooks:
+    -   id: interrogate
+        args: [-v, --fail-under=40, src, tests]
+-   repo: https://github.com/codespell-project/codespell
+    rev: v1.17.1
+    hooks:
+    -   id: codespell
 -   repo: meta
     hooks:
     -   id: check-hooks-apply
