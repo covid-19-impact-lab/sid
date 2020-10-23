@@ -58,7 +58,7 @@ contacts and multiple events are merged with a logical OR.
 
     def carnival_session(states, params):
         date = get_date(states)  # Helper to get the current date from states.
-        date_of_carnival_session = pd.to_datetime("2020-02-15")
+        date_of_carnival_session = pd.Timestamp("2020-02-15")
 
         newly_infected = pd.Series(data=False, index=states.index)
 

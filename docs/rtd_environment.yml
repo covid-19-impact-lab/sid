@@ -1,0 +1,10 @@
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+  - ipython
+  - sphinx
+  - sphinx-copybutton
+  - sphinx-autoapi
+  - nbsphinx
+  - pydata-sphinx-theme

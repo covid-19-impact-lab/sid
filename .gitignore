@@ -131,6 +131,7 @@ dmypy.json
 *.sublime-project
 *.sublime-workspace
 .vscode/
+*.vscode
 
 notebooks/
 
@@ -147,3 +148,4 @@ docs/source/_generated/
 
 # sid
 .sid/
+src/__init__.py

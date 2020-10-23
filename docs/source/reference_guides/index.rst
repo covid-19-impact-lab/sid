@@ -16,3 +16,13 @@ They assume that you are already familiar with sid.
    contact_models
    policies
    events
+   testing
+
+
+The following documents are auto-generated and not carefully edited. They provide direct
+access to the source code and the docstrings.
+
+.. toctree::
+   :titlesonly:
+
+   /autoapi/sid/index

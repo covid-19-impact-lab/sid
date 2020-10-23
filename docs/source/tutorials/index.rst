@@ -8,3 +8,4 @@ simple model and show you how to use sid to simulate your own model.
    :maxdepth: 1
 
    how_to_simulate
+   how_to_test

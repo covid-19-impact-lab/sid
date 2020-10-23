@@ -13,7 +13,7 @@ In particular, sid allows:
 - recurrent contacts, such as school mates meeting Monday through Friday.
 - different types of contacts, such as work and leisure contacts.
 - varying number of contacts, infection probabilities, matching patterns and disease
-    progression according to individual characteristics such as age and gender.
+  progression according to individual characteristics such as age and gender.
 
 The documentation is structured into four parts.
 
@@ -80,10 +80,3 @@ The documentation is structured into four parts.
     tutorials/index
     explanations/index
     reference_guides/index
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Other Topics
-
-   api
