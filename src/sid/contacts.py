@@ -8,6 +8,7 @@ from sid.config import DTYPE_INFECTED
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_N_CONTACTS
 from sid.shared import factorize_assortative_variables
+from sid.shared import validate_return_is_series_or_ndarray
 
 
 def calculate_contacts(contact_models, contact_policies, states, params, date):
@@ -34,6 +35,9 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
         loc = model.get("loc", params.index)
         func = model["model"]
         model_specific_contacts = func(participating_contacts, params.loc[loc])
+        model_specific_contacts = validate_return_is_series_or_ndarray(
+            model_specific_contacts, when=f"Contact model {model_name}"
+        )
         if model_name in contact_policies:
             cp = contact_policies[model_name]
             policy_start = pd.Timestamp(cp["start"])
@@ -305,18 +309,18 @@ def _calculate_infections_by_contacts_numba(
                     contacts[j, cm] -= 1
 
                     if infectious[i] and not immune[j]:
-                        is_infection = _boolean_choice(infection_probs[cm])
-                        if is_infection:
-                            infection_counter[i] += 1
-                            infected[j] = 1
-                            immune[j] = True
+                        infection_counter[i] += 1
+                        infected[j] = 1
+                        immune[j] = True
 
                     elif infectious[j] and not immune[i]:
-                        is_infection = _boolean_choice(infection_probs[cm])
-                        if is_infection:
-                            infection_counter[j] += 1
-                            infected[i] = 1
-                            immune[i] = True
+                        infection_counter[j] += 1
+                        infected[i] = 1
+                        immune[i] = True
+
+    missed = contacts
+
+    return infected, infection_counter, immune, missed
 
 
 @nb.njit
