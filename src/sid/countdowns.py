@@ -8,7 +8,7 @@ COUNTDOWNS = {
     "cd_infectious_false": {"changes": {"infectious": False}},
     "cd_immune_false": {"changes": {"immune": False}},
     "cd_symptoms_true": {
-        "changes": {"symptomatic": True, "cd_infectious_false": -1},
+        "changes": {"symptomatic": True},
         "starts": ["cd_symptoms_false", "cd_needs_icu_true"],
     },
     # will be overridden if a person needs ICU. In that case symptoms end with need for

@@ -72,16 +72,6 @@ that is one. This is because countdowns are reduced by one before they cause cha
 i.e. if a countdown "starts" at zero it will not have an effect while a countdown of
 one will take effect at the end of the current period (i.e. after individuals meet).
 
-Thus, we arrive at the following lengths for the latency period:
-
-.. csv-table::
-    :header: "length of latency", "probability"
-
-        1, 0.39
-        2, 0.35
-        3, 0.22
-        5, 0.04
-
 We do not separate between age groups as
 `He et al. (2020-04-15) <https://doi.org/10.1038/s41591-020-0869-5>`_
 do not report differences in viral loads across age groups and disease severity.
@@ -120,6 +110,101 @@ cases unclear. To our knowledge no estimates for the latency period of asymptoma
 cases of COVID-19 exist. We assume it to be the same for symptomatic and asymptomatic
 cases.
 
+Thus, we arrive at the following lengths for the latency period:
+
+.. csv-table::
+    :header: "days until infectiousness starts", "probability"
+
+        1, 0.39
+        2, 0.35
+        3, 0.22
+        5, 0.04
+
+
+Duration of Infectiousness
+---------------------------
+
+The countdown is called `cd_infectious_false`.
+
+We assume that the duration of infectiousness is the same for both symptomatic and
+asymptomatic individuals as `evidence suggests little differences
+<https://pubmed.ncbi.nlm.nih.gov/32442131/>`_ in the transmission rates of corona virus
+between symptomatic and asymptomatic patients and that `the viral load
+<https://www.nejm.org/doi/10.1056/NEJMc2001737>`_ between symptomatic and asymptomatic
+individuals are similar (see also
+`Singanayagam et al. (2020-08-13)
+<https://doi.org/10.2807/1560-7917.ES.2020.25.32.2001483>`_ and
+`Byrne et al. (2020-07-10)
+<https://bmjopen.bmj.com/content/bmjopen/10/8/e039856.full.pdf>`_).
+
+Our distribution of the duration of infectiousness is based on
+`this meta analysis by Byrne et al. (2020-07-10)
+<https://bmjopen.bmj.com/content/bmjopen/10/8/e039856.full.pdf>`_.
+
+For symptomatic cases they arrive at 0-5 days before symptom onset (figure 2) and
+3-8 days of infectiousness afterwards.
+(Viral loads may be detected much later but 8 days seems
+to be the time after which most people are culture negative, as also reported `here
+<https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2020.25.32.2001483>`_.)
+Thus, we arrive at 0 to 13 days as the range for infectiousness among individuals who
+become symptomatic (see also figure 5).
+This duration range is very much in line with the meta-analysis' reported evidence
+for asymptomatic individuals (see their figure 1).
+
+Following this evidence we assume the following discretized distribution of the
+infectiousness period.
+
+.. csv-table::
+    :header: "duration of infectiousness", "probability"
+
+        3, 0.1
+        5, 0.25
+        7, 0.25
+        9, 0.2
+        11,0.2
+
+.. ###We follow the `OpenABM-Project (2020-09-14)
+.. ###<https://github.com/BDI-pathogens/OpenABM-Covid19/blob/master/documentation/parameters/parameter_dictionary.md>`_
+.. ###and their sources (Ferretti et al in prep 2020; Ferretti & Wymant et al 2020;
+.. ###Xia et al 2020; He et al 2020; Cheng et al 2020) who give a mean
+.. ###infectious period of 5.5 days with a standard deviation of 2.14 days.
+.. ###Assuming a normal distribution we can discretize the distribution as follows:
+.. ###
+.. ###.. image:: ../_static/images/infectiousness_period.png
+.. ###
+.. ###.. csv-table::
+.. ###    :header: "duration of infectiousness", "probability"
+.. ###
+.. ###        2, 0.12
+.. ###        4, 0.29
+.. ###        6, 0.47
+.. ###        10, 0.12
+.. ###
+.. ###.. https://www.sciencedirect.com/science/article/pii/S0163445320304497:
+.. ###.. - "highest viral loads from upper respiratory tract samples were observed
+            at the time of symptom onset and for a few days after
+            (generally within one week),
+.. ###     with levels slowly decreasing over the next one to three weeks"
+.. ###.. - "Seven studies measured viral load in pre-symptomatic or asymptomatic
+.. ###      patients, and generally found little to no difference in viral load between
+            pre-symptomatic, asymptomatic and symptomatic  patients"
+.. ###.. - "median duration of virus detection from symptom onset using upper
+            respiratory tract samples was 14.5 days"
+.. ###.. - "No study was found that definitively measured the duration of infectivity."
+.. ###
+.. ###.. warning::
+.. ###
+.. ###    These values are at odds with two other studies: `this study
+.. ###    <https://doi.org/10.2807/1560-7917.ES.2020.25.32.2001483>`_ found that
+.. ###    40% of individuals were culture-positive 7 days after symptom onset.
+.. ###    Given that the median incubation period is 5 days, this data would predict that
+.. ###    40% of individuals are still infectious 12 days after infectiousness starts.
+.. ###
+.. ###    Also, `this meta-analysis <https://bmjopen.bmj.com/content/10/8/e039856>`_ reports
+.. ###    an estimated mean time from symptom onset to end of infectiousness of 13.4 days
+.. ###    (95%CI: 10.9-15.8) with shorter estimates for children and less severe cases.
+
+
 
 Length of the Presymptomatic Stage
 ----------------------------------
@@ -130,7 +215,10 @@ onset of symptoms. The corresponding countdown is called `cd_symptoms_true`.
 As we used the incubation time (the time from infection to symptoms) to calculate the
 latency period, the length of `cd_symptoms_true` follows mechanically from the estimated
 number of days by which infectiousness precedes symptoms. In the case of COVID-19 we
-assume that the countdown is either 2 or 3 for symptomatic courses of the disease.
+assume that the countdown is either 1 or 2 for symptomatic courses of the disease.
+This is in agreement with the composite inferred model on the infectiousness period by
+the `meta-analysis for the infectiousness_period (figure 5)
+<https://bmjopen.bmj.com/content/bmjopen/10/8/e039856.full.pdf>`_.
 
 However, a significant share of infected and infectious individuals never develop
 symptoms.
@@ -154,17 +242,19 @@ Other sources with more or less similar estimates of asymptomatic cases include:
     - 46% (CI: 18-74%) from a meta study by (`He et al. (2020-05-29)
       <https://onlinelibrary.wiley.com/doi/full/10.1002/jmv.26041>`_)
 
-We split the remaining probability mass evenly between 2 and 3 days for the
-presymptomatic stage.
+We split the remaining probability mass evenly between 1 and 2 days for the
+presymptomatic stage:
 
-Duration of Symptoms (and Infectiousness)
------------------------------------------
+.. csv-table::
+    :header: "duration of pre-symptomatic stage", "probability"
 
-SID assumes that symptomatic individuals stop being infectious when their symptoms cease.
-This is governed by the `cd_symptoms_false` countdown.
-Asymptomatic individuals have a separate counter `cd_infectious_false`.
+        1,0.335
+        2,0.335
+        no symptoms,0.33
 
-.. symptomatic
+
+Duration of Symptoms
+---------------------
 
 We use the duration reported by `Bi et al. (2020-03-19, Figure
 S3, panel 2)
@@ -178,30 +268,18 @@ cases.
 We collapse the data to the following distribution:
 
 .. csv-table::
-    :header: "probability", "days until recovery"
+    :header: "days until recovery", "probability"
 
-    10%, 15
-    30%, 18
-    30%, 22
-    30%, 27
+    15, 10%
+    18, 30%
+    22, 30%
+    27, 30%
 
-For the asymptomatic cases we assume this to be the distribution of duration of
-infectiousness (plus 2-3 days that usually lie between onset of infectiousness and
-symptoms for symptomatic individuals) as `evidence suggests little differences
-<https://pubmed.ncbi.nlm.nih.gov/32442131/>`_ in the transmission rates of corona virus
-between symptomatic and asymptomatic patients and that `the viral load
-<https://www.nejm.org/doi/10.1056/NEJMc2001737>`_ between symptomatic and asymptomatic
-individuals are similar. These are the values of `cd_infectious_false`.
+These long symptom durations align with
+`reports by the CDC <https://dx.doi.org/10.15585%2Fmmwr.mm6930e1>`_.
 
-.. warning::
 
-    However, `this meta-analysis <https://doi.org/10.1101/2020.04.25.20079889>`_ reports
-    an estimated mean time from symptom onset to end of infectiousness of 13.4 days
-    (95%CI: 10.9-15.8) with shorter estimates for children and less severe cases.
-    However, they do not provide information on dispersion parameters. Note that these
-    numbers are not as important for our estimates on the spread of the disease as
-    agents in sid (can) reduce their contacts (often drastically) once they have
-    symptoms.
+.. symptomatic
 
 For symptomatic cases we need to rescale as a proportion of the symptomatic individuals
 will require ICU and they get the counter for `cd_symptoms_false` set to -1 as their
