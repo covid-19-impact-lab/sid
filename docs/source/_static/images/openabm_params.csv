@@ -1,0 +1,37 @@
+fraction,age_group,value
+fraction_asymptomatic,0-9,0.456
+fraction_asymptomatic,10-19,0.412
+fraction_asymptomatic,20-29,0.370
+fraction_asymptomatic,30-39,0.332
+fraction_asymptomatic,40-49,0.296
+fraction_asymptomatic,50-59,0.265
+fraction_asymptomatic,60-69,0.238
+fraction_asymptomatic,70-79,0.214
+fraction_asymptomatic,80-100,0.192
+hospitalised_fraction,0-9, 0.001
+hospitalised_fraction,10-19, 0.006
+hospitalised_fraction,20-29, 0.015
+hospitalised_fraction,30-39, 0.069
+hospitalised_fraction,40-49, 0.219
+hospitalised_fraction,50-59, 0.279
+hospitalised_fraction,60-69, 0.370
+hospitalised_fraction,70-79, 0.391
+hospitalised_fraction,80-100, 0.379
+critical_fraction,0-9, 0.05
+critical_fraction,10-19, 0.05
+critical_fraction,20-29, 0.05
+critical_fraction,30-39, 0.05
+critical_fraction,40-49, 0.063
+critical_fraction,50-59, 0.122
+critical_fraction,60-69, 0.274
+critical_fraction,70-79, 0.432
+critical_fraction,80-100, 0.709
+fatality_fraction,0-9, 0.33
+fatality_fraction,10-19, 0.25
+fatality_fraction,20-29, 0.5
+fatality_fraction,30-39, 0.5
+fatality_fraction,40-49, 0.5
+fatality_fraction,50-59, 0.69
+fatality_fraction,60-69, 0.65
+fatality_fraction,70-79, 0.88
+fatality_fraction,80-100, 1

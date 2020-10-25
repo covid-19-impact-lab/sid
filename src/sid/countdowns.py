@@ -26,9 +26,6 @@ COUNTDOWNS = {
             "knows_immune": False,
             "knows_infectious": False,
             "cd_immune_false": -1,
-            # cd_infectious_false is set to 0 instead of -1 because this is needed for
-            # the calculation of r_zero
-            "cd_infectious_false": 0,
             "cd_symptoms_false": -1,
             "cd_needs_icu_false": -1,
         }
@@ -40,9 +37,6 @@ COUNTDOWNS = {
             "infectious": False,
             "knows_immune": False,
             "knows_infectious": False,
-            # cd_infectious_false is set to 0 instead of -1 because this is needed for
-            # the calculation of r_zero
-            "cd_infectious_false": 0,
         }
     },
     "cd_received_test_result_true": {"changes": {"received_test_result": True}},

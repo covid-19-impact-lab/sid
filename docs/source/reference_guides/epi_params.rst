@@ -164,7 +164,8 @@ infectiousness period.
         11,0.2
 
 .. ###We follow the `OpenABM-Project (2020-09-14)
-.. ###<https://github.com/BDI-pathogens/OpenABM-Covid19/blob/master/documentation/parameters/parameter_dictionary.md>`_
+.. ###<https://github.com/BDI-pathogens/OpenABM-Covid19/blob/master/documentation/
+       parameters/parameter_dictionary.md>`_
 .. ###and their sources (Ferretti et al in prep 2020; Ferretti & Wymant et al 2020;
 .. ###Xia et al 2020; He et al 2020; Cheng et al 2020) who give a mean
 .. ###infectious period of 5.5 days with a standard deviation of 2.14 days.
@@ -217,7 +218,7 @@ latency period, the length of `cd_symptoms_true` follows mechanically from the e
 number of days by which infectiousness precedes symptoms. In the case of COVID-19 we
 assume that the countdown is either 1 or 2 for symptomatic courses of the disease.
 This is in agreement with the composite inferred model on the infectiousness period by
-the `meta-analysis for the infectiousness_period (figure 5)
+the `meta-analysis for the infectiousness period (figure 5)
 <https://bmjopen.bmj.com/content/bmjopen/10/8/e039856.full.pdf>`_.
 
 However, a significant share of infected and infectious individuals never develop
@@ -237,7 +238,7 @@ Other sources with more or less similar estimates of asymptomatic cases include:
     - 15-20% on the Diamond Princess (`Mizumoto et al. (2020)
       <https://www.eurosurveillance.org/content/10.2807/
       1560-7917.ES.2020.25.10.2000180/#html_fulltext>`_)
-    - 30.8% (CI: 7.7–53.8%) from Japanese evacuees (`Nishiura and Kobhttps://bmjopen.bmj.com/content/bmjopen/10/8/e039652.full.pdfayashi
+    - 30.8% (CI: 7.7–53.8%) from Japanese evacuees (`Nishiura and Kobayashi
       <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7270890/>`_)
     - 46% (CI: 18-74%) from a meta study by (`He et al. (2020-05-29)
       <https://onlinelibrary.wiley.com/doi/full/10.1002/jmv.26041>`_)
@@ -251,6 +252,10 @@ presymptomatic stage:
         1,0.335
         2,0.335
         no symptoms,0.33
+
+.. note:: The `OpenABM project <https://tinyurl.com/y5owhyts>`_ has
+    asymptomatic probabilities by age group,
+    ranging from 0.19 for those >80 to 0.45 for those <9.
 
 
 Duration of Symptoms
@@ -278,76 +283,141 @@ We collapse the data to the following distribution:
 These long symptom durations align with
 `reports by the CDC <https://dx.doi.org/10.15585%2Fmmwr.mm6930e1>`_.
 
-
-.. symptomatic
-
-For symptomatic cases we need to rescale as a proportion of the symptomatic individuals
-will require ICU and they get the counter for `cd_symptoms_false` set to -1 as their
-symptoms will not end until they exit ICU or die.
-
-The data on how many percent of symptomatic patients will require ICU is pretty thin. We
-rely on data by `the US CDC
-<https://www.cdc.gov/mmwr/volumes/69/wr/mm6924e2.htm?s_cid=mm6924e2_w#T3_down>`_.
-
-.. warning::
-
-    The CDC's reported age gradient is very small. Only 3.6% of individuals over 80
-    years old require intensive care. While the death rate is 28.7%. This seems to stem
-    from the ICU share assuming no ICU for those where ICU information is missing. We
-    therefore use the maximum of the death and ICU rate.
-
-Other sources often only report the proportion of hospitalized cases admitted to ICU.
-According to the collection of the `MIDAS network <https://midasnetwork.us/COVID-19/>`_
-the proportion of hospitalized cases to ICU reported were: 0.06, 0.11, 0.26, 0.167
-According to the information provided by the `RKI <https://www.rki.de/DE/Content/InfAZ
-/N/Neuartiges_Coronavirus/Steckbrief.html#doc13776792bodyText19>`_ the proportion of
-hospitalized cases in Germany was around 20%. `In Shanghai the rate is reported to be
-8.8%. <https://doi.org/10.1016/j.jinf.2020.03.004>`_
+These numbers are only used for mild cases.
+We do not disaggregate by age. Note that the the length of symptoms is not very
+important in our model given that individuals stop being infectious
+before their symptoms cease.
 
 
 Time from Symptom Onset to Admission to ICU
 -------------------------------------------
 
-`Chen et al. (2020-03-02) <https://doi.org/10.1016/j.jinf.2020.03.004>`_ estimate the
-time from symptom onset to ICU admission as 8.5 +/- 4 days.
+The data on how many percent of symptomatic patients will require ICU is pretty thin. We
+rely on data by `the US CDC
+<https://www.cdc.gov/mmwr/volumes/69/wr/mm6924e2.htm?s_cid=mm6924e2_w#T3_down>`_ and
+the `OpenABM-Project (2020-09-14) <https://tinyurl.com/y5owhyts>`_.
+
+In the OpenABM project, the fraction of asymptomatic individuals ($P(Not Symptomatic)$),
+the fraction of individuals needing to be hospitalized ($P(H)$) and
+the fraction of hospitalized cases requiring ICU ($P(ICU|H)$) are given.
+
+Thus, the percentages of symptomatic individuals
+who will require intensive care is
+
+.. math::
+    P(ICU | Symptomatic) \newline
+
+    &= \frac{P(ICU)}{P(Symptomatic)} \newline
+
+    &= \frac{P(ICU | H) \cdot P(H | Symptomatic) \cdot P(Symptomatic)}{
+    P(Symptomatic)} \newline
+
+    &= P(ICU | H) \cdot P(H | Symptomatic) \cdot P(Symptomatic)
+
+To calculate this we need to go from the fraction of infected individuals needing
+hospitalization to the fraction of symptomatic individuals needing hospitalization.
+Assuming that only symptomatic individuals need hospitalization we can use the
+definition of the conditional probability:
+
+.. math::
+    P(H | Infected) &= P(H | Symptomatic) \cdot P(Symptomatic) \newline
+
+    \Leftrightarrow P(H | Symptomatic) &= \frac{P(H | Infected)}{P(Symptomatic)}
+
+Thus,
+
+.. math::
+    P(ICU | Symptomatic) &= P(ICU | H) \cdot \frac{P(H | Infected)}{P(Symptomatic)}
+    \cdot P(Symptomatic) \newline
+
+    &= P(ICU | H) \cdot P(H | Infected)
+
+
+Calculating this for each age group we arrive at the following probabilities of
+requiring intensive care.
+
+.. csv-table::
+    :header: "age group", "probability CDC", "probability OpenABM"
+
+        0-9,0.007,0.00005
+        10-19,0.004,0.00030
+        20-29,0.005,0.00075
+        30-39,0.009,0.00345
+        40-49,0.0015,0.01380
+        50-59,0.025,0.03404
+        60-69,0.067,0.10138
+        70-79,0.166,0.16891
+        80-100,0.287,0.26871
+
+.. warning::
+    The CDC's reported age gradient is very small. Only 3.6% of individuals over 80
+    years old require intensive care. While the death rate is 28.7%. This seems to stem
+    from the ICU share assuming no ICU for those where ICU information is missing. We
+    therefore use the maximum of the death and ICU rate.
+
+The two sources align very well. We take the OpenABM data rounded to whole percent.
+
+.. Other sources often only report the proportion of hospitalized cases admitted to ICU.
+.. According to the collection of the `MIDAS network <https://midasnetwork.us/COVID-19/>`_
+.. the proportion of hospitalized cases to ICU reported were: 0.06, 0.11, 0.26, 0.167
+.. According to the information provided by the `RKI <https://www.rki.de/DE/Content/InfAZ
+.. /N/Neuartiges_Coronavirus/Steckbrief.html#doc13776792bodyText19>`_ the proportion of
+.. hospitalized cases in Germany was around 20%. `In Shanghai the rate is reported to be
+.. 8.8%. <https://doi.org/10.1016/j.jinf.2020.03.004>`_
+
+For those who will require intensive care we follow
+`Chen et al. (2020-03-02) <https://doi.org/10.1016/j.jinf.2020.03.004>`_
+who estimate the time from symptom onset to ICU admission as 8.5 +/- 4 days.
+
+.. OpenABM:
+.. mean_time_to_hospital,all,5.14
+.. mean_time_to_critical,all,2.27
+.. sd_time_to_critical,all,2.27
+.. THEY DO NOT REPORT THE SD ON TIME TO HOSPITAL.
 
 This aligns well with numbers reported for the time from first symptoms to
 hospitalization: `The Imperial College reports a mean of 5.76 with a standard deviation
 of 4. <https://spiral.imperial.ac.uk/bitstream/10044/1/77344/
 12/2020-03-11-COVID19-Report-8.pdf>`_ This is also in line with the `durations collected
 by the RKI <https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/
-Steckbrief.html#doc13776792bodyText16>`_. We assume that the time between symptom onset
+Steckbrief.html#doc13776792bodyText16>`_.
+
+We assume that the time between symptom onset
 and ICU takes 4, 6, 8 or 10 days with equal probabilities.
 
-These times mostly matter for the ICU capacities rather than the spread of the disease
-as symptomatic individuals reduce their social contacts in our model.
-
+These times mostly matter for the ICU capacities.
 
 Death and Recovery from ICU
 ---------------------------
 
-`The RKI <https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/
-Steckbrief.html#doc13776792bodyText23>`_ cites that a share of 40% of patients admitted
-to the ICU died. In Italy `Grasselli et al. (2020-04-06)
-<https://jamanetwork.com/journals/jama/fullarticle/2764365>`_ report that 26% of ICU
-patients died. We take the midpoint of 33%.
+We take the survival probabilities
+from `the OpenABM Project <https://tinyurl.com/y5owhyts>`_.
 
-.. warning::
+.. warning:: Missing: `cd_needs_icu_false` for those that survive and time until death
+    for those that don't!
 
-    There exist studies where the share of people who died is much larger than the share
-    of patients admitted to ICU. For example `Richardson et al.
-    <https://jamanetwork.com/journals/jama/article-abstract/2765184>`_ report 14% ICU
-    and 21% death rate. In sid only individuals admitted to intensive care can die.
-
-We assume that patiens in ICU that die do so after 3 weeks. This follows the `3 to 6
-weeks of hospital duration reported by the RKI <https://www.rki.de/DE/Content/InfAZ/N/
-Neuartiges_Coronavirus/Steckbrief.html#doc13776792bodyText18>`_.
-
-This also aligns with `Chen et al. (2020-04-02)
-<https://doi.org/10.1016/j.jinf.2020.03.004>`_ where over 50% of ICU patients still had
-fever after 20 days at the hospital.
-
-We use a smaller time until ICU exit for those surviving, assuming they "only" require 2
-weeks of ICU care.
-
-As with admission we do not distinguish between hospital and ICU exit.
+.. #`The RKI <https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/
+.. #Steckbrief.html#doc13776792bodyText23>`_ cites that a share of 40% of patients
+.. #admitted to the ICU died. In Italy `Grasselli et al. (2020-04-06)
+.. #<https://jamanetwork.com/journals/jama/fullarticle/2764365>`_ report that 26% of ICU
+.. #patients died. We take the midpoint of 33%.
+.. #
+.. #.. warning::
+.. #
+.. #    There exist studies where the share of people who died is much larger than the
+.. #    admitted of patients admitted to ICU. For example `Richardson et al.
+.. #    <https://jamanetwork.com/journals/jama/article-abstract/2765184>`_ report 14% ICU
+.. #    and 21% death rate. In sid only individuals admitted to intensive care can die.
+.. #
+.. #We assume that patients in ICU that die do so after 3 weeks. This follows the `3 to 6
+.. #weeks of hospital duration reported by the RKI <https://www.rki.de/DE/Content/InfAZ/N/
+.. #Neuartiges_Coronavirus/Steckbrief.html#doc13776792bodyText18>`_.
+.. #
+.. #This also aligns with `Chen et al. (2020-04-02)
+.. #<https://doi.org/10.1016/j.jinf.2020.03.004>`_ where over 50% of ICU patients still had
+.. #fever after 20 days at the hospital.
+.. #
+.. #We use a smaller time until ICU exit for those surviving, assuming they "only"
+.. #require 2 weeks of ICU care.
+.. #
+.. #As with admission we do not distinguish between hospital and ICU exit.
