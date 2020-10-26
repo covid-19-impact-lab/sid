@@ -25,16 +25,12 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
         contacts (numpy.ndarray): DataFrame with one column for each contact model.
 
     """
-    # Forbid dead people and icu patients to have contacts.
     contacts = np.zeros((len(states), len(contact_models)), dtype=DTYPE_N_CONTACTS)
-    can_have_contacts = (~states["needs_icu"]) & (~states["dead"])
-
-    participating_contacts = states[can_have_contacts]
 
     for i, (model_name, model) in enumerate(contact_models.items()):
         loc = model.get("loc", params.index)
         func = model["model"]
-        model_specific_contacts = func(participating_contacts, params.loc[loc])
+        model_specific_contacts = func(states, params.loc[loc])
         model_specific_contacts = validate_return_is_series_or_ndarray(
             model_specific_contacts, when=f"Contact model {model_name}"
         )
@@ -49,7 +45,12 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
             model_specific_contacts = _sum_preserving_round(
                 model_specific_contacts.to_numpy().astype(DTYPE_N_CONTACTS)
             )
-        contacts[can_have_contacts, i] = model_specific_contacts
+
+        contacts[:, i] = model_specific_contacts
+
+        # dead people and icu patients don't have contacts.
+        not_icu_nor_dead = states["needs_icu"] | states["dead"]
+        contacts[not_icu_nor_dead, :] = 0
 
     return contacts
 
