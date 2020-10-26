@@ -48,7 +48,7 @@ before the onset of symptoms the development of the viral load before symptoms g
 an indication of number of days between the onset of infectiousness and symptoms.
 
 The `ECDC (2020-06-24, question 5)
-<https://www.ecdc.europa.eu/en/COVID-19/questions-answers>`_ gives a period of 1-2 days
+<https://www.ecdc.europa.eu/en/covid-19/questions-answers>`_ gives a period of 1-2 days
 between the onset of infectiousness and the onset of symptoms. This is in line with a
 `study published in Nature <https://doi.org/10.1038/s41591-020-0869-5>`_ who estimate
 the onset of infectiousness at 2.3 days (CI: 0.8–3.0 days) before symptoms. This also
