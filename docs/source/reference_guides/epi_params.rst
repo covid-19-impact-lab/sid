@@ -275,10 +275,10 @@ We collapse the data to the following distribution:
 .. csv-table::
     :header: "days until recovery", "probability"
 
-    15, 10%
-    18, 30%
-    22, 30%
-    27, 30%
+    15, 0.1
+    18, 0.3
+    22, 0.3
+    27, 0.3
 
 These long symptom durations align with
 `reports by the CDC <https://dx.doi.org/10.15585%2Fmmwr.mm6930e1>`_.
