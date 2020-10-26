@@ -7,7 +7,6 @@ from pathlib import Path
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER

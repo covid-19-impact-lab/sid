@@ -2,7 +2,6 @@ import numba as nb
 import numpy as np
 import pandas as pd
 from numba.typed import List as NumbaList
-
 from sid.config import DTYPE_INDEX
 from sid.config import DTYPE_INFECTED
 from sid.config import DTYPE_INFECTION_COUNTER

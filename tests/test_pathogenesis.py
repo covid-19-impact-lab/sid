@@ -3,7 +3,6 @@ from itertools import count
 import numpy as np
 import pandas as pd
 from pandas.testing import assert_series_equal
-
 from sid.config import DTYPE_DRAW_COURSE_OF_DISEASE
 from sid.pathogenesis import _draw_countdowns
 from sid.pathogenesis import draw_course_of_disease
