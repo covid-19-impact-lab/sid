@@ -6,6 +6,7 @@ countdown lengths. Currently, most of it is deterministic.
 """
 import numpy as np
 import pandas as pd
+
 from sid.config import DTYPE_DRAW_COURSE_OF_DISEASE
 from sid.countdowns import COUNTDOWNS
 
@@ -33,6 +34,9 @@ def draw_course_of_disease(states, params, seed):
 
     for cd in COUNTDOWNS:
         states[f"{cd}_draws"] = _draw_countdowns(states, params.loc[cd])
+
+    # make sure no one who is scheduled to die recovers before their death
+    states[states["cd_dead_true_draws"] > 0]["cd_needs_icu_false"] = -1
 
     return states
 

@@ -390,11 +390,26 @@ These times mostly matter for the ICU capacities.
 Death and Recovery from ICU
 ---------------------------
 
-We take the survival probabilities
-from `the OpenABM Project <https://tinyurl.com/y5owhyts>`_.
+We take the survival probabilities and time to death and time until recovery from
+intensive care from `the OpenABM Project <https://tinyurl.com/y5owhyts>`_.
+They report time until death to have a mean of 11.74 days and a standard deviation of
+8.79 days.
+Approximating this with the normal distribution, we have nearly 10% probability mass
+below 0. We use it nevertheless as several other distributions
+(such as chi squared and uniform) were unable to match the variance.
+Our discretization can be seen below.
 
-.. warning:: Missing: `cd_needs_icu_false` for those that survive and time until death
-    for those that don't!
+.. image:: ../_static/images/time_until_death.png
+
+Again, we rescale this for every age group among those that will not survive.
+
+They report time until recovery to have a mean of 18.8 days and a standard deviation
+of 12.21 days.
+Approximating this with the normal distribution, we have over 5% probability mass
+below 0.
+Our discretization can be seen below.
+
+.. image:: ../_static/images/time_until_icu_recovery.png
 
 .. #`The RKI <https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/
 .. #Steckbrief.html#doc13776792bodyText23>`_ cites that a share of 40% of patients
