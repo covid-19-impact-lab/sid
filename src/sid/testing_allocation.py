@@ -1,6 +1,7 @@
 import warnings
 
 import pandas as pd
+
 from sid.shared import date_is_within_start_and_end_date
 from sid.shared import validate_return_is_series_or_ndarray
 

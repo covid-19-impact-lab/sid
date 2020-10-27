@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandas.api.types import is_categorical_dtype
+
 from sid.config import INDEX_NAMES
 from sid.simulate import _prepare_params
 from sid.simulate import _process_assort_bys

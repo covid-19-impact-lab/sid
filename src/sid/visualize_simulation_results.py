@@ -10,6 +10,7 @@ from bokeh.models import Column
 from bokeh.models import Div
 from bokeh.plotting import figure
 from bokeh.plotting import save
+
 from sid.colors import get_colors
 from sid.shared import calculate_r_effective
 from sid.shared import calculate_r_zero

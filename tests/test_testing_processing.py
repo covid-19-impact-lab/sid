@@ -4,6 +4,7 @@ from contextlib import ExitStack as does_not_warn_or_raise  # noqa: N813
 import numpy as np
 import pandas as pd
 import pytest
+
 from sid.testing_processing import process_tests
 
 

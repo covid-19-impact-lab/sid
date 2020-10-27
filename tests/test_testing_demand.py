@@ -2,6 +2,7 @@ import itertools
 
 import numpy as np
 import pytest
+
 from sid.testing_demand import calculate_demand_for_tests
 
 

@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 from pytest import approx
+
 from sid.shared import calculate_r_effective
 from sid.shared import calculate_r_zero
 from sid.shared import factorize_assortative_variables

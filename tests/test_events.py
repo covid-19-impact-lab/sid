@@ -1,6 +1,7 @@
 import functools
 
 import pandas as pd
+
 from sid.events import calculate_infections_by_events
 
 
