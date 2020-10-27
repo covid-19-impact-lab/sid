@@ -1,4 +1,4 @@
 category,subcategory,name,value,note,source
-infection_prob,close,close,0.02,,
-infection_prob,distant,distant,0.01,,
-infection_prob,household,household,0.1,,
+infection_prob,close,close,0.05,,
+infection_prob,distant,distant,0.03,,
+infection_prob,household,household,0.2,,

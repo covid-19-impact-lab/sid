@@ -413,7 +413,7 @@ requiring intensive care.
 
     The CDC's reported age gradient is very small. Only 3.6% of individuals over 80
     years old require intensive care. While the death rate is 28.7%. This seems to stem
-    from the ICU share assuming no ICU for those where ICcyU information is missing. We
+    from the ICU share assuming no ICU for those where ICU information is missing. We
     therefore use the maximum of the death and ICU rate.
 
 The two sources align very well. We take the OpenABM data rounded to whole percent.
