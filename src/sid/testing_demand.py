@@ -1,7 +1,6 @@
 """Contains the code for calculating the demand for tests."""
 import numpy as np
 import pandas as pd
-
 from sid.shared import date_is_within_start_and_end_date
 from sid.shared import random_choice
 

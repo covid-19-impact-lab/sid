@@ -4,7 +4,6 @@ from contextlib import ExitStack as does_not_warn_or_raise  # noqa: N813
 import numpy as np
 import pandas as pd
 import pytest
-
 from sid.testing_processing import process_tests
 
 
@@ -65,7 +64,7 @@ def test_processing_w_multiple_models(initial_states, params):
 
 @pytest.mark.integration
 @pytest.mark.parametrize(
-    "excess, expectation",
+    ("excess", "expectation"),
     [(True, pytest.warns(UserWarning)), (False, does_not_warn_or_raise())],
 )
 def test_issue_warning_if_processed_tests_exceed_available_tests(
@@ -90,7 +89,7 @@ def test_issue_warning_if_processed_tests_exceed_available_tests(
 
 @pytest.mark.integration
 @pytest.mark.parametrize(
-    "return_, expectation",
+    ("return_", "expectation"),
     [
         (pd.Series(data=np.full(15, True)), does_not_warn_or_raise()),
         (np.full(15, True), does_not_warn_or_raise()),

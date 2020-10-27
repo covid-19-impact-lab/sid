@@ -6,7 +6,6 @@ import pytest
 from numba import njit
 from numba.typed import List as NumbaList
 from numpy.testing import assert_array_equal
-
 from sid.config import DTYPE_N_CONTACTS
 from sid.contacts import _calculate_infections_by_contacts_numba
 from sid.contacts import _get_loop_entries
@@ -17,7 +16,7 @@ from sid.contacts import create_group_indexer
 
 
 @pytest.mark.parametrize(
-    "assort_by, expected",
+    ("assort_by", "expected"),
     [
         (
             ["age_group", "region"],
@@ -152,7 +151,7 @@ def _sample_data_for_calculate_infections_numba(
 
 
 @pytest.fixture()
-def _setup_households_w_one_infection():
+def setup_households_w_one_infection():
     states = pd.DataFrame(
         {
             "infectious": [True] + [False] * 7,
@@ -182,9 +181,9 @@ def _setup_households_w_one_infection():
 
 
 def test_calculate_infections_only_recurrent_all_participate(
-    _setup_households_w_one_infection,
+    setup_households_w_one_infection,
 ):
-    states, contacts, params, indexers, group_probs = _setup_households_w_one_infection
+    states, contacts, params, indexers, group_probs = setup_households_w_one_infection
 
     (
         calc_infected,
@@ -213,9 +212,9 @@ def test_calculate_infections_only_recurrent_all_participate(
 
 
 def test_calculate_infections_only_recurrent_sick_skips(
-    _setup_households_w_one_infection,
+    setup_households_w_one_infection,
 ):
-    states, contacts, params, indexers, group_probs = _setup_households_w_one_infection
+    states, contacts, params, indexers, group_probs = setup_households_w_one_infection
 
     contacts[0] = 0
 
@@ -242,9 +241,9 @@ def test_calculate_infections_only_recurrent_sick_skips(
 
 
 def test_calculate_infections_only_recurrent_one_skips(
-    _setup_households_w_one_infection,
+    setup_households_w_one_infection,
 ):
-    states, contacts, params, indexers, group_probs = _setup_households_w_one_infection
+    states, contacts, params, indexers, group_probs = setup_households_w_one_infection
 
     # 2nd person does not participate in household meeting
     contacts[1] = 0
@@ -271,9 +270,9 @@ def test_calculate_infections_only_recurrent_one_skips(
 
 
 def test_calculate_infections_only_recurrent_one_immune(
-    _setup_households_w_one_infection,
+    setup_households_w_one_infection,
 ):
-    states, contacts, params, indexers, group_probs = _setup_households_w_one_infection
+    states, contacts, params, indexers, group_probs = setup_households_w_one_infection
 
     states.loc[1, "immune"] = True
 
@@ -323,9 +322,9 @@ def set_deterministic_context(m):
 
 
 def test_calculate_infections_only_non_recurrent(
-    _setup_households_w_one_infection, monkeypatch
+    setup_households_w_one_infection, monkeypatch
 ):
-    states, contacts, *_ = _setup_households_w_one_infection
+    states, contacts, *_ = setup_households_w_one_infection
 
     contacts[0] = 1
 
@@ -376,7 +375,7 @@ def test_calculate_infections_only_non_recurrent(
 # =====================================================================================
 
 
-@pytest.fixture
+@pytest.fixture()
 def states_all_alive(initial_states):
     states = initial_states[:8].copy()
     states["dead"] = False
@@ -384,7 +383,7 @@ def states_all_alive(initial_states):
     return states
 
 
-@pytest.fixture
+@pytest.fixture()
 def contact_models():
     def meet_one(states, params):
         return pd.Series(1, index=states.index)
@@ -473,7 +472,7 @@ def test_calculate_contacts_policy_active(states_all_alive, contact_models):
     np.testing.assert_array_equal(expected, res)
 
 
-@pytest.fixture
+@pytest.fixture()
 def states_with_dead(states_all_alive):
     states_with_dead = states_all_alive.copy()
     states_with_dead.loc[:2, "dead"] = [True, False, True]
