@@ -75,8 +75,11 @@ participate in that contact model in that period). These model functions can be 
 turn recurrent contact models on and off or to implement that school classes only meet
 on weekdays, make sick individuals stay home, etc..
 
-Note that sid automatically implements that dead people and people who need intensive
-care do not have contacts anymore.
+.. note::
+
+    Note that sid automatically implements that dead people and people who need
+    intensive care do not have contacts anymore.
+
 
 .. _assort_by:
 

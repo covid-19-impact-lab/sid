@@ -183,7 +183,7 @@ def validate_return_is_series_or_ndarray(x, index=None, when=None):
 def date_is_within_start_and_end_date(date, start, end):
     """Indicate whether date lies within the start and end dates.
 
-    ``None`` are interpreted as open boundaries.
+    ``None`` is interpreted as an open boundary.
 
     Examples:
         >>> date_is_within_start_and_end_date("2020-01-02", "2020-01-01", "2020-01-03")

@@ -150,21 +150,19 @@ def _sample_data_for_calculate_infections_numba(
     )
 
 
-@pytest.fixture
-def states_one_infectious():
-    states = pd.DataFrame()
-    states["infectious"] = [True] + [False] * 7
-    states["immune"] = states["infectious"]
-    states["group_codes_households"] = [0] * 4 + [1] * 4
-    states["group_codes_non_rec"] = [0] * 4 + [1] * 4
-    states["households"] = [0] * 4 + [1] * 4
-    states["n_has_infected"] = 0
-    states["n_has_infected"] = states["n_has_infected"].astype(int)
-    return states
+@pytest.fixture()
+def _setup_households_w_one_infection():
+    states = pd.DataFrame(
+        {
+            "infectious": [True] + [False] * 7,
+            "immune": [True] + [False] * 7,
+            "group_codes_households": [0] * 4 + [1] * 4,
+            "households": [0] * 4 + [1] * 4,
+            "group_codes_non_rec": [0] * 4 + [1] * 4,
+            "n_has_infected": 0,
+        }
+    )
 
-
-def test_calculate_infections_only_recurrent_all_participate(states_one_infectious):
-    states = states_one_infectious.copy()
     contacts = np.ones((len(states), 1))
 
     params = pd.DataFrame(
@@ -178,6 +176,14 @@ def test_calculate_infections_only_recurrent_all_participate(states_one_infectio
     indexers = {"households": create_group_indexer(states, ["households"])}
 
     group_probs = {}
+
+    return states, contacts, params, indexers, group_probs
+
+
+def test_calculate_infections_only_recurrent_all_participate(
+    _setup_households_w_one_infection,
+):
+    states, contacts, params, indexers, group_probs = _setup_households_w_one_infection
 
     (
         calc_infected,
@@ -205,22 +211,12 @@ def test_calculate_infections_only_recurrent_all_participate(states_one_infectio
     assert np.all(calc_missed_contacts == 0)
 
 
-def test_calculate_infections_only_recurrent_sick_skips(states_one_infectious):
-    states = states_one_infectious.copy()
-    contacts = np.ones((len(states), 1))
+def test_calculate_infections_only_recurrent_sick_skips(
+    _setup_households_w_one_infection,
+):
+    states, contacts, params, indexers, group_probs = _setup_households_w_one_infection
+
     contacts[0] = 0
-
-    params = pd.DataFrame(
-        columns=["value"],
-        data=1.0,
-        index=pd.MultiIndex.from_tuples(
-            [("infection_prob", "households", "households")]
-        ),
-    )
-
-    indexers = {"households": create_group_indexer(states, ["households"])}
-
-    group_probs = {}
 
     (
         calc_infected,
@@ -244,23 +240,13 @@ def test_calculate_infections_only_recurrent_sick_skips(states_one_infectious):
     )
 
 
-def test_calculate_infections_only_recurrent_one_skips(states_one_infectious):
-    states = states_one_infectious.copy()
-    contacts = np.ones((len(states), 1))
+def test_calculate_infections_only_recurrent_one_skips(
+    _setup_households_w_one_infection,
+):
+    states, contacts, params, indexers, group_probs = _setup_households_w_one_infection
+
     # 2nd person does not participate in household meeting
     contacts[1] = 0
-
-    params = pd.DataFrame(
-        columns=["value"],
-        data=1.0,
-        index=pd.MultiIndex.from_tuples(
-            [("infection_prob", "households", "households")]
-        ),
-    )
-
-    indexers = {"households": create_group_indexer(states, ["households"])}
-
-    group_probs = {}
 
     (
         calc_infected,
@@ -283,22 +269,12 @@ def test_calculate_infections_only_recurrent_one_skips(states_one_infectious):
     )
 
 
-def test_calculate_infections_only_recurrent_one_immune(states_one_infectious):
-    states = states_one_infectious.copy()
-    contacts = np.ones((len(states), 1))
+def test_calculate_infections_only_recurrent_one_immune(
+    _setup_households_w_one_infection,
+):
+    states, contacts, params, indexers, group_probs = _setup_households_w_one_infection
+
     states.loc[1, "immune"] = True
-
-    params = pd.DataFrame(
-        columns=["value"],
-        data=1.0,
-        index=pd.MultiIndex.from_tuples(
-            [("infection_prob", "households", "households")]
-        ),
-    )
-
-    indexers = {"households": create_group_indexer(states, ["households"])}
-
-    group_probs = {}
 
     (
         calc_infected,
@@ -345,18 +321,20 @@ def set_deterministic_context(m):
     m.setattr("sid.contacts.np.random.choice", fix_loop_order)
 
 
-def test_calculate_infections_only_non_recurrent(states_one_infectious, monkeypatch):
-    states = states_one_infectious
-    contacts = np.ones((len(states), 1))
+def test_calculate_infections_only_non_recurrent(
+    _setup_households_w_one_infection, monkeypatch
+):
+    states, contacts, *_ = _setup_households_w_one_infection
+
     contacts[0] = 1
-    contacts = contacts.astype(int)
+
     params = pd.DataFrame(
         columns=["value"],
-        data=1.0,
+        data=1,
         index=pd.MultiIndex.from_tuples([("infection_prob", "non_rec", "non_rec")]),
     )
     indexers = {"non_rec": create_group_indexer(states, ["group_codes_non_rec"])}
-    group_probs = {"non_rec": np.array([[0.8, 1.0], [0.2, 1.0]])}
+    group_probs = {"non_rec": np.array([[0.8, 1], [0.2, 1]])}
 
     with monkeypatch.context() as m:
         set_deterministic_context(m)

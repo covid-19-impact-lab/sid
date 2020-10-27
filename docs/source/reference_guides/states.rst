@@ -86,32 +86,24 @@ one. If they hit zero, the state variables they are associated with is changed.
 
 We have the following countdowns:
 
-- **cd_infectious_true**:
-    Time from point of infection until an infected person becomes infectious.
-    This period is often called the latency period.
-- **cd_infectious_false**:
-    How long infectiousness lasts if no symptoms develop.
-    If a person becomes symptomatic they stay infectious until the symptoms end.
-- **cd_immune_false**:
-    How long immunity lasts after infection.
-- **cd_symptoms_true**:
-    Time between the onset of infectiousness and the appearance of symptoms.
-    -1 if a person does not develop symptoms in response to an infection.
-    Symptoms can only start after a person has become infectious.
-- **cd_symptoms_false**:
-    Duration of symptoms if a person does not require intensive care.
-- **cd_needs_icu_true**:
-    Time between the onset of symptoms until a person needs intensive care.
-    -1 if a person does not require intensive care.
-- **cd_needs_icu_false**:
-    How long a person needs intensive care before they recover if a person does not
-    die beforehand.
-- **cd_dead_true**:
-    Time until a person dies, from start of intensive care.
-    -1 if a person will survive intensive care of any length.
-- **cd_knows_true**:
-    Time from test until tested person knows the result.
-    Note: Testing is not implemented yet.
+- ``cd_infectious_true``: Time from point of infection until an infected person becomes
+  infectious. This period is often called the latency period.
+- ``cd_infectious_false``: How long infectiousness lasts.
+- ``cd_immune_false``: How long immunity lasts after an infection.
+- ``cd_symptoms_true``: Time between the onset of infectiousness and the appearance of
+  symptoms. -1 if a person does not develop symptoms in response to an infection.
+  Symptoms can only start after a person has become infectious.
+- ``cd_symptoms_false``: Duration of symptoms if a person does not require intensive
+  care.
+- ``cd_needs_icu_true``: Time between the onset of symptoms until a person needs
+  intensive care. -1 if a person does not require intensive care.
+- ``cd_needs_icu_false``: How long a person needs intensive care before they recover if
+  a person does not die beforehand.
+- ``cd_dead_true``: Time until a person dies, from start of intensive care. -1 if a
+  person will survive intensive care of any length.
+- ``cd_ever_infected``: Time passed since the last infection. The countdown starts at
+  zero and counts towards negative infinity. Use in combination with ``ever_infected``
+  to have the subset of people who were ever infected.
 
 The following countdowns are related to testing.
 

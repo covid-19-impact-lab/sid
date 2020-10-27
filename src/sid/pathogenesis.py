@@ -34,8 +34,8 @@ def draw_course_of_disease(states, params, seed):
     for cd in COUNTDOWNS:
         states[f"{cd}_draws"] = _draw_countdowns(states, params.loc[cd])
 
-    # make sure no one who is scheduled to die recovers before their death
-    would_die_if_infected = states.query("cd_dead_true_draws > 0").index
+    # Make sure no one who is scheduled to die recovers before their death.
+    would_die_if_infected = states.cd_dead_true_draws > 0
     states.loc[would_die_if_infected, "cd_needs_icu_false_draws"] = -1
 
     return states

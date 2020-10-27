@@ -47,9 +47,8 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
 
         contacts[:, i] = model_specific_contacts
 
-        # dead people and icu patients don't have contacts.
-        not_icu_nor_dead = states["needs_icu"] | states["dead"]
-        contacts[not_icu_nor_dead, :] = 0
+        # Dead people and ICU patients don't have contacts.
+        contacts[states["needs_icu"] | states["dead"], :] = 0
 
     return contacts
 
