@@ -1,3 +1,5 @@
+"""Specification of the countdowns that govern the disease progression and testing."""
+
 COUNTDOWNS = {
     "cd_infectious_true": {
         "changes": {"infectious": True, "n_has_infected": 0},

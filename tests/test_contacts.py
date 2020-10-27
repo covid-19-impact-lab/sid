@@ -6,6 +6,7 @@ import pytest
 from numba import njit
 from numba.typed import List as NumbaList
 from numpy.testing import assert_array_equal
+
 from sid.config import DTYPE_N_CONTACTS
 from sid.contacts import _calculate_infections_by_contacts_numba
 from sid.contacts import _get_loop_entries
@@ -163,7 +164,7 @@ def _setup_households_w_one_infection():
         }
     )
 
-    contacts = np.ones((len(states), 1))
+    contacts = np.ones((len(states), 1), dtype=int)
 
     params = pd.DataFrame(
         columns=["value"],
@@ -330,7 +331,7 @@ def test_calculate_infections_only_non_recurrent(
 
     params = pd.DataFrame(
         columns=["value"],
-        data=1,
+        data=1.0,
         index=pd.MultiIndex.from_tuples([("infection_prob", "non_rec", "non_rec")]),
     )
     indexers = {"non_rec": create_group_indexer(states, ["group_codes_non_rec"])}
