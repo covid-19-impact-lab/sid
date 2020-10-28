@@ -1,8 +1,12 @@
+from itertools import count
+
 import numpy as np
 import pandas as pd
 from pandas.testing import assert_series_equal
 from sid.config import DTYPE_DRAW_COURSE_OF_DISEASE
 from sid.pathogenesis import _draw_countdowns
+from sid.pathogenesis import draw_course_of_disease
+from sid.shared import get_epidemiological_parameters
 
 
 def test_draw_countdowns_single_row(params):
@@ -55,3 +59,25 @@ def test_draw_countdowns_age_variant():
     np.random.seed(34981)
     res = _draw_countdowns(states, params)
     assert_series_equal(left=expected, right=res)
+
+
+def test_draw_countdowns_with_covid_params():
+    # This test makes sure that the provided covid params are not corrupted
+    # It also tests that everyone scheduled to die won't recover before.
+    age_groups = [
+        "0-9",
+        "10-19",
+        "20-29",
+        "30-39",
+        "40-49",
+        "50-59",
+        "60-69",
+        "70-79",
+        "80-100",
+    ]
+    states = pd.DataFrame({"age_group": age_groups * 10})
+    params = get_epidemiological_parameters()
+    counter = count()
+    res = draw_course_of_disease(states, params, counter)
+    to_die = res[res["cd_dead_true_draws"] > 0]
+    assert (to_die["cd_needs_icu_false_draws"] == -1).all()

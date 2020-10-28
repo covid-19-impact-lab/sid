@@ -8,7 +8,7 @@ repos:
     -   id: check-added-large-files
         args: ['--maxkb=500']
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.7.2
+    rev: v2.7.3
     hooks:
     -   id: pyupgrade
         args: [--py36-plus]
@@ -33,10 +33,26 @@ repos:
     -   id: flake8
         types: [python]
         additional_dependencies: [
-            flake8-alfred, flake8-bugbear, flake8-builtins, flake8-comprehensions,
-            flake8-docstrings, flake8-eradicate, flake8-print, flake8-todo,
-            flake8-unused-arguments, pep8-naming, pydocstyle, Pygments,
+            flake8-alfred,
+            flake8-bugbear,
+            flake8-builtins,
+            flake8-comprehensions,
+            flake8-docstrings,
+            flake8-eradicate,
+            flake8-print,
+            flake8-pytest-style,
+            flake8-todo,
+            flake8-unused-arguments,
+            pep8-naming,
+            pydocstyle,
+            Pygments,
         ]
+- repo: https://github.com/nbQA-dev/nbQA
+  rev: 0.3.5
+  hooks:
+    - id: nbqa-black
+    - id: nbqa-pyupgrade
+    - id: nbqa-isort
 -   repo: https://github.com/PyCQA/doc8
     rev: 0.9.0a1
     hooks:

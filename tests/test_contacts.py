@@ -3,17 +3,20 @@ import itertools
 import numpy as np
 import pandas as pd
 import pytest
+from numba import njit
 from numba.typed import List as NumbaList
 from numpy.testing import assert_array_equal
+from sid.config import DTYPE_N_CONTACTS
 from sid.contacts import _calculate_infections_by_contacts_numba
 from sid.contacts import _get_loop_entries
 from sid.contacts import _reduce_contacts_with_infection_probs
+from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
 
 
 @pytest.mark.parametrize(
-    "assort_by, expected",
+    ("assort_by", "expected"),
     [
         (
             ["age_group", "region"],
@@ -147,20 +150,20 @@ def _sample_data_for_calculate_infections_numba(
     )
 
 
-def test_calculate_infections():
-    """test with only one recurrent contact model and very few states"""
-    # set up states
+@pytest.fixture()
+def setup_households_w_one_infection():
     states = pd.DataFrame(
         {
             "infectious": [True] + [False] * 7,
             "immune": [True] + [False] * 7,
             "group_codes_households": [0] * 4 + [1] * 4,
             "households": [0] * 4 + [1] * 4,
+            "group_codes_non_rec": [0] * 4 + [1] * 4,
             "n_has_infected": 0,
         }
     )
 
-    contacts = np.ones((len(states), 1))
+    contacts = np.ones((len(states), 1), dtype=int)
 
     params = pd.DataFrame(
         columns=["value"],
@@ -173,6 +176,14 @@ def test_calculate_infections():
     indexers = {"households": create_group_indexer(states, ["households"])}
 
     group_probs = {}
+
+    return states, contacts, params, indexers, group_probs
+
+
+def test_calculate_infections_only_recurrent_all_participate(
+    setup_households_w_one_infection,
+):
+    states, contacts, params, indexers, group_probs = setup_households_w_one_infection
 
     (
         calc_infected,
@@ -198,6 +209,302 @@ def test_calculate_infections():
     )
     assert (states["immune"] | calc_infected).equals(exp_immune)
     assert np.all(calc_missed_contacts == 0)
+
+
+def test_calculate_infections_only_recurrent_sick_skips(
+    setup_households_w_one_infection,
+):
+    states, contacts, params, indexers, group_probs = setup_households_w_one_infection
+
+    contacts[0] = 0
+
+    (
+        calc_infected,
+        calc_n_has_additionally_infected,
+        calc_missed_contacts,
+    ) = calculate_infections_by_contacts(
+        states=states,
+        contacts=contacts,
+        params=params,
+        indexers=indexers,
+        group_cdfs=group_probs,
+        seed=itertools.count(),
+    )
+
+    exp_infected = pd.Series([False] * 8)
+    exp_infection_counter = pd.Series([0] * 8).astype(np.int32)
+
+    assert calc_infected.equals(exp_infected)
+    assert calc_n_has_additionally_infected.astype(np.int32).equals(
+        exp_infection_counter
+    )
+
+
+def test_calculate_infections_only_recurrent_one_skips(
+    setup_households_w_one_infection,
+):
+    states, contacts, params, indexers, group_probs = setup_households_w_one_infection
+
+    # 2nd person does not participate in household meeting
+    contacts[1] = 0
+
+    (
+        calc_infected,
+        calc_n_has_additionally_infected,
+        calc_missed_contacts,
+    ) = calculate_infections_by_contacts(
+        states=states,
+        contacts=contacts,
+        params=params,
+        indexers=indexers,
+        group_cdfs=group_probs,
+        seed=itertools.count(),
+    )
+
+    exp_infected = pd.Series([False, False] + [True] * 2 + [False] * 4)
+    exp_infection_counter = pd.Series([2] + [0] * 7).astype(np.int32)
+    assert calc_infected.equals(exp_infected)
+    assert calc_n_has_additionally_infected.astype(np.int32).equals(
+        exp_infection_counter
+    )
+
+
+def test_calculate_infections_only_recurrent_one_immune(
+    setup_households_w_one_infection,
+):
+    states, contacts, params, indexers, group_probs = setup_households_w_one_infection
+
+    states.loc[1, "immune"] = True
+
+    (
+        calc_infected,
+        calc_n_has_additionally_infected,
+        calc_missed_contacts,
+    ) = calculate_infections_by_contacts(
+        states=states,
+        contacts=contacts,
+        params=params,
+        indexers=indexers,
+        group_cdfs=group_probs,
+        seed=itertools.count(),
+    )
+
+    exp_infected = pd.Series([False, False] + [True] * 2 + [False] * 4)
+    exp_infection_counter = pd.Series([2] + [0] * 7).astype(np.int32)
+    assert calc_infected.equals(exp_infected)
+    assert calc_n_has_additionally_infected.astype(np.int32).equals(
+        exp_infection_counter
+    )
+
+
+def set_deterministic_context(m):
+    """Replace all randomness in the model with specified orders."""
+
+    @njit
+    def fake_choose_other_group(a, cdf):
+        """Deterministically switch between groups."""
+        return a[0]
+
+    m.setattr("sid.contacts._choose_other_group", fake_choose_other_group)
+
+    @njit
+    def fake_choose_j(a, weights):
+        """Deterministically switch between groups."""
+        return a[1]
+
+    m.setattr("sid.contacts._choose_other_individual", fake_choose_j)
+
+    @njit
+    def fix_loop_order(x, replace, size):
+        return NumbaList(range(x))
+
+    m.setattr("sid.contacts.np.random.choice", fix_loop_order)
+
+
+def test_calculate_infections_only_non_recurrent(
+    setup_households_w_one_infection, monkeypatch
+):
+    states, contacts, *_ = setup_households_w_one_infection
+
+    contacts[0] = 1
+
+    params = pd.DataFrame(
+        columns=["value"],
+        data=1.0,
+        index=pd.MultiIndex.from_tuples([("infection_prob", "non_rec", "non_rec")]),
+    )
+    indexers = {"non_rec": create_group_indexer(states, ["group_codes_non_rec"])}
+    group_probs = {"non_rec": np.array([[0.8, 1], [0.2, 1]])}
+
+    with monkeypatch.context() as m:
+        set_deterministic_context(m)
+        (
+            calc_infected,
+            calc_n_has_additionally_infected,
+            calc_missed_contacts,
+        ) = calculate_infections_by_contacts(
+            states=states,
+            contacts=contacts,
+            params=params,
+            indexers=indexers,
+            group_cdfs=group_probs,
+            seed=itertools.count(),
+        )
+
+    exp_infected = pd.Series(
+        [
+            False,
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+        ]
+    )
+    exp_infection_counter = pd.Series([1] + [0] * 7).astype(np.int32)
+    assert calc_infected.equals(exp_infected)
+    assert calc_n_has_additionally_infected.astype(np.int32).equals(
+        exp_infection_counter
+    )
+
+
+# =====================================================================================
+# calculate_contacts
+# =====================================================================================
+
+
+@pytest.fixture()
+def states_all_alive(initial_states):
+    states = initial_states[:8].copy()
+    states["dead"] = False
+    states["needs_icu"] = False
+    return states
+
+
+@pytest.fixture()
+def contact_models():
+    def meet_one(states, params):
+        return pd.Series(1, index=states.index)
+
+    def first_half_meet(states, params):
+        n_contacts = pd.Series(0, index=states.index)
+        first_half = round(len(states) / 2)
+        n_contacts[:first_half] = 1
+        return n_contacts
+
+    contact_models = {
+        "meet_one": {
+            "model": meet_one,
+            "is_recurrent": False,
+        },
+        "first_half_meet": {
+            "model": first_half_meet,
+            "is_recurrent": False,
+        },
+    }
+    return contact_models
+
+
+def test_calculate_contacts_no_policy(states_all_alive, contact_models):
+    contact_policies = {}
+    date = pd.Timestamp("2020-09-29")
+    params = pd.DataFrame()
+    first_half = round(len(states_all_alive) / 2)
+    expected = np.array(
+        [[1, i < first_half] for i in range(len(states_all_alive))],
+        dtype=DTYPE_N_CONTACTS,
+    )
+    res = calculate_contacts(
+        contact_models=contact_models,
+        contact_policies=contact_policies,
+        states=states_all_alive,
+        params=params,
+        date=date,
+    )
+    np.testing.assert_array_equal(expected, res)
+
+
+def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
+    contact_policies = {
+        "first_half_meet": {
+            "start": "2020-08-01",
+            "end": "2020-08-30",
+            "is_active": lambda x: True,
+            "multiplier": 0,
+        },
+    }
+    date = pd.Timestamp("2020-09-29")
+    params = pd.DataFrame()
+    first_half = round(len(states_all_alive) / 2)
+    expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
+    expected[:first_half, 1] = 1
+    res = calculate_contacts(
+        contact_models=contact_models,
+        contact_policies=contact_policies,
+        states=states_all_alive,
+        params=params,
+        date=date,
+    )
+    np.testing.assert_array_equal(expected, res)
+
+
+def test_calculate_contacts_policy_active(states_all_alive, contact_models):
+    contact_policies = {
+        "first_half_meet": {
+            "start": "2020-09-01",
+            "end": "2020-09-30",
+            "is_active": lambda states: True,
+            "multiplier": 0,
+        },
+    }
+    date = pd.Timestamp("2020-09-29")
+    params = pd.DataFrame()
+    expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
+    res = calculate_contacts(
+        contact_models=contact_models,
+        contact_policies=contact_policies,
+        states=states_all_alive,
+        params=params,
+        date=date,
+    )
+    np.testing.assert_array_equal(expected, res)
+
+
+@pytest.fixture()
+def states_with_dead(states_all_alive):
+    states_with_dead = states_all_alive.copy()
+    states_with_dead.loc[:2, "dead"] = [True, False, True]
+    states_with_dead.loc[5:, "needs_icu"] = [True, False, True]
+    return states_with_dead
+
+
+def test_calculate_contacts_with_dead(states_with_dead, contact_models):
+    contact_policies = {}
+    date = pd.Timestamp("2020-09-29")
+    params = pd.DataFrame()
+    expected = np.array(
+        [
+            [0, 0],
+            [1, 1],
+            [0, 0],
+            [1, 1],
+            [1, 0],
+            [0, 0],
+            [1, 0],
+            [0, 0],
+        ],
+        dtype=DTYPE_N_CONTACTS,
+    )
+    res = calculate_contacts(
+        contact_models=contact_models,
+        contact_policies=contact_policies,
+        states=states_with_dead,
+        params=params,
+        date=date,
+    )
+    np.testing.assert_array_equal(expected, res)
 
 
 def test_get_loop_entries():

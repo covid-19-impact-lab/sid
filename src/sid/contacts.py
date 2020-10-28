@@ -24,30 +24,31 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
         contacts (numpy.ndarray): DataFrame with one column for each contact model.
 
     """
-    columns = []
-    for model_name, model in contact_models.items():
+    contacts = np.zeros((len(states), len(contact_models)), dtype=DTYPE_N_CONTACTS)
 
+    for i, (model_name, model) in enumerate(contact_models.items()):
         loc = model.get("loc", params.index)
         func = model["model"]
-        cont = func(states, params.loc[loc])
-        cont = validate_return_is_series_or_ndarray(
-            cont, when=f"Contact model {model_name}"
+        model_specific_contacts = func(states, params.loc[loc])
+        model_specific_contacts = validate_return_is_series_or_ndarray(
+            model_specific_contacts, when=f"Contact model {model_name}"
         )
-
         if model_name in contact_policies:
             cp = contact_policies[model_name]
             policy_start = pd.Timestamp(cp["start"])
             policy_end = pd.Timestamp(cp["end"])
 
             if policy_start <= date <= policy_end and cp["is_active"](states):
-                cont *= cp["multiplier"]
-
+                model_specific_contacts *= cp["multiplier"]
         if not model["is_recurrent"]:
-            cont = _sum_preserving_round(cont.to_numpy().astype(DTYPE_N_CONTACTS))
+            model_specific_contacts = _sum_preserving_round(
+                model_specific_contacts.to_numpy().astype(DTYPE_N_CONTACTS)
+            )
 
-        columns.append(cont)
+        contacts[:, i] = model_specific_contacts
 
-    contacts = np.column_stack(columns).astype(DTYPE_N_CONTACTS)
+        # Dead people and ICU patients don't have contacts.
+        contacts[states["needs_icu"] | states["dead"], :] = 0
 
     return contacts
 

@@ -26,7 +26,7 @@ def test_join_transition_matrices():
 
 
 @pytest.mark.parametrize(
-    "assort_by, expected",
+    ("assort_by", "expected"),
     [
         (
             ["age_group", "region"],

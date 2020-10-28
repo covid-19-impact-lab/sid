@@ -15,8 +15,14 @@ before you continue.
 ``params`` has a three level index. The first level is "category", the second is the
 "subcategory", the third is called "name". The values are stored in the "value" column.
 
-We provide epidemiological estimates for many of these variables in the ``params.csv``
-with explanatory notes and links to their sources.
+We provide epidemiological estimates for many of these variables in the
+``covid_epi_params.csv`` with explanatory notes and links to their sources which are
+accessible via
+
+.. code-block:: python
+
+    params = sid.get_epidemiological_parameters()
+
 
 Currently, we have the following categories:
 

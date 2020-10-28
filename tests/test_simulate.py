@@ -60,14 +60,14 @@ def test_prepare_params(params):
     s = pd.DataFrame(index=index, data={"value": 0, "note": None, "source": None})
     params = params.copy().append(s)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="No NaNs allowed in the params index."):
         _prepare_params(params)
 
 
 @pytest.mark.unit
 @pytest.mark.parametrize("input_", [pd.Series(dtype="object"), (), 1, [], {}, set()])
 def test_prepare_params_with_wrong_inputs(input_):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="params must be a DataFrame."):
         _prepare_params(input_)
 
 
@@ -75,7 +75,7 @@ def test_prepare_params_with_wrong_inputs(input_):
 def test_prepare_params_not_three_dimensional_multi_index(params):
     params = params.copy().reset_index(drop=True)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="params must have the index levels"):
         _prepare_params(params)
 
 
@@ -83,7 +83,7 @@ def test_prepare_params_not_three_dimensional_multi_index(params):
 def test_prepare_params_no_duplicates_in_index(params):
     params = params.copy().append(params)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="No duplicates in the params index allowed."):
         _prepare_params(params)
 
 
@@ -92,5 +92,5 @@ def test_prepare_params_value_with_nan(params):
     params = params.copy()
     params["value"].iloc[0] = np.nan
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="The 'value' column of params must not"):
         _prepare_params(params)

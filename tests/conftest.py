@@ -17,14 +17,14 @@ def _patch_doctest_namespace(doctest_namespace):
     doctest_namespace["pd"] = pd
 
 
-@pytest.fixture
+@pytest.fixture()
 def initial_states():
     return pd.read_csv(Path(__file__).resolve().parent / "test_states.csv").astype(
         "category"
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def params():
     return pd.read_csv(
         Path(__file__).resolve().parent / "test_params.csv",

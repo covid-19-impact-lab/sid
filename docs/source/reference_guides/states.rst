@@ -88,9 +88,8 @@ We have the following countdowns:
 
 - ``cd_infectious_true``: Time from point of infection until an infected person becomes
   infectious. This period is often called the latency period.
-- ``cd_infectious_false``: How long infectiousness lasts if no symptoms develop. If a
-  person becomes symptomatic they stay infectious until the symptoms end.
-- ``cd_immune_false``: How long immunity lasts after infection.
+- ``cd_infectious_false``: How long infectiousness lasts.
+- ``cd_immune_false``: How long immunity lasts after an infection.
 - ``cd_symptoms_true``: Time between the onset of infectiousness and the appearance of
   symptoms. -1 if a person does not develop symptoms in response to an infection.
   Symptoms can only start after a person has become infectious.
@@ -136,5 +135,5 @@ Other background characteristics you may want to include are:
 - variables governing the assortativeness of the matching of individuals, such as region
   of residence
 - individual characteristics that influence how many contacts a person has, such as
-  gender or occupation
-- identifiers for recurrent contact models such ass households or school classes
+  gender or occupation.
+- identifiers for recurrent contact models such as households or school classes.
