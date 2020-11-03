@@ -276,7 +276,7 @@ def _calculate_infections_by_contacts_numba(
                         pass
                     else:
                         if infectious[j] and not immune[i] and contacts[j, cm] > 0:
-                            is_infection = _boolean_choice(infection_probs[cm])
+                            is_infection = boolean_choice(infection_probs[cm])
                             if is_infection:
                                 infection_counter[j] += 1
                                 infected[i] = 1
@@ -293,11 +293,11 @@ def _calculate_infections_by_contacts_numba(
             n_contacts = contacts[i, cm]
             for _ in range(n_contacts):
                 contact_takes_place = True
-                group_j = _choose_other_group(groups_list[cm], cdf=group_i_cdf)
+                group_j = choose_other_group(groups_list[cm], cdf=group_i_cdf)
                 choice_indices = indexers_list[cm][group_j]
                 contacts_j = contacts[choice_indices, cm]
 
-                j = _choose_other_individual(choice_indices, weights=contacts_j)
+                j = choose_other_individual(choice_indices, weights=contacts_j)
 
                 if j < 0 or j == i:
                     contact_takes_place = False
@@ -323,20 +323,26 @@ def _calculate_infections_by_contacts_numba(
 
 
 @nb.njit
-def _choose_other_group(a, cdf):
-    """Choose a group out of a, given cumulative choice probabilities."""
+def choose_other_group(a, cdf):
+    """Choose a group out of a, given cumulative choice probabilities.
+
+    Note: This function is also used in sid-estimation.
+
+    """
     u = np.random.uniform(0, 1)
     index = _get_index_refining_search(u, cdf)
     return a[index]
 
 
 @nb.njit
-def _choose_other_individual(a, weights):
+def choose_other_individual(a, weights):
     """Return an element of a, if weights are not all zero, else return -1.
 
     Implementation is similar to `_choose_one_element`.
 
     :func:`numpy.argmax` returns the first index for multiple maximum values.
+
+    Note: This function is also used in sid-estimation.
 
     Args:
         a (numpy.ndarray): 1d array of choices
@@ -346,14 +352,14 @@ def _choose_other_individual(a, weights):
         choice (int or float): An element of a or -1
 
     Example:
-        >>> _choose_other_individual(np.arange(3), np.array([0, 0, 5]))
+        >>> choose_other_individual(np.arange(3), np.array([0, 0, 5]))
         2
 
-        >>> _choose_other_individual(np.arange(3), np.zeros(3))
+        >>> choose_other_individual(np.arange(3), np.zeros(3))
         -1
 
 
-        >>> chosen = _choose_other_individual(np.arange(3), np.array([0.1, 0.5, 0.7]))
+        >>> chosen = choose_other_individual(np.arange(3), np.array([0.1, 0.5, 0.7]))
         >>> chosen in [0, 1, 2]
         True
 
@@ -418,8 +424,10 @@ def _get_index_refining_search(u, cdf):
 
 
 @nb.njit
-def _boolean_choice(truth_prob):
+def boolean_choice(truth_prob):
     """Return True with probability truth_prob.
+
+    Note: This function is also used in sid-estimation.
 
     Args:
         truth_prob (float): Must be between 0 and 1.
@@ -428,10 +436,10 @@ def _boolean_choice(truth_prob):
         bool
 
     Example:
-        >>> _boolean_choice(1)
+        >>> boolean_choice(1)
         True
 
-        >>> _boolean_choice(0)
+        >>> boolean_choice(0)
         False
 
     """
@@ -453,6 +461,8 @@ def create_group_indexer(states, assort_by):
     For efficiency reasons, we assign each group a number instead of identifying by
     the values of the assort_by variables directly.
 
+    Note: This function is also used in sid-estimation.
+
     Args:
         states (pandas.DataFrame): See :ref:`states`
         assort_by (list): List of variables that influence matching probabilities.
@@ -461,6 +471,7 @@ def create_group_indexer(states, assort_by):
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
 
     """
+    states = states.reset_index()
     if assort_by:
         groups = states.groupby(assort_by).groups
         _, group_codes_values = factorize_assortative_variables(states, assort_by)

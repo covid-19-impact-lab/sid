@@ -305,14 +305,14 @@ def set_deterministic_context(m):
         """Deterministically switch between groups."""
         return a[0]
 
-    m.setattr("sid.contacts._choose_other_group", fake_choose_other_group)
+    m.setattr("sid.contacts.choose_other_group", fake_choose_other_group)
 
     @njit
     def fake_choose_j(a, weights):
         """Deterministically switch between groups."""
         return a[1]
 
-    m.setattr("sid.contacts._choose_other_individual", fake_choose_j)
+    m.setattr("sid.contacts.choose_other_individual", fake_choose_j)
 
     @njit
     def fix_loop_order(x, replace, size):
@@ -351,18 +351,7 @@ def test_calculate_infections_only_non_recurrent(
             seed=itertools.count(),
         )
 
-    exp_infected = pd.Series(
-        [
-            False,
-            True,
-            False,
-            False,
-            False,
-            False,
-            False,
-            False,
-        ]
-    )
+    exp_infected = pd.Series([False, True, False, False, False, False, False, False])
     exp_infection_counter = pd.Series([1] + [0] * 7).astype(np.int32)
     assert calc_infected.equals(exp_infected)
     assert calc_n_has_additionally_infected.astype(np.int32).equals(
