@@ -352,14 +352,14 @@ def choose_other_individual(a, weights):
         choice (int or float): An element of a or -1
 
     Example:
-        >>> _choose_other_individual(np.arange(3), np.array([0, 0, 5]))
+        >>> choose_other_individual(np.arange(3), np.array([0, 0, 5]))
         2
 
-        >>> _choose_other_individual(np.arange(3), np.zeros(3))
+        >>> choose_other_individual(np.arange(3), np.zeros(3))
         -1
 
 
-        >>> chosen = _choose_other_individual(np.arange(3), np.array([0.1, 0.5, 0.7]))
+        >>> chosen = choose_other_individual(np.arange(3), np.array([0.1, 0.5, 0.7]))
         >>> chosen in [0, 1, 2]
         True
 
@@ -471,6 +471,7 @@ def create_group_indexer(states, assort_by):
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
 
     """
+    states = states.reset_index()
     if assort_by:
         groups = states.groupby(assort_by).groups
         _, group_codes_values = factorize_assortative_variables(states, assort_by)
