@@ -123,7 +123,7 @@ def _load_data(df_or_path, keep_vars, i):
         df = df_or_path[keep_vars]
         df_name = i
     elif isinstance(df_or_path, Path):
-        df = dd.read_parquet(df_or_path)[keep_vars].compute()
+        df = dd.read_parquet(df_or_path, engine="fastparquet")[keep_vars].compute()
         df_name = df_or_path.stem
     else:
         raise NotImplementedError

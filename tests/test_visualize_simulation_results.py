@@ -36,7 +36,7 @@ def test_create_folders(tmp_path):
 def test_load_data_path():
     path = Path(__file__).resolve().parent / "simulation_results" / "1.parquet"
     expected_name = "1"
-    expected_df = pd.read_parquet(path)[KEEP_VARS]
+    expected_df = pd.read_parquet(path, engine="fastparquet")[KEEP_VARS]
     name, df = _load_data(path, keep_vars=KEEP_VARS, i=100)
     assert expected_name == name
     pd.testing.assert_frame_equal(expected_df, df)
@@ -46,7 +46,7 @@ def test_load_data_path():
 def test_load_data_df():
     path = Path(__file__).resolve().parent / "simulation_results" / "1.parquet"
     input_df = pd.read_parquet(path)
-    expected_df = pd.read_parquet(path)[KEEP_VARS]
+    expected_df = pd.read_parquet(path, engine="fastparquet")[KEEP_VARS]
     name, df = _load_data(input_df, keep_vars=KEEP_VARS, i=100)
     assert name == 100
     pd.testing.assert_frame_equal(expected_df, df)

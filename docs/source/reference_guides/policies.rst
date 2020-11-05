@@ -31,7 +31,6 @@ when ``states`` fulfills some condition. Here is an example:
         }
     }
 
-
 ``"work_close"`` is the name of the contact model the policies refers to. ``"start"``
 and ``"end"`` define the time period in dates when the policy is active. They are
 optional. ``"multiplier"`` will be multiplied with the number of contacts. It is no
