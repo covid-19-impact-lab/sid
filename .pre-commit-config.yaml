@@ -48,11 +48,11 @@ repos:
             Pygments,
         ]
 - repo: https://github.com/nbQA-dev/nbQA
-  rev: 0.3.5
+  rev: 0.3.6
   hooks:
-    - id: nbqa-black
-    - id: nbqa-pyupgrade
-    - id: nbqa-isort
+    -   id: nbqa-black
+    -   id: nbqa-pyupgrade
+    -   id: nbqa-isort
 -   repo: https://github.com/PyCQA/doc8
     rev: 0.9.0a1
     hooks:

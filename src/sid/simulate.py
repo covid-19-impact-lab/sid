@@ -585,7 +585,7 @@ def _dump_periodic_states(states, output_directory, date, debug):
         useless_columns = USELESS_COLUMNS + group_codes
         states = states.drop(columns=useless_columns)
 
-    states.to_parquet(output_directory / f"{date.date()}.parquet")
+    states.to_parquet(output_directory / f"{date.date()}.parquet", engine="fastparquet")
 
 
 def _return_dask_dataframe(output_directory, categoricals):
@@ -598,4 +598,6 @@ def _return_dask_dataframe(output_directory, categoricals):
         df (dask.dataframe): A dask DataFrame which contains the simulation results.
 
     """
-    return dd.read_parquet(output_directory, categories=categoricals)
+    return dd.read_parquet(
+        output_directory, categories=categoricals, engine="fastparquet"
+    )
