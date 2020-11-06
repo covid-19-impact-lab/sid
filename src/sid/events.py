@@ -19,12 +19,15 @@ def calculate_infections_by_events(states, params, events):
 
     """
     infections_by_events = pd.DataFrame()
-    for name, event in events.items():
-        loc = event.get("loc", params.index)
-        func = event["model"]
+    if events:
+        for name, event in events.items():
+            loc = event.get("loc", params.index)
+            func = event["model"]
 
-        infections_by_events[name] = func(states, params.loc[loc])
+            infections_by_events[name] = func(states, params.loc[loc])
 
-    newly_infected_events = infections_by_events.any(axis=1)
+        newly_infected_events = infections_by_events.any(axis=1)
+    else:
+        newly_infected_events = pd.Series(False, index=states.index)
 
     return newly_infected_events

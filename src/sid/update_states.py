@@ -50,19 +50,16 @@ def update_states(
     states["newly_infected"] = newly_infected_contacts | newly_infected_events
     states["immune"] = states["immune"] | states["newly_infected"]
 
-    # Save channel of infection.
-    if "newly_infected_reason" not in states:
-        states["newly_infected_reason"] = pd.Categorical(
-            np.full(len(states), np.nan),
-            categories=["contact", "contact or event", "event"],
-        )
-    for condition, label in [
-        (states.index, "contact or event"),
-        (newly_infected_contacts & ~newly_infected_events, "contact"),
-        (newly_infected_events & ~newly_infected_contacts, "event"),
-    ]:
-        states.loc[condition, "newly_infected_reason"] = label
-    states["newly_infected_reason"] = states["newly_infected_reason"].astype("category")
+    # Save channel of infection; For speed reasons start with integer labels and
+    # convert to string labels later
+    labels = {0: "contact or event", 1: "contact", 2: "event"}
+    channel = np.zeros(len(states))
+    newly_infected_contacts = newly_infected_contacts.to_numpy()
+    newly_infected_events = newly_infected_events.to_numpy()
+    channel[newly_infected_contacts & ~newly_infected_events] = 1
+    channel[newly_infected_events & ~newly_infected_contacts] = 2
+    states["newly_infected_reason"] = pd.Categorical(
+        channel, categories=[0, 1, 2]).rename_categories(labels)
 
     # Update states with new infections and add corresponding countdowns.
     locs = states.query("newly_infected").index
