@@ -58,8 +58,10 @@ def update_states(
     newly_infected_events = newly_infected_events.to_numpy()
     channel[newly_infected_contacts & ~newly_infected_events] = 1
     channel[newly_infected_events & ~newly_infected_contacts] = 2
-    states["newly_infected_reason"] = pd.Categorical(
-        channel, categories=[0, 1, 2]).rename_categories(labels)
+    # set categories is necessary in case one of the categories was not present in the
+    # data. Setting them via set_categories is much faster than passing them into
+    # pd.Categorical directly
+    states["newly_infected_reason"] = pd.Categorical(channel).set_categories([0, 1, 2]).rename_categories(labels)
 
     # Update states with new infections and add corresponding countdowns.
     locs = states.query("newly_infected").index
