@@ -264,23 +264,24 @@ def _calculate_infections_by_contacts_numba(
     for k in range(len(loop_order)):
         i, cm = loop_order[k]
         if is_recurrent[cm]:
-            # We only check if i gets infected by someone else from his group. Whether
-            # he infects some j is only checked, when the main loop arrives at j.
-            group_i = group_codes[i, cm]
-            # skip completely if i does not have a group or is already immune
-            if not immune[i] and contacts[i, cm] > 0:
+            # We only check if i infects someone else from his group. Whether
+            # he is infected by some j is only checked, when the main loop arrives at j.
+            # This allows us to skip completely if i is not infectious or has no
+            # contacts under contact model cm.
+            if infectious[i] and contacts[i, cm] > 0:
+                group_i = group_codes[i, cm]
                 others = indexers_list[cm][group_i]
+                # extract infection probability into a variable for faster access
+                prob = infection_probs[cm]
                 for j in others:
-                    # There is no point in meeting oneself. It is not a pleasure.
-                    if i == j:
-                        pass
-                    else:
-                        if infectious[j] and not immune[i] and contacts[j, cm] > 0:
-                            is_infection = boolean_choice(infection_probs[cm])
-                            if is_infection:
-                                infection_counter[j] += 1
-                                infected[i] = 1
-                                immune[i] = True
+                    # the case i == j is skipped by the next if condition because it
+                    # never happens that i is infectious but not immune
+                    if not immune[j] and contacts[j, cm] > 0:
+                        is_infection = boolean_choice(prob)
+                        if is_infection:
+                            infection_counter[i] += 1
+                            infected[j] = 1
+                            immune[j] = True
 
         else:
             # get the probabilities for meeting another group which depend on the
