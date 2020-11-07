@@ -12,7 +12,8 @@ from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_PERIOD
 from sid.config import INDEX_NAMES
-from sid.config import SAVED_COLUMNS, OPTIONAL_STATE_COLUMNS
+from sid.config import OPTIONAL_STATE_COLUMNS
+from sid.config import SAVED_COLUMNS
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
@@ -43,8 +44,7 @@ def get_simulate_func(
     seed=None,
     path=None,
     saved_columns=None,
-    optional_state_columns=None
-
+    optional_state_columns=None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -136,7 +136,9 @@ def get_simulate_func(
 
     indexers = _prepare_assortative_matching_indexers(initial_states, assort_bys)
 
-    cols_to_keep = _process_saved_columns(saved_columns, user_state_columns, contact_models, optional_state_columns)
+    cols_to_keep = _process_saved_columns(
+        saved_columns, user_state_columns, contact_models, optional_state_columns
+    )
 
     sim_func = functools.partial(
         _simulate,
@@ -230,7 +232,7 @@ def _simulate(
         newly_infected_events=initial_infections,
         params=params,
         seed=seed,
-        optional_state_columns=optional_state_columns
+        optional_state_columns=optional_state_columns,
     )
     for period, date in enumerate(duration["dates"]):
         states["date"] = date
@@ -291,7 +293,9 @@ def _simulate(
         column: initial_states[column].cat.categories.shape[0]
         for column in initial_states.select_dtypes("category").columns
     }
-    categoricals = {key: val for key, val in categoricals.items() if key in columns_to_keep}
+    categoricals = {
+        key: val for key, val in categoricals.items() if key in columns_to_keep
+    }
     simulation_results = _return_dask_dataframe(path, categoricals)
 
     return simulation_results
@@ -622,13 +626,18 @@ def _return_dask_dataframe(output_directory, categoricals):
     )
 
 
-def _process_saved_columns(saved_columns, initial_state_columns, contact_models, optional_state_columns):
-    saved_columns = SAVED_COLUMNS if saved_columns is None else {**SAVED_COLUMNS, **saved_columns}
+def _process_saved_columns(
+    saved_columns, initial_state_columns, contact_models, optional_state_columns
+):
+    saved_columns = (
+        SAVED_COLUMNS if saved_columns is None else {**SAVED_COLUMNS, **saved_columns}
+    )
 
     all_columns = {
         "initial_states": initial_state_columns,
-        "disease_states": [col for col in BOOLEAN_STATE_COLUMNS if not "test" in col],
-        "testing_states": [col for col in BOOLEAN_STATE_COLUMNS if "test" in col] + ["pending_test_date", "pending_test_period"],
+        "disease_states": [col for col in BOOLEAN_STATE_COLUMNS if "test" not in col],
+        "testing_states": [col for col in BOOLEAN_STATE_COLUMNS if "test" in col]
+        + ["pending_test_date", "pending_test_period"],
         "countdowns": list(COUNTDOWNS),
         "contacts": [f"n_contacts_{model}" for model in contact_models],
         "countdown_draws": [f"{cd}_draws" for cd in COUNTDOWNS],
@@ -643,8 +652,7 @@ def _process_saved_columns(saved_columns, initial_state_columns, contact_models,
         keep += saved_columns["other"]
 
     all_columns["contacts"] = _combine_column_lists(
-        optional_state_columns["contacts"],
-        all_columns["contacts"]
+        optional_state_columns["contacts"], all_columns["contacts"]
     )
 
     if not optional_state_columns["reason_for_infection"]:
@@ -665,5 +673,9 @@ def _combine_column_lists(user_entries, all_entries):
 
 
 def _process_optional_state_columns(opt_state_cols):
-    res = OPTIONAL_STATE_COLUMNS if opt_state_cols is None else {**OPTIONAL_STATE_COLUMNS, **opt_state_cols}
+    res = (
+        OPTIONAL_STATE_COLUMNS
+        if opt_state_cols is None
+        else {**OPTIONAL_STATE_COLUMNS, **opt_state_cols}
+    )
     return res

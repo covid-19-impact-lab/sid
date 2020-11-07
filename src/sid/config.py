@@ -50,7 +50,6 @@ SAVED_COLUMNS = {
 }
 
 
-
 OPTIONAL_STATE_COLUMNS = {
     "contacts": False,
     "reason_for_infection": False,

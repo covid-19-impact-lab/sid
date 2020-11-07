@@ -170,7 +170,9 @@ def _get_shuffled_loop_entries(n_states, n_contact_models, seed, n_model_orders=
     # create random permutations of the model orders
     model_orders = np.zeros((n_model_orders, n_contact_models))
     for m in range(n_model_orders):
-        model_orders[m] = np.random.choice(n_contact_models, replace=False, size=n_contact_models)
+        model_orders[m] = np.random.choice(
+            n_contact_models, replace=False, size=n_contact_models
+        )
 
     counter = 0
 
