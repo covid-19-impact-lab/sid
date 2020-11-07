@@ -292,9 +292,7 @@ def _simulate(
     categoricals = {
         column: initial_states[column].cat.categories.shape[0]
         for column in initial_states.select_dtypes("category").columns
-    }
-    categoricals = {
-        key: val for key, val in categoricals.items() if key in columns_to_keep
+        if column in columns_to_keep
     }
     simulation_results = _return_dask_dataframe(path, categoricals)
 
