@@ -416,11 +416,12 @@ def test_calculate_contacts_no_policy(states_all_alive, contact_models):
 
 def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
     contact_policies = {
-        "first_half_meet": {
+        "noone_meets": {
+            "affected_contact_model": "first_half_meet",
             "start": "2020-08-01",
             "end": "2020-08-30",
             "is_active": lambda x: True,
-            "multiplier": 0,
+            "policy": 0,
         },
     }
     date = pd.Timestamp("2020-09-29")
@@ -440,16 +441,73 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
 
 def test_calculate_contacts_policy_active(states_all_alive, contact_models):
     contact_policies = {
-        "first_half_meet": {
+        "noone_meets": {
+            "affected_contact_model": "first_half_meet",
             "start": "2020-09-01",
             "end": "2020-09-30",
             "is_active": lambda states: True,
-            "multiplier": 0,
+            "policy": 0,
         },
     }
     date = pd.Timestamp("2020-09-29")
     params = pd.DataFrame()
     expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
+    res = calculate_contacts(
+        contact_models=contact_models,
+        contact_policies=contact_policies,
+        states=states_all_alive,
+        params=params,
+        date=date,
+    )
+    np.testing.assert_array_equal(expected, res)
+
+
+def test_calculate_contacts_policy_inactive_through_function(
+    states_all_alive, contact_models
+):
+    contact_policies = {
+        "noone_meets": {
+            "affected_contact_model": "first_half_meet",
+            "start": "2020-09-01",
+            "end": "2020-09-30",
+            "is_active": lambda states: False,
+            "policy": 0,
+        },
+    }
+    date = pd.Timestamp("2020-09-29")
+    params = pd.DataFrame()
+    expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
+    first_half = round(len(states_all_alive) / 2)
+    expected[:first_half, 1] = 1
+    res = calculate_contacts(
+        contact_models=contact_models,
+        contact_policies=contact_policies,
+        states=states_all_alive,
+        params=params,
+        date=date,
+    )
+    np.testing.assert_array_equal(expected, res)
+
+
+def test_calculate_contacts_policy_active_policy_func(states_all_alive, contact_models):
+    def reduce_to_1st_quarter(states, contacts, params):
+        contacts = contacts.copy()
+        contacts[: int(len(contacts) / 4)] = 0
+        return contacts
+
+    contact_policies = {
+        "noone_meets": {
+            "affected_contact_model": "first_half_meet",
+            "start": "2020-09-01",
+            "end": "2020-09-30",
+            "policy": reduce_to_1st_quarter,
+            "is_active": lambda states: True,
+        },
+    }
+    date = pd.Timestamp("2020-09-29")
+    params = pd.DataFrame()
+    expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
+    expected[2:4, 1] = 1
     res = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
