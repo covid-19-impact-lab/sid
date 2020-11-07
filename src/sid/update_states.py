@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.countdowns import COUNTDOWNS
 
 
@@ -134,13 +135,13 @@ def _kill_people_over_icu_limit(states, params, seed):
     """Kill people over the ICU limit."""
     np.random.seed(next(seed))
 
-    rel_limit = params.loc[
+    relative_limit = params.loc[
         ("health_system", "icu_limit_relative", "icu_limit_relative"), "value"
     ]
-    abs_limit = rel_limit * len(states)
+    absolute_limit = int(relative_limit * len(states) * RELATIVE_POPULATION_PARAMETER)
     need_icu_locs = states.index[states["needs_icu"]]
-    if abs_limit < len(need_icu_locs):
-        excess = int(len(need_icu_locs) - abs_limit)
+    if absolute_limit < len(need_icu_locs):
+        excess = int(len(need_icu_locs) - absolute_limit)
         to_kill = np.random.choice(need_icu_locs, size=excess, replace=False)
         for to_change, new_val in COUNTDOWNS["cd_dead_true"]["changes"].items():
             states.loc[to_kill, to_change] = new_val

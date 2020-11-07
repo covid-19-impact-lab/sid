@@ -1,6 +1,7 @@
 import warnings
 
 import pandas as pd
+from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.shared import date_is_within_start_and_end_date
 from sid.shared import validate_return_is_series_or_ndarray
 
@@ -52,9 +53,11 @@ def allocate_tests(states, testing_allocation_models, demands_test, params, date
             # Update series with all allocated tests.
             all_allocated_tests.loc[allocated_tests] = True
 
-    n_available_tests = params.loc[
-        ("testing", "allocation", "available_tests"), "value"
-    ]
+    n_available_tests = int(
+        params.loc[("testing", "allocation", "rel_available_tests"), "value"]
+        * len(states)
+        * RELATIVE_POPULATION_PARAMETER
+    )
 
     if n_available_tests < all_allocated_tests.sum():
         warnings.warn(

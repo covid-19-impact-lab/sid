@@ -4,6 +4,7 @@ from contextlib import ExitStack as does_not_warn_or_raise  # noqa: N813
 import numpy as np
 import pandas as pd
 import pytest
+from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.testing_processing import process_tests
 
 
@@ -50,8 +51,8 @@ def test_processing_w_multiple_models(initial_states, params):
         "iteration_2": {"model": processing_model},
         "iteration_3": {"model": processing_model},
     }
-    params.loc[("testing", "processing", "available_capacity"), "value"] = len(
-        initial_states
+    params.loc[("testing", "processing", "rel_available_capacity"), "value"] = (
+        len(initial_states) / RELATIVE_POPULATION_PARAMETER
     )
     initial_states["pending_test"] = True
 
@@ -75,9 +76,9 @@ def test_issue_warning_if_processed_tests_exceed_available_tests(
     }
     initial_states["pending_test"] = True
 
-    params.loc[("testing", "processing", "available_capacity"), "value"] = (
+    params.loc[("testing", "processing", "rel_available_capacity"), "value"] = (
         len(initial_states) - 1 if excess else len(initial_states)
-    )
+    ) / RELATIVE_POPULATION_PARAMETER
 
     with expectation:
         to_be_processed_tests = process_tests(
@@ -101,8 +102,8 @@ def test_raise_error_if_processed_tests_have_invalid_return(
     initial_states, params, return_, expectation
 ):
     testing_processing_models = {"all": {"model": lambda *x: return_}}
-    params.loc[("testing", "processing", "available_capacity"), "value"] = len(
-        initial_states
+    params.loc[("testing", "processing", "rel_available_capacity"), "value"] = (
+        len(initial_states) / RELATIVE_POPULATION_PARAMETER
     )
     initial_states["pending_test"] = True
 

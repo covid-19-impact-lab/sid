@@ -66,3 +66,5 @@ USELESS_COLUMNS = [
     "pending_test_date",
     "pending_test_period",
 ]
+
+RELATIVE_POPULATION_PARAMETER = 1 / 100_000
