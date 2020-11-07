@@ -33,13 +33,20 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
         model_specific_contacts = validate_return_is_series_or_ndarray(
             model_specific_contacts, when=f"Contact model {model_name}"
         )
-        if model_name in contact_policies:
-            cp = contact_policies[model_name]
-            policy_start = pd.Timestamp(cp["start"])
-            policy_end = pd.Timestamp(cp["end"])
+        for policy in contact_policies.values():
+            if policy["affected_contact_model"] == model_name:
+                policy_start = pd.Timestamp(policy["start"])
+                policy_end = pd.Timestamp(policy["end"])
+                if policy_start <= date <= policy_end and policy["is_active"](states):
+                    if isinstance(policy["policy"], (float, int)):
+                        model_specific_contacts *= policy["policy"]
+                    else:
+                        model_specific_contacts = policy["policy"](
+                            states=states,
+                            contacts=model_specific_contacts,
+                            params=params,
+                        )
 
-            if policy_start <= date <= policy_end and cp["is_active"](states):
-                model_specific_contacts *= cp["multiplier"]
         if not model["is_recurrent"]:
             model_specific_contacts = _sum_preserving_round(
                 model_specific_contacts.to_numpy().astype(DTYPE_N_CONTACTS)

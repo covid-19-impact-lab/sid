@@ -15,6 +15,7 @@ contact models in a separate, specialized `contact_policies` dictionary.
 
 The contact policies are a nested dictionary, mapping the policy's name
 to its specification. You can choose any name you wish.
+
 The specification must contain an `affected_contact_model` entry,
 a `policy` entry and provide when the policy is active.
 The `affected_contact_model` gives the name of the contact model
@@ -23,6 +24,8 @@ whose output, the `contacts`
 will be modified while the policy is active.
 The `policy` entry is either a float or a function.
 If it is a float, the contacts are simply multiplied with the this number.
+For non-recurrent contact models we will round the results
+for you to have the wanted reduction on average.
 If it is a function, it should take the
 `states`, `contacts` and `params` as inputs and return
 a modified `contacts` Series.
