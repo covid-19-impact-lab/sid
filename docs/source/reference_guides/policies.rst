@@ -4,37 +4,49 @@
 Policies
 ========
 
-The most general way of implementing policies is to modify :ref:`contact_models`.
-However, this can be rather cumbersome. Therefore, we offer a quick way of implementing
-policies that modify contact models or implement testing strategies.
+In SID we can implement nearly any type of policy as a modification of the
+:ref:`contact_models`.
+However, to keep things separable and modular, policies can also specified outside the
+contact models in a separate, specialized `contact_policies` dictionary.
 
 
 ``contact_policies``
 --------------------
 
-Contact policies are multipliers on a contact model that are active on certain dates or
-when ``states`` fulfills some condition. Here is an example:
+The contact policies are a nested dictionary, mapping the policy's name
+to its specification. You can choose any name you wish.
+The specification must contain an `affected_contact_model` entry,
+a `policy` entry and provide when the policy is active.
+The `affected_contact_model` gives the name of the contact model
+whose output, the `contacts`
+(a pandas.Series with the same index as the `states` DataFrame),
+will be modified while the policy is active.
+The `policy` entry is either a float or a function.
+If it is a float, the contacts are simply multiplied with the this number.
+If it is a function, it should take the
+`states`, `contacts` and `params` as inputs and return
+a modified `contacts` Series.
 
-.. code-block:: python
+To specify when the policy is active, you have three options:
+    - you provide a `start` and an `end` date.
+      For example, you could specify school closures during the first lockdown
+      which started on the 22nd of March and ended on the 20th of April as following
 
-    def activate_contact_policy(states):
-        """Activate policy if 20% of the population are infectious."""
-        return states["infectious"].mean() > 0.2
+      .. code-block:: python
 
-
-    policies = {
-        "work_close": {
-            "start": "2020-02-01",
-            "end": "2020-02-15",
-            "multiplier": 0.5,
-            "is_active": activate_contact_policy,
+        {
+            "1st_lockdown_school": {
+                "affected_contact_model": "school",
+                "policy": 0,
+                "start": "2020-03-22",
+                "end": "2020-04-20",
+            },
         }
-    }
 
-``"work_close"`` is the name of the contact model the policies refers to. ``"start"``
-and ``"end"`` define the time period in dates when the policy is active. They are
-optional. ``"multiplier"`` will be multiplied with the number of contacts. It is no
-problem if the multiplication leads to non-integer number of contacts. We will
-automatically round them in a way that preserves the total number of contacts as well as
-possible. ``"is_active"`` is a function that returns a bool. This is also optional. A
-policy is only active if ``is_active & pol["start"] <= date <= pol["end"]``.
+    - you provide an `is_active` function that maps the `states` to either `True` or `False`.
+      Then the policy will be called whenever the `is_active` function returns True.
+
+    - you provide both and the policy is active on those periods between `start` and `end`
+      where the `is_active` policy returns to `True`.
+
+For an example on how to specify contact policies, look at the `contact policies tutorial <../tutorials/how_to_specify_policies.ipynb>`_
