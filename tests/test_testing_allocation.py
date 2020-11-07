@@ -71,8 +71,10 @@ def test_issue_warning_if_allocated_tests_exceed_available_tests(
     }
     demands_test = pd.Series(index=initial_states.index, data=True)
     params.loc[("testing", "allocation", "rel_available_tests"), "value"] = (
-        len(initial_states) - 1 if excess else len(initial_states)
-    ) / RELATIVE_POPULATION_PARAMETER
+        (14 / 15) / RELATIVE_POPULATION_PARAMETER
+        if excess
+        else 1 / RELATIVE_POPULATION_PARAMETER
+    )
 
     with expectation:
         allocated_tests = allocate_tests(

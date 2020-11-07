@@ -77,8 +77,10 @@ def test_issue_warning_if_processed_tests_exceed_available_tests(
     initial_states["pending_test"] = True
 
     params.loc[("testing", "processing", "rel_available_capacity"), "value"] = (
-        len(initial_states) - 1 if excess else len(initial_states)
-    ) / RELATIVE_POPULATION_PARAMETER
+        (14 / 15) / RELATIVE_POPULATION_PARAMETER
+        if excess
+        else 1 / RELATIVE_POPULATION_PARAMETER
+    )
 
     with expectation:
         to_be_processed_tests = process_tests(

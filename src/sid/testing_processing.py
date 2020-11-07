@@ -52,7 +52,7 @@ def process_tests(states, testing_processing_models, params, date):
             # Update series with all to_be_processed tests.
             all_to_be_processed_tests.loc[to_be_processed_tests] = True
 
-    n_available_tests = int(
+    n_available_tests = round(
         params.loc[("testing", "processing", "rel_available_capacity"), "value"]
         * len(states)
         * RELATIVE_POPULATION_PARAMETER

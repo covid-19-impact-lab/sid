@@ -53,7 +53,7 @@ def allocate_tests(states, testing_allocation_models, demands_test, params, date
             # Update series with all allocated tests.
             all_allocated_tests.loc[allocated_tests] = True
 
-    n_available_tests = int(
+    n_available_tests = round(
         params.loc[("testing", "allocation", "rel_available_tests"), "value"]
         * len(states)
         * RELATIVE_POPULATION_PARAMETER
