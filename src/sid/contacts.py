@@ -117,10 +117,8 @@ def calculate_infections_by_contacts(
         indexers_list.append(ind)
 
     np.random.seed(next(seed))
-    loop_entries = _get_loop_entries(len(states), len(indexers))
 
-    indices = np.random.choice(len(loop_entries), replace=False, size=len(loop_entries))
-    loop_order = loop_entries[indices]
+    loop_order = _get_shuffled_loop_entries(len(states), len(indexers), next(seed))
 
     (
         infected,
@@ -155,21 +153,38 @@ def calculate_infections_by_contacts(
 
 
 @nb.njit
-def _get_loop_entries(n_states, n_contact_models):
+def _get_shuffled_loop_entries(n_states, n_contact_models, seed, n_model_orders=1000):
     """Create an array of loop entries.
 
-    Examples:
-        >>> _get_loop_entries(2, 2)
-        array([[0, 0],
-               [0, 1],
-               [1, 0],
-               [1, 1]]...
+    We save the loop entries of the following loop in shuffled order:
 
-    """
-    res = np.empty((n_states * n_contact_models, 2), dtype=np.int64)
-    counter = 0
     for i in range(n_states):
         for j in range(n_contact_models):
+            pass
+
+    The loop entries are stored in an array with n_states * n_contact_model rows
+    and two columns. The first column contains the i, the second the j elements.
+
+    Achieving complete randomness would require us to first store all loop entries
+    in an array and then shuffle it. However, this would be very slow. Instead
+    we loop over states in random order and cycle through previously
+
+    """
+    np.random.seed(seed)
+    res = np.empty((n_states * n_contact_models, 2), dtype=np.int64)
+    shuffled_state_indices = np.random.choice(n_states, replace=False, size=n_states)
+
+    # create random permutations of the model orders
+    model_orders = np.zeros((n_model_orders, n_contact_models))
+    for m in range(n_model_orders):
+        model_orders[m] = np.random.choice(
+            n_contact_models, replace=False, size=n_contact_models
+        )
+
+    counter = 0
+
+    for i in shuffled_state_indices:
+        for j in model_orders[i % n_model_orders]:
             res[counter, 0] = i
             res[counter, 1] = j
             counter += 1
@@ -271,23 +286,24 @@ def _calculate_infections_by_contacts_numba(
     for k in range(len(loop_order)):
         i, cm = loop_order[k]
         if is_recurrent[cm]:
-            # We only check if i gets infected by someone else from his group. Whether
-            # he infects some j is only checked, when the main loop arrives at j.
-            group_i = group_codes[i, cm]
-            # skip completely if i does not have a group or is already immune
-            if not immune[i] and contacts[i, cm] > 0:
+            # We only check if i infects someone else from his group. Whether
+            # he is infected by some j is only checked, when the main loop arrives at j.
+            # This allows us to skip completely if i is not infectious or has no
+            # contacts under contact model cm.
+            if infectious[i] and contacts[i, cm] > 0:
+                group_i = group_codes[i, cm]
                 others = indexers_list[cm][group_i]
+                # extract infection probability into a variable for faster access
+                prob = infection_probs[cm]
                 for j in others:
-                    # There is no point in meeting oneself. It is not a pleasure.
-                    if i == j:
-                        pass
-                    else:
-                        if infectious[j] and not immune[i] and contacts[j, cm] > 0:
-                            is_infection = boolean_choice(infection_probs[cm])
-                            if is_infection:
-                                infection_counter[j] += 1
-                                infected[i] = 1
-                                immune[i] = True
+                    # the case i == j is skipped by the next if condition because it
+                    # never happens that i is infectious but not immune
+                    if not immune[j] and contacts[j, cm] > 0:
+                        is_infection = boolean_choice(prob)
+                        if is_infection:
+                            infection_counter[i] += 1
+                            infected[j] = 1
+                            immune[j] = True
 
         else:
             # get the probabilities for meeting another group which depend on the

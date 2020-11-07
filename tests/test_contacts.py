@@ -8,7 +8,6 @@ from numba.typed import List as NumbaList
 from numpy.testing import assert_array_equal
 from sid.config import DTYPE_N_CONTACTS
 from sid.contacts import _calculate_infections_by_contacts_numba
-from sid.contacts import _get_loop_entries
 from sid.contacts import _reduce_contacts_with_infection_probs
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
@@ -552,12 +551,6 @@ def test_calculate_contacts_with_dead(states_with_dead, contact_models):
         date=date,
     )
     np.testing.assert_array_equal(expected, res)
-
-
-def test_get_loop_entries():
-    calculated = _get_loop_entries(10, 15)
-    expected = np.array(list(itertools.product(range(10), range(15)))).astype(int)
-    assert_array_equal(calculated, expected)
 
 
 def test_reduce_contacts_with_infection_prob_one():
