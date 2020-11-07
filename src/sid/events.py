@@ -18,7 +18,8 @@ def calculate_infections_by_events(states, params, events):
             boolean. `True` marks individuals infected by an event.
 
     """
-    infections_by_events = pd.DataFrame()
+    infections_by_events = pd.DataFrame(index=states.index)
+
     for name, event in events.items():
         loc = event.get("loc", params.index)
         func = event["model"]
