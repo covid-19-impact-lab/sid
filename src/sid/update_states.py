@@ -9,6 +9,7 @@ def update_states(
     newly_infected_events,
     params,
     seed,
+    optional_state_columns,
     n_has_additionally_infected=None,
     indexers=None,
     contacts=None,
@@ -29,6 +30,12 @@ def update_states(
             contacts matrix.
         contacts (numpy.ndarray): Matrix with number of contacts for each contact model.
         to_be_processed_test (pandas.Series): Tests which are going to be processed.
+        optional_state_columns (dict): Dictionary with categories of state columns
+            that can additionally be added to the states dataframe, either for use in
+            contact models and policies or to be saved. Most types of columns are added
+            by default, but some of them are costly to add and thus only added when
+            needed. Columns that are not in the state but specified in ``saved_columns``
+            will not be saved. The categories are "contacts" and "reason_for_infection".
 
     Returns: states (pandas.DataFrame): Updated states with reduced countdown lengths,
         newly started countdowns, and killed people over the ICU limit.
@@ -52,16 +59,17 @@ def update_states(
 
     # Save channel of infection; For speed reasons start with integer labels and
     # convert to string labels later
-    labels = {0: "contact or event", 1: "contact", 2: "event"}
-    channel = np.zeros(len(states))
-    newly_infected_contacts = newly_infected_contacts.to_numpy()
-    newly_infected_events = newly_infected_events.to_numpy()
-    channel[newly_infected_contacts & ~newly_infected_events] = 1
-    channel[newly_infected_events & ~newly_infected_contacts] = 2
-    # set categories is necessary in case one of the categories was not present in the
-    # data. Setting them via set_categories is much faster than passing them into
-    # pd.Categorical directly
-    states["newly_infected_reason"] = pd.Categorical(channel).set_categories([0, 1, 2]).rename_categories(labels)
+    if optional_state_columns["reason_for_infection"]:
+        labels = {0: "contact or event", 1: "contact", 2: "event"}
+        channel = np.zeros(len(states))
+        newly_infected_contacts = newly_infected_contacts.to_numpy()
+        newly_infected_events = newly_infected_events.to_numpy()
+        channel[newly_infected_contacts & ~newly_infected_events] = 1
+        channel[newly_infected_events & ~newly_infected_contacts] = 2
+        # set categories is necessary in case one of the categories was not present in the
+        # data. Setting them via set_categories is much faster than passing them into
+        # pd.Categorical directly
+        states["newly_infected_reason"] = pd.Categorical(channel).set_categories([0, 1, 2]).rename_categories(labels)
 
     # Update states with new infections and add corresponding countdowns.
     locs = states.query("newly_infected").index
@@ -75,9 +83,15 @@ def update_states(
     states = _kill_people_over_icu_limit(states, params, seed)
 
     # Add additional information.
-    if indexers is not None and contacts is not None:
-        for i, contact_model in enumerate(indexers):
-            states[f"n_contacts_{contact_model}"] = contacts[:, i]
+    if optional_state_columns["contacts"]:
+        if isinstance(optional_state_columns, list):
+            cols_to_add = optional_state_columns["contacts"]
+        else:
+            cols_to_add = [f"n_contacts_{model}" for model in indexers]
+        if indexers is not None and contacts is not None:
+            for i, contact_model in enumerate(indexers):
+                if f"n_contacts_{contact_model}" in cols_to_add:
+                    states[f"n_contacts_{contact_model}"] = contacts[:, i]
 
     if n_has_additionally_infected is not None:
         states["n_has_infected"] += n_has_additionally_infected
@@ -111,20 +125,6 @@ def update_states(
         # Everyone looses ``received_test_result == True`` because it is passed to the
         # more specific knows attributes.
         states.loc[states.received_test_result, "received_test_result"] = False
-
-    return states
-
-
-def add_debugging_information(
-    states, newly_missed_contacts, demands_test, allocated_tests, to_be_processed_tests
-):
-    """Add some information to states which is more useful to debug the model."""
-    for column in newly_missed_contacts:
-        states[column] = newly_missed_contacts[column]
-    if demands_test is not None:
-        states["demands_test"] = demands_test
-        states["allocated_test"] = allocated_tests
-        states["to_be_processed_test"] = to_be_processed_tests
 
     return states
 

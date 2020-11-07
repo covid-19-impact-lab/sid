@@ -38,31 +38,20 @@ INDEX_NAMES = ["category", "subcategory", "name"]
 
 ROOT_DIR = Path(__file__).parent
 
-USELESS_COLUMNS = [
-    # General countdowns.
-    "cd_infectious_true",
-    "cd_immune_false",
-    "cd_symptoms_true",
-    "cd_symptoms_false",
-    "cd_needs_icu_true",
-    "cd_dead_true",
-    "cd_needs_icu_false",
-    "cd_immune_false_draws",
-    "cd_symptoms_true_draws",
-    "cd_needs_icu_true_draws",
-    "cd_dead_true_draws",
-    "cd_symptoms_false_draws",
-    "cd_needs_icu_false_draws",
-    "cd_infectious_true_draws",
-    "cd_infectious_false_draws",
-    # Countdowns related to testing.
-    "cd_received_test_result_true_draws",
-    "cd_knows_immune_false",
-    "cd_knows_infectious_false",
-    # Others.
-    "demands_test",
-    "allocated_test",
-    "to_be_processed_test",
-    "pending_test_date",
-    "pending_test_period",
-]
+SAVED_COLUMNS = {
+    "initial_states": True,
+    "disease_states": True,
+    "testing_states": False,
+    "countdowns": ["cd_infectious_false"],
+    "contacts": False,
+    "countdown_draws": False,
+    "group_codes": False,
+    "other": ["n_has_infected"],
+}
+
+
+
+OPTIONAL_STATE_COLUMNS = {
+    "contacts": False,
+    "reason_for_infection": False,
+}

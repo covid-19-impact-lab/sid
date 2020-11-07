@@ -12,7 +12,7 @@ from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_PERIOD
 from sid.config import INDEX_NAMES
-from sid.config import USELESS_COLUMNS
+from sid.config import SAVED_COLUMNS, OPTIONAL_STATE_COLUMNS
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
@@ -26,7 +26,6 @@ from sid.testing_allocation import allocate_tests
 from sid.testing_allocation import update_pending_tests
 from sid.testing_demand import calculate_demand_for_tests
 from sid.testing_processing import process_tests
-from sid.update_states import add_debugging_information
 from sid.update_states import update_states
 
 
@@ -43,7 +42,9 @@ def get_simulate_func(
     testing_processing_models=None,
     seed=None,
     path=None,
-    debug=False,
+    saved_columns=None,
+    optional_state_columns=None
+
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -77,8 +78,19 @@ def get_simulate_func(
             used to control randomness internally.
         path (str or pathlib.Path): Path to the directory where the simulated data is
             stored.
-        debug (bool): Indicates whether the debug modus is turned on which means that
-            the simulated data contains more (technical) information to debug a model.
+        saved_columns (dict or None): Dictionary with categories of state columns.
+            The corresponding values can be True, False or Lists with columns that
+            should be saved. Typically, during estimation you only want to save exactly
+            what you need to calculate moments to make the simulation and calculation
+            of moments faster. The categories are "initial_states", "disease_states",
+            "testing_states", "countdowns", "contacts", "countdown_draws", "group_codes"
+            "infection_reason" and "other".
+        optional_state_columns (dict): Dictionary with categories of state columns
+            that can additionally be added to the states dataframe, either for use in
+            contact models and policies or to be saved. Most types of columns are added
+            by default, but some of them are costly to add and thus only added when
+            needed. Columns that are not in the state but specified in ``saved_columns``
+            will not be saved. The categories are "contacts" and "reason_for_infection".
 
     Returns:
         callable: Simulates dataset based on parameters.
@@ -95,6 +107,8 @@ def get_simulate_func(
     testing_processing_models = (
         {} if testing_processing_models is None else testing_processing_models
     )
+    optional_state_columns = _process_optional_state_columns(optional_state_columns)
+    user_state_columns = initial_states.columns
     initial_states = initial_states.copy(deep=True)
     params = _prepare_params(params)
 
@@ -122,6 +136,8 @@ def get_simulate_func(
 
     indexers = _prepare_assortative_matching_indexers(initial_states, assort_bys)
 
+    cols_to_keep = _process_saved_columns(saved_columns, user_state_columns, contact_models, optional_state_columns)
+
     sim_func = functools.partial(
         _simulate,
         initial_states=initial_states,
@@ -136,8 +152,9 @@ def get_simulate_func(
         testing_processing_models=testing_processing_models,
         seed=seed,
         path=path,
-        debug=debug,
+        columns_to_keep=cols_to_keep,
         indexers=indexers,
+        optional_state_columns=optional_state_columns,
     )
     return sim_func
 
@@ -156,8 +173,9 @@ def _simulate(
     testing_processing_models,
     seed,
     path,
-    debug,
+    columns_to_keep,
     indexers,
+    optional_state_columns,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -185,8 +203,13 @@ def _simulate(
         seed (int): Seed is used as the starting point of a sequence of seeds
             used to control randomness internally.
         path (pathlib.Path): Path to the directory where the simulated data is stored.
-        debug (bool): Indicates whether the debug modus is turned on which means that
-            the simulated data contains more (technical) information to debug a model.
+        columns_to_keep (list): Columns of states that will be saved in each period.
+        optional_state_columns (dict): Dictionary with categories of state columns
+            that can additionally be added to the states dataframe, either for use in
+            contact models and policies or to be saved. Most types of columns are added
+            by default, but some of them are costly to add and thus only added when
+            needed. Columns that are not in the state but specified in ``saved_columns``
+            will not be saved. The categories are "contacts" and "reason_for_infection".
 
     Returns:
         simulation_results (dask.dataframe): The simulation results in form of a long
@@ -201,7 +224,14 @@ def _simulate(
     )
 
     states = draw_course_of_disease(initial_states, params, seed)
-    states = update_states(states, initial_infections, initial_infections, params, seed)
+    states = update_states(
+        states=states,
+        newly_infected_contacts=initial_infections,
+        newly_infected_events=initial_infections,
+        params=params,
+        seed=seed,
+        optional_state_columns=optional_state_columns
+    )
     for period, date in enumerate(duration["dates"]):
         states["date"] = date
         states["period"] = DTYPE_PERIOD(period)
@@ -243,32 +273,25 @@ def _simulate(
             to_be_processed_tests = None
 
         states = update_states(
-            states,
-            newly_infected_contacts,
-            newly_infected_events,
-            params,
-            seed,
-            n_has_additionally_infected,
-            indexers,
-            contacts,
-            to_be_processed_tests,
+            states=states,
+            newly_infected_contacts=newly_infected_contacts,
+            newly_infected_events=newly_infected_events,
+            params=params,
+            seed=seed,
+            optional_state_columns=optional_state_columns,
+            n_has_additionally_infected=n_has_additionally_infected,
+            indexers=indexers,
+            contacts=contacts,
+            to_be_processed_test=to_be_processed_tests,
         )
 
-        if debug:
-            states = add_debugging_information(
-                states,
-                newly_missed_contacts,
-                demands_test,
-                allocated_tests,
-                to_be_processed_tests,
-            )
-
-        _dump_periodic_states(states, path, date, debug)
+        _dump_periodic_states(states, columns_to_keep, path, date)
 
     categoricals = {
         column: initial_states[column].cat.categories.shape[0]
         for column in initial_states.select_dtypes("category").columns
     }
+    categoricals = {key: val for key, val in categoricals.items() if key in columns_to_keep}
     simulation_results = _return_dask_dataframe(path, categoricals)
 
     return simulation_results
@@ -579,12 +602,8 @@ def _process_initial_states(states, assort_bys):
     return states
 
 
-def _dump_periodic_states(states, output_directory, date, debug):
-    if not debug:
-        group_codes = states.filter(like="group_codes_").columns.tolist()
-        useless_columns = USELESS_COLUMNS + group_codes
-        states = states.drop(columns=useless_columns)
-
+def _dump_periodic_states(states, columns_to_keep, output_directory, date):
+    states = states[columns_to_keep]
     states.to_parquet(output_directory / f"{date.date()}.parquet", engine="fastparquet")
 
 
@@ -601,3 +620,50 @@ def _return_dask_dataframe(output_directory, categoricals):
     return dd.read_parquet(
         output_directory, categories=categoricals, engine="fastparquet"
     )
+
+
+def _process_saved_columns(saved_columns, initial_state_columns, contact_models, optional_state_columns):
+    saved_columns = SAVED_COLUMNS if saved_columns is None else {**SAVED_COLUMNS, **saved_columns}
+
+    all_columns = {
+        "initial_states": initial_state_columns,
+        "disease_states": [col for col in BOOLEAN_STATE_COLUMNS if not "test" in col],
+        "testing_states": [col for col in BOOLEAN_STATE_COLUMNS if "test" in col] + ["pending_test_date", "pending_test_period"],
+        "countdowns": list(COUNTDOWNS),
+        "contacts": [f"n_contacts_{model}" for model in contact_models],
+        "countdown_draws": [f"{cd}_draws" for cd in COUNTDOWNS],
+        "group_codes": [f"group_codes_{model}" for model in contact_models],
+    }
+
+    keep = []
+    for category in all_columns:
+        keep += _combine_column_lists(saved_columns[category], all_columns[category])
+
+    if isinstance(saved_columns["other"], list):
+        keep += saved_columns["other"]
+
+    all_columns["contacts"] = _combine_column_lists(
+        optional_state_columns["contacts"],
+        all_columns["contacts"]
+    )
+
+    if not optional_state_columns["reason_for_infection"]:
+        keep = [k for k in keep if k != "reason_for_infection"]
+
+    return keep
+
+
+def _combine_column_lists(user_entries, all_entries):
+    if isinstance(user_entries, bool) and user_entries:
+        res = all_entries
+    elif isinstance(user_entries, list):
+        res = [e for e in user_entries if e in all_entries]
+    else:
+        res = []
+    res = list(res)
+    return res
+
+
+def _process_optional_state_columns(opt_state_cols):
+    res = OPTIONAL_STATE_COLUMNS if opt_state_cols is None else {**OPTIONAL_STATE_COLUMNS, **opt_state_cols}
+    return res
