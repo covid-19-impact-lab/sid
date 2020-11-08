@@ -73,7 +73,4 @@ def update_pending_tests(states, allocated_tests):
     states.loc[allocated_tests, "pending_test_date"] = states.loc[
         allocated_tests, "date"
     ]
-    states.loc[allocated_tests, "pending_test_period"] = states.loc[
-        allocated_tests, "period"
-    ]
     return states
