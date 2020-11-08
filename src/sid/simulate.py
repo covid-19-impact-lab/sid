@@ -668,7 +668,7 @@ def _process_saved_columns(
         "group_codes": [f"group_codes_{model}" for model in contact_models],
     }
 
-    keep = []
+    keep = ["date", "period"]
     for category in all_columns:
         keep += _combine_column_lists(saved_columns[category], all_columns[category])
 

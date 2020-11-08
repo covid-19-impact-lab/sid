@@ -20,18 +20,18 @@ At the moment, the health system is kept simple compared to other components of 
 the focus lies on social mixing patterns in the population.
 
 The only mandatory parameter for the health system is the ``icu_limit_relative``. This
-entry gives the number of ICU beds per individual and is a quick way to implement a
-limit of the health care system. If the limit is exceeded, patients in ICUs are randomly
-picked and their status is set to deceased until the limit is satisfied.
+entry gives the number of ICU beds per 100,000 individuals and is a quick way to
+implement a limit of the health care system. If the limit is exceeded, patients in ICUs
+are randomly picked and their status is set to deceased until the limit is satisfied.
 
 The following line is an exemplary entry for the German health system which provides
-roughly 40,000 beds for 80,000,000 people which is approximately 0.0005 beds per
-individual.
+roughly 40,000 beds for 80,000,000 people which is approximately 50 beds per
+100,000 individuals.
 
 .. csv-table::
     :header: category, subcategory, name, value
 
-    health_system, icu_limit_relative, icu_limit_relative, 0.0005
+    health_system, icu_limit_relative, icu_limit_relative, 50
 
 
 .. rubric:: References
@@ -50,17 +50,17 @@ explained in the tutorial `How to test <../tutorials/how-to-test.ipynb>`_.
 For two of the three stages of testing, allocation and processing, there is a mandatory
 parameter.
 
-``available_tests`` sets the maximum number of tests which can be
-distributed each day.
+``rel_available_tests`` sets the maximum number of tests which can be distributed each
+day per 100,000 individuals.
 
-``available_capacity`` sets the maximum number of tests whose processing can be started
-each day.
+``rel_available_capacity`` sets the maximum number of tests whose processing can be
+started each day per 100,000 individuals.
 
 .. csv-table::
     :header: category, subcategory, name, value
 
-    testing, allocation, available_tests, 10000
-    testing, processing, available_capacity, 2000
+    testing, allocation, rel_available_tests, 0.1
+    testing, processing, rel_available_capacity, 0.02
 
 A major drawback is that these parameters are only able to implement constant limits.
 Thus, the tutorial also discusses ways in which the limits can be changed daily to model

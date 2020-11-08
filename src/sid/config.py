@@ -38,6 +38,8 @@ INDEX_NAMES = ["category", "subcategory", "name"]
 
 ROOT_DIR = Path(__file__).parent
 
+RELATIVE_POPULATION_PARAMETER = 1 / 100_000
+
 SAVED_COLUMNS = {
     "initial_states": True,
     "disease_states": True,

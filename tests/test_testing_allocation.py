@@ -4,6 +4,7 @@ from contextlib import ExitStack as does_not_warn_or_raise  # noqa: N813
 import numpy as np
 import pandas as pd
 import pytest
+from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.testing_allocation import allocate_tests
 
 
@@ -46,8 +47,8 @@ def test_allocation_w_multiple_models(initial_states, params):
         "iteration_3": {"model": allocation_model},
     }
     demands_test = pd.Series(index=initial_states.index, data=True)
-    params.loc[("testing", "allocation", "available_tests"), "value"] = len(
-        initial_states
+    params.loc[("testing", "allocation", "rel_available_tests"), "value"] = (
+        len(initial_states) / RELATIVE_POPULATION_PARAMETER
     )
 
     allocated_tests = allocate_tests(
@@ -69,8 +70,10 @@ def test_issue_warning_if_allocated_tests_exceed_available_tests(
         "all": {"model": lambda *x: pd.Series(data=True, index=initial_states.index)}
     }
     demands_test = pd.Series(index=initial_states.index, data=True)
-    params.loc[("testing", "allocation", "available_tests"), "value"] = (
-        len(initial_states) - 1 if excess else len(initial_states)
+    params.loc[("testing", "allocation", "rel_available_tests"), "value"] = (
+        (14 / 15) / RELATIVE_POPULATION_PARAMETER
+        if excess
+        else 1 / RELATIVE_POPULATION_PARAMETER
     )
 
     with expectation:
@@ -100,8 +103,8 @@ def test_raise_error_if_allocated_tests_have_invalid_return(
 ):
     testing_allocation_models = {"all": {"model": lambda *x: return_}}
     demands_test = pd.Series(index=initial_states.index, data=True)
-    params.loc[("testing", "allocation", "available_tests"), "value"] = len(
-        initial_states
+    params.loc[("testing", "allocation", "rel_available_tests"), "value"] = (
+        len(initial_states) / RELATIVE_POPULATION_PARAMETER
     )
 
     with expectation:

@@ -1,6 +1,7 @@
 import warnings
 
 import pandas as pd
+from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.shared import date_is_within_start_and_end_date
 from sid.shared import validate_return_is_series_or_ndarray
 
@@ -51,9 +52,11 @@ def process_tests(states, testing_processing_models, params, date):
             # Update series with all to_be_processed tests.
             all_to_be_processed_tests.loc[to_be_processed_tests] = True
 
-    n_available_tests = params.loc[
-        ("testing", "processing", "available_capacity"), "value"
-    ]
+    n_available_tests = round(
+        params.loc[("testing", "processing", "rel_available_capacity"), "value"]
+        * len(states)
+        * RELATIVE_POPULATION_PARAMETER
+    )
 
     if n_available_tests < all_to_be_processed_tests.sum():
         warnings.warn(
