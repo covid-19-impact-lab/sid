@@ -682,6 +682,9 @@ def _process_saved_columns(
     if not optional_state_columns["reason_for_infection"]:
         keep = [k for k in keep if k != "reason_for_infection"]
 
+    # drop duplicates
+    keep = list(set(keep))
+
     return keep
 
 

@@ -48,7 +48,7 @@ SAVED_COLUMNS = {
     "contacts": False,
     "countdown_draws": False,
     "group_codes": False,
-    "other": ["n_has_infected"],
+    "other": ["n_has_infected", "newly_infected"],
 }
 
 
