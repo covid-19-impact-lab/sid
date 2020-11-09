@@ -295,7 +295,8 @@ def _simulate(
         newly_infected_events = calculate_infections_by_events(states, params, events)
 
         if testing_demand_models:
-            demands_test, demands_test_reason = calculate_demand_for_tests(
+            # demands_test, demands_test_reason = calculate_demand_for_tests(
+            demands_test = calculate_demand_for_tests(
                 states, testing_demand_models, params, date, seed
             )
             allocated_tests = allocate_tests(
