@@ -103,7 +103,6 @@ def update_states(
     if to_be_processed_test is not None:
         # Remove information on pending tests for tests which are processed.
         states.loc[to_be_processed_test, "pending_test_date"] = pd.NaT
-        states.loc[to_be_processed_test, "pending_test_period"] = np.nan
 
         # Start the countdown for processed tests.
         states.loc[to_be_processed_test, "cd_received_test_result_true"] = states.loc[

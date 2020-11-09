@@ -10,7 +10,6 @@ import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
-from sid.config import DTYPE_PERIOD
 from sid.config import INDEX_NAMES
 from sid.config import OPTIONAL_STATE_COLUMNS
 from sid.config import SAVED_COLUMNS
@@ -56,9 +55,8 @@ def get_simulate_func(
     Args:
         params (pandas.DataFrame): DataFrame with parameters that influence the number
             of contacts, contagiousness and dangerousness of the disease, ... .
-        initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the
-            columnns "id", "date" or "period" because those are used internally. The
-            index of initial_states will be used as "id".
+        initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the column
+            "date" because it is used internally.
         initial_infections (pandas.Series): Series with the same index as states with
             initial infections.
         contact_models (dict): Dictionary of dictionaries where each dictionary
@@ -184,9 +182,8 @@ def _simulate(
     Args:
         params (pandas.DataFrame): DataFrame with parameters that influence the number
             of contacts, contagiousness and dangerousness of the disease, ... .
-        initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the
-            columnns "id", "date" or "period" because those are used internally. The
-            index of initial_states will be used as "id".
+        initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the column
+            "date" because it is used internally.
         initial_infections (pandas.Series): Series with the same index as states with
             initial infections.
         contact_models (dict): Dictionary of dictionaries where each dictionary
@@ -234,9 +231,8 @@ def _simulate(
         seed=seed,
         optional_state_columns=optional_state_columns,
     )
-    for period, date in enumerate(duration["dates"]):
+    for date in duration["dates"]:
         states["date"] = date
-        states["period"] = DTYPE_PERIOD(period)
 
         contacts = calculate_contacts(
             contact_models, contact_policies, states, params, date
@@ -620,7 +616,6 @@ def _process_initial_states(states, assort_bys):
 
     states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
     states["pending_test_date"] = pd.NaT
-    states["pending_test_period"] = np.nan
 
     for model_name, assort_by in assort_bys.items():
         states[f"group_codes_{model_name}"], _ = factorize_assortative_variables(
@@ -661,14 +656,14 @@ def _process_saved_columns(
         "initial_states": initial_state_columns,
         "disease_states": [col for col in BOOLEAN_STATE_COLUMNS if "test" not in col],
         "testing_states": [col for col in BOOLEAN_STATE_COLUMNS if "test" in col]
-        + ["pending_test_date", "pending_test_period"],
+        + ["pending_test_date"],
         "countdowns": list(COUNTDOWNS),
         "contacts": [f"n_contacts_{model}" for model in contact_models],
         "countdown_draws": [f"{cd}_draws" for cd in COUNTDOWNS],
         "group_codes": [f"group_codes_{model}" for model in contact_models],
     }
 
-    keep = ["date", "period"]
+    keep = ["date"]
     for category in all_columns:
         keep += _combine_column_lists(saved_columns[category], all_columns[category])
 
@@ -681,6 +676,9 @@ def _process_saved_columns(
 
     if not optional_state_columns["reason_for_infection"]:
         keep = [k for k in keep if k != "reason_for_infection"]
+
+    # drop duplicates
+    keep = list(set(keep))
 
     return keep
 

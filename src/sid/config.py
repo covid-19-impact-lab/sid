@@ -32,7 +32,6 @@ DTYPE_INDEX = np.uint32
 DTYPE_INFECTED = np.bool_
 DTYPE_INFECTION_COUNTER = np.uint16
 DTYPE_N_CONTACTS = np.uint32
-DTYPE_PERIOD = np.uint16
 
 INDEX_NAMES = ["category", "subcategory", "name"]
 
@@ -48,7 +47,7 @@ SAVED_COLUMNS = {
     "contacts": False,
     "countdown_draws": False,
     "group_codes": False,
-    "other": ["n_has_infected"],
+    "other": ["n_has_infected", "newly_infected"],
 }
 
 
