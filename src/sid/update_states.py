@@ -124,6 +124,10 @@ def update_states(
         ]
         states.loc[knows_infectious, "knows_infectious"] = True
 
+        states["new_known_case"] = (
+            states["cd_received_test_result_true"] == 0
+        ) & states["immune"]
+
         # Everyone looses ``received_test_result == True`` because it is passed to the
         # more specific knows attributes.
         states.loc[states.received_test_result, "received_test_result"] = False
