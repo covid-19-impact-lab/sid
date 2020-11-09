@@ -5,14 +5,17 @@ import warnings
 from pathlib import Path
 
 import dask.dataframe as dd
+import numba as nb
 import numpy as np
 import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import INDEX_NAMES
+from sid.config import INITIAL_CONDITIONS
 from sid.config import OPTIONAL_STATE_COLUMNS
 from sid.config import SAVED_COLUMNS
+from sid.contacts import boolean_choice
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
@@ -44,6 +47,7 @@ def get_simulate_func(
     path=None,
     saved_columns=None,
     optional_state_columns=None,
+    initial_conditions=None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -58,7 +62,10 @@ def get_simulate_func(
         initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the column
             "date" because it is used internally.
         initial_infections (pandas.Series): Series with the same index as states with
-            initial infections.
+            initial infections. They are initial known cases. Sid will assume that
+            unknown cases have the same geographical structure. The number of
+            unknown cases is governed by the parameter ("initial_infections",
+            "known_cases_multiplier", "known_cases_multiplier").
         contact_models (dict): Dictionary of dictionaries where each dictionary
             describes a channel by which contacts can be formed. See
             :ref:`contact_models`.
@@ -89,7 +96,11 @@ def get_simulate_func(
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
             will not be saved. The categories are "contacts" and "reason_for_infection".
-
+        initial_conditions (dict): Dict containing the entries "burn_in_period" (int),
+            "assort_by": list and "growth_rate". burn_in_periods and growth_rate are
+            needed to spread out the initial infections over a period of time.
+            "assort_by" specifies the aggregation level on which
+            we scale up the initial infections to account for unknown cases.
     Returns:
         callable: Simulates dataset based on parameters.
 
@@ -105,6 +116,12 @@ def get_simulate_func(
     testing_processing_models = (
         {} if testing_processing_models is None else testing_processing_models
     )
+    initial_conditions = (
+        INITIAL_CONDITIONS
+        if initial_conditions is None
+        else {**INITIAL_CONDITIONS, **initial_conditions}
+    )
+
     optional_state_columns = _process_optional_state_columns(optional_state_columns)
     user_state_columns = initial_states.columns
     initial_states = initial_states.copy(deep=True)
@@ -155,6 +172,7 @@ def get_simulate_func(
         columns_to_keep=cols_to_keep,
         indexers=indexers,
         optional_state_columns=optional_state_columns,
+        initial_conditions=initial_conditions,
     )
     return sim_func
 
@@ -176,6 +194,7 @@ def _simulate(
     columns_to_keep,
     indexers,
     optional_state_columns,
+    initial_conditions,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -185,7 +204,10 @@ def _simulate(
         initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the column
             "date" because it is used internally.
         initial_infections (pandas.Series): Series with the same index as states with
-            initial infections.
+            initial infections. They are initial known cases. Sid will assume that
+            unknown cases have the same geographical structure. The number of
+            unknown cases is governed by the parameter ("initial_infections",
+            "known_cases_multiplier", "known_cases_multiplier").
         contact_models (dict): Dictionary of dictionaries where each dictionary
             describes a channel by which contacts can be formed. See
             :ref:`contact_models`.
@@ -209,6 +231,11 @@ def _simulate(
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
             will not be saved. The categories are "contacts" and "reason_for_infection".
+        initial_conditions (dict): Dict containing the entries "burn_in_period" (int),
+            "assort_by": list and "growth_rate". burn_in_periods and growth_rate are
+            needed to spread out the initial infections over a period of time.
+            "assort_by" specifies the aggregation level on which
+            we scale up the initial infections to account for unknown cases.
 
     Returns:
         simulation_results (dask.dataframe): The simulation results in form of a long
@@ -223,14 +250,29 @@ def _simulate(
     )
 
     states = draw_course_of_disease(initial_states, params, seed)
-    states = update_states(
+
+    scaled_infections = _scale_up_initial_infections(
+        initial_infections=initial_infections,
         states=states,
-        newly_infected_contacts=initial_infections,
-        newly_infected_events=initial_infections,
         params=params,
-        seed=seed,
-        optional_state_columns=optional_state_columns,
+        assort_by=initial_conditions["assort_by"],
     )
+    spread_out_infections = _spread_out_initial_infections(
+        scaled_infections=scaled_infections,
+        burn_in_periods=initial_conditions["burn_in_periods"],
+        growth_rate=initial_conditions["growth_rate"],
+    )
+
+    for infections in spread_out_infections:
+        states = update_states(
+            states=states,
+            newly_infected_contacts=infections,
+            newly_infected_events=infections,
+            params=params,
+            seed=seed,
+            optional_state_columns=optional_state_columns,
+        )
+
     for date in duration["dates"]:
         states["date"] = date
 
@@ -700,4 +742,69 @@ def _process_optional_state_columns(opt_state_cols):
         if opt_state_cols is None
         else {**OPTIONAL_STATE_COLUMNS, **opt_state_cols}
     )
+    return res
+
+
+def _spread_out_initial_infections(scaled_infections, burn_in_periods, growth_rate):
+    """Spread out initial infections over several periods, given a growth rate."""
+    scaled_infections = scaled_infections.to_numpy()
+    reversed_shares = []
+    end_of_period_share = 1
+    for _ in range(burn_in_periods):
+        start_of_period_share = end_of_period_share / growth_rate
+        added = end_of_period_share - start_of_period_share
+        reversed_shares.append(added)
+        end_of_period_share = start_of_period_share
+    shares = reversed_shares[::-1]
+    shares[-1] = 1 - np.sum([shares[:-1]])
+
+    hypothetical_infection_day = np.random.choice(
+        burn_in_periods, p=shares, replace=True, size=len(scaled_infections)
+    )
+
+    spread_infections = []
+    for period in range(burn_in_periods):
+        hypothetially_infected_on_that_day = hypothetical_infection_day == period
+        infected_at_all = scaled_infections
+        spread_infections.append(hypothetially_infected_on_that_day & infected_at_all)
+
+    return spread_infections
+
+
+def _scale_up_initial_infections(initial_infections, states, params, assort_by):
+    """Increase number of infections by a multiplier taken from params.
+
+    The relative number of cases between groups defined by the variables in
+    ``assort_by`` is preserved.
+
+    """
+    states = states.copy()
+    index_tup = (
+        "initial_infections",
+        "known_cases_multiplier",
+        "known_cases_multiplier",
+    )
+    multiplier = params.loc[index_tup, "value"]
+    states["known_infections"] = initial_infections
+    average_infections = states.groupby(assort_by)["known_infections"].transform(
+        np.mean
+    )
+    prob_numerator = average_infections * (multiplier - 1)
+    prob_denominator = 1 - average_infections
+    prob = prob_numerator / prob_denominator
+
+    scaled_up_arr = _scale_up_initial_infections_numba(
+        initial_infections.to_numpy(), prob.to_numpy()
+    )
+    scaled_up = pd.Series(scaled_up_arr, index=states.index)
+    return scaled_up
+
+
+@nb.jit
+def _scale_up_initial_infections_numba(initial_infections, probabilities):
+    n_obs = initial_infections.shape[0]
+    res = initial_infections.copy()
+    for i in range(n_obs):
+        if not res[i]:
+            res[i] = boolean_choice(probabilities[i])
     return res

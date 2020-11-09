@@ -55,3 +55,10 @@ OPTIONAL_STATE_COLUMNS = {
     "contacts": False,
     "reason_for_infection": False,
 }
+
+
+INITIAL_CONDITIONS = {
+    "burn_in_periods": 14,
+    "assort_by": ["county"],
+    "growth_rate": 1.3,
+}
