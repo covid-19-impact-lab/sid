@@ -28,7 +28,6 @@ def get_msm_func(
     empirical_moments,
     replace_nans,
     weighting_matrix=None,
-    return_scalar=True,
 ):
     """Get the msm function.
 
@@ -62,6 +61,9 @@ def get_msm_func(
     """
     if weighting_matrix is None:
         weighting_matrix = get_diag_weighting_matrix(empirical_moments)
+
+    if not _is_diagonal(weighting_matrix):
+        raise ValueError("weighting_matrix must be diagonal.")
 
     empirical_moments = copy.deepcopy(empirical_moments)
 
@@ -101,7 +103,6 @@ def get_msm_func(
         empirical_moments=empirical_moments,
         replace_nans=replace_nans,
         weighting_matrix=weighting_matrix,
-        return_scalar=return_scalar,
     )
 
     return msm_func
@@ -114,7 +115,6 @@ def _msm(
     empirical_moments,
     replace_nans,
     weighting_matrix,
-    return_scalar,
 ):
     """The MSM criterion function.
 
@@ -144,14 +144,30 @@ def _msm(
 
     # Return moment errors as indexed DataFrame or calculate weighted square product of
     # moment errors depending on return_scalar.
-    if return_scalar:
-        out = moment_errors.T @ weighting_matrix @ moment_errors
-    else:
-        out = moment_errors @ np.sqrt(weighting_matrix)
-        if isinstance(moment_errors, pd.Series):
-            out = moment_errors.to_numpy()
-        else:
-            out = moment_errors
+    root_contribs = np.sqrt(np.diagonal(weighting_matrix)) * moment_errors
+    value = np.sum(root_contribs ** 2)
+
+    # goodness of fit information. Needs to be removed when cleaning up. Instead need
+    # a better way to specify that some moments should not be used for estimation but
+    # computed and saved for debugging.
+    all_infections_by_age = outcome_by_groups(
+        df=df, outcome="newly_infected", group="age_group_rki", scaling_factor=100_000
+    )
+
+    all_infections = outcome(
+        df=df,
+        outcome="newly_infected",
+        scaling_factor=100_000,
+    )
+
+    out = {
+        "value": value,
+        "root_contributions": root_contribs,
+        "empirical_moments": empirical_moments,
+        "simulated_moments": simulated_moments,
+        "simulated_all_infections_age": all_infections_by_age,
+        "simulated_all_infections": all_infections,
+    }
 
     return out
 
@@ -272,3 +288,44 @@ def _flatten_index(data):
         data_flat.append(df)
 
     return pd.concat(data_flat)
+
+
+def _is_diagonal(mat):
+    return not np.count_nonzero(mat - np.diag(np.diagonal(mat)))
+
+
+def cumulative_outcome(df, outcome, scaling_factor):
+    return (
+        df.groupby(pd.Grouper(key="date", freq="W"))[outcome]
+        .mean()
+        .fillna(0)
+        .cumsum()
+        .compute()
+        * scaling_factor
+    )
+
+
+def outcome(df, outcome, scaling_factor):
+    return (
+        df.groupby(pd.Grouper(key="date", freq="W"))[outcome].mean().fillna(0).compute()
+        * scaling_factor
+    )
+
+
+def outcome_by_groups(df, outcome, group, scaling_factor):
+    if "age_group_rki" not in df.columns:
+        compute_age_groups(df)
+    return (
+        df.groupby([pd.Grouper(key="date", freq="W"), group])[outcome]
+        .mean()
+        .fillna(0)
+        .compute()
+        * scaling_factor
+    )
+
+
+def compute_age_groups(df):
+    intervals = pd.IntervalIndex.from_tuples(
+        [(0, 4), (5, 14), (15, 34), (35, 59), (60, 79), (80, 100)], closed="both"
+    )
+    df["age_group_rki"] = df["age"].map_partitions(pd.cut, intervals)
