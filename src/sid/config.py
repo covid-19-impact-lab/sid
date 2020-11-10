@@ -17,6 +17,8 @@ BOOLEAN_STATE_COLUMNS = [
     "demands_test",
     "allocated_test",
     "to_be_processed_test",
+    "newly_deceased",
+    "new_known_case",
 ]
 
 DTYPE_COUNTDOWNS = np.int16

@@ -85,6 +85,9 @@ def update_states(
 
     states = _kill_people_over_icu_limit(states, params, seed)
 
+    # important: this has to be called after _kill_people_over_icu_limit!
+    states["newly_deceased"] = states["cd_dead_true"] == 0
+
     # Add additional information.
     if optional_state_columns["contacts"]:
         if isinstance(optional_state_columns, list):
