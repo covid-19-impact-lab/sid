@@ -125,6 +125,7 @@ def _msm(
     empirical_moments = copy.deepcopy(empirical_moments)
 
     df = simulate(params)
+    df = df.compute()
 
     simulated_moments = {name: func(df) for name, func in calc_moments.items()}
 
@@ -281,36 +282,20 @@ def _is_diagonal(mat):
 
 def cumulative_outcome(df, outcome, scaling_factor):
     return (
-        df.groupby(pd.Grouper(key="date", freq="W"))[outcome]
-        .mean()
-        .fillna(0)
-        .cumsum()
-        .compute()
+        df.groupby(pd.Grouper(key="date", freq="W"))[outcome].mean().fillna(0).cumsum()
         * scaling_factor
     )
 
 
 def outcome(df, outcome, scaling_factor):
     return (
-        df.groupby(pd.Grouper(key="date", freq="W"))[outcome].mean().fillna(0).compute()
+        df.groupby(pd.Grouper(key="date", freq="W"))[outcome].mean().fillna(0)
         * scaling_factor
     )
 
 
 def outcome_by_groups(df, outcome, group, scaling_factor):
-    if "age_group_rki" not in df.columns:
-        compute_age_groups(df)
     return (
-        df.groupby([pd.Grouper(key="date", freq="W"), group])[outcome]
-        .mean()
-        .fillna(0)
-        .compute()
+        df.groupby([pd.Grouper(key="date", freq="W"), group])[outcome].mean().fillna(0)
         * scaling_factor
     )
-
-
-def compute_age_groups(df):
-    intervals = pd.IntervalIndex.from_tuples(
-        [(0, 4), (5, 14), (15, 34), (35, 59), (60, 79), (80, 100)], closed="both"
-    )
-    df["age_group_rki"] = df["age"].map_partitions(pd.cut, intervals)
