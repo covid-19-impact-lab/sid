@@ -781,7 +781,7 @@ def _scale_up_initial_infections(initial_infections, states, params, assort_by):
     """
     states = states.copy()
     index_tup = (
-        "initial_infections",
+        "known_cases_multiplier",
         "known_cases_multiplier",
         "known_cases_multiplier",
     )

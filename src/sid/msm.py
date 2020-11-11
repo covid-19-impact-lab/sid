@@ -147,26 +147,11 @@ def _msm(
     root_contribs = np.sqrt(np.diagonal(weighting_matrix)) * moment_errors
     value = np.sum(root_contribs ** 2)
 
-    # goodness of fit information. Needs to be removed when cleaning up. Instead need
-    # a better way to specify that some moments should not be used for estimation but
-    # computed and saved for debugging.
-    all_infections_by_age = outcome_by_groups(
-        df=df, outcome="newly_infected", group="age_group_rki", scaling_factor=100_000
-    )
-
-    all_infections = outcome(
-        df=df,
-        outcome="newly_infected",
-        scaling_factor=100_000,
-    )
-
     out = {
         "value": value,
         "root_contributions": root_contribs,
         "empirical_moments": empirical_moments,
         "simulated_moments": simulated_moments,
-        "simulated_all_infections_age": all_infections_by_age,
-        "simulated_all_infections": all_infections,
     }
 
     return out
