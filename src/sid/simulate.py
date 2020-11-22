@@ -21,6 +21,7 @@ from sid.testing_allocation import allocate_tests
 from sid.testing_allocation import update_pending_tests
 from sid.testing_demand import calculate_demand_for_tests
 from sid.testing_processing import process_tests
+from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
 from sid.validation import validate_models
 from sid.validation import validate_params
@@ -79,7 +80,7 @@ def get_simulate_func(
             "testing_states", "countdowns", "contacts", "countdown_draws", "group_codes"
             "infection_reason" and "other".
         optional_state_columns (dict): Dictionary with categories of state columns
-            that can additionally be added to the states dataframe, either for use in
+            that can additionally be added to the states DataFrame, either for use in
             contact models and policies or to be saved. Most types of columns are added
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
@@ -213,6 +214,7 @@ def _simulate(
 
     for date in duration["dates"]:
         states["date"] = date
+        states["period"] = timestamp_to_sid_period(date)
 
         contacts = calculate_contacts(
             contact_models, contact_policies, states, params, date

@@ -13,12 +13,11 @@ on the exact dates in the states even if the ``"date"`` column is removed during
 estimation to reduce memory consumption.
 
 """
-
 from functools import partial
 
-import numpy as np
 import pandas as pd
-from sid.config import SID_TIME_START, DTYPE_SID_PERIOD
+from sid.config import DTYPE_SID_PERIOD
+from sid.config import SID_TIME_START
 
 
 def period_to_timestamp(period, relative_to):
