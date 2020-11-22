@@ -1,3 +1,4 @@
+import pandas as pd
 from pathlib import Path
 
 import numpy as np
@@ -55,3 +56,6 @@ OPTIONAL_STATE_COLUMNS = {
     "contacts": False,
     "reason_for_infection": False,
 }
+
+
+SID_TIME_START = pd.Timestamp("2019-01-01")
