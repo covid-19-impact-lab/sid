@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pandas as pd
 from sid.config import DTYPE_GROUP_CODE
@@ -201,3 +203,19 @@ def date_is_within_start_and_end_date(date, start, end):
         is_within = False
 
     return is_within
+
+
+def parse_n_workers(value):
+    """Validate the n-workers option."""
+    if value == "auto":
+        n_workers = os.cpu_count() - 1
+    elif value in [None, "None", "none"]:
+        n_workers = 1
+    elif isinstance(value, int) and 1 <= value:
+        n_workers = value
+    elif isinstance(value, str) and value.isdigit():
+        n_workers = int(value)
+    else:
+        raise ValueError("n_workers can either be an integer >= 1, 'auto' or None.")
+
+    return n_workers
