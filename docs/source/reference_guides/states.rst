@@ -8,13 +8,13 @@ The ``states`` DataFrame
 Introduction
 ------------
 
-The ``states`` DataFrame is the core of the COVID-19 simulator. It contains all
+The ``states`` DataFrame is the core of the covid simulator. It contains all
 characteristics of all individuals in the population. This includes all variables that
 influence the number of contacts, the dangerousness of the disease as well as the health
 status.
 
 All variables in ``states`` should be categorical with meaningful categories that can be
-directly used for plotting. Internally, we will work with the numeric codes.
+directly used for plotting. Internally, we will work with the codes.
 
 No NaNs are allowed in ``states``. If there are NaNs in the dataset with background
 characteristics, the user has to impute values or drop those observations.

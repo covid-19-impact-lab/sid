@@ -22,10 +22,7 @@ def update_states(
 
     Args:
         states (pandas.DataFrame): See :ref:`states`.
-        newly_infected_contacts (pandas.Series): Boolean Series with same index as
-            states which indicates individuals infected due to contacts.
-        newly_infected_events (pandas.Series): Boolean Series with same index as
-            states which indicates individuals infected due to events.
+        newly_infected (pandas.Series): Boolean Series with same index as states.
         params (pandas.DataFrame): See :ref:`params`.
         seed (itertools.count): Seed counter to control randomness.
         n_has_additionally_infected (pandas.Series): Additionally infected persons by
@@ -88,9 +85,6 @@ def update_states(
 
     states = _kill_people_over_icu_limit(states, params, seed)
 
-    # important: this has to be called after _kill_people_over_icu_limit!
-    states["newly_deceased"] = states["cd_dead_true"] == 0
-
     # Add additional information.
     if optional_state_columns["contacts"]:
         if isinstance(optional_state_columns, list):
@@ -118,20 +112,20 @@ def update_states(
         # For everyone who received a test result, the countdown for the test processing
         # has expired. If you have a positive test result (received_test_result &
         # immune) you will leave the state of knowing until your immunity expires.
-        states["new_known_case"] = states.received_test_result & states.immune
-        states.loc[states["new_known_case"], "cd_knows_immune_false"] = states.loc[
-            states["new_known_case"], "cd_immune_false"
+        knows_immune = states.received_test_result & states.immune
+        states.loc[knows_immune, "cd_knows_immune_false"] = states.loc[
+            knows_immune, "cd_immune_false"
         ]
-        states.loc[states["new_known_case"], "knows_immune"] = True
+        states.loc[knows_immune, "knows_immune"] = True
 
-        knows_infectious = states["new_known_case"] & states["infectious"]
+        knows_infectious = knows_immune & states.infectious
         states.loc[knows_infectious, "cd_knows_infectious_false"] = states.loc[
             knows_infectious, "cd_infectious_false"
         ]
         states.loc[knows_infectious, "knows_infectious"] = True
 
-        # Everyone looses ``received_test_result == True`` because the information is
-        # passed to the more specific knows attributes.
+        # Everyone looses ``received_test_result == True`` because it is passed to the
+        # more specific knows attributes.
         states.loc[states.received_test_result, "received_test_result"] = False
 
     return states
