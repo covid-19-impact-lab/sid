@@ -228,7 +228,7 @@ def _simulate(
             newly_infected_contacts,
             n_has_additionally_infected,
             newly_missed_contacts,
-            was_infected_by_model,
+            was_infected_by_contact,
         ) = calculate_infections_by_contacts(
             states=states,
             contacts=contacts,
@@ -267,7 +267,7 @@ def _simulate(
             indexers=indexers,
             contacts=contacts,
             to_be_processed_test=to_be_processed_tests,
-            was_infected_by_model=was_infected_by_model,
+            was_infected_by_contact=was_infected_by_contact,
         )
 
         _dump_periodic_states(states, columns_to_keep, path, date)
