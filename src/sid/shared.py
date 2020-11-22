@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from sid.config import DTYPE_GROUP_CODE
 from sid.config import INDEX_NAMES
+from sid.config import OPTIONAL_STATE_COLUMNS
 from sid.config import ROOT_DIR
 
 
@@ -201,3 +202,12 @@ def date_is_within_start_and_end_date(date, start, end):
         is_within = False
 
     return is_within
+
+
+def process_optional_state_columns(opt_state_cols):
+    res = (
+        OPTIONAL_STATE_COLUMNS
+        if opt_state_cols is None
+        else {**OPTIONAL_STATE_COLUMNS, **opt_state_cols}
+    )
+    return res

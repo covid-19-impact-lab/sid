@@ -6,12 +6,7 @@ from pathlib import Path
 
 import dask.dataframe as dd
 import numpy as np
-import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
-from sid.config import DTYPE_COUNTDOWNS
-from sid.config import DTYPE_INFECTION_COUNTER
-from sid.config import INDEX_NAMES
-from sid.config import OPTIONAL_STATE_COLUMNS
 from sid.config import SAVED_COLUMNS
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
@@ -20,19 +15,21 @@ from sid.countdowns import COUNTDOWNS
 from sid.events import calculate_infections_by_events
 from sid.matching_probabilities import create_group_transition_probs
 from sid.parse_model import parse_duration
-from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
+from sid.shared import process_optional_state_columns
 from sid.testing_allocation import allocate_tests
 from sid.testing_allocation import update_pending_tests
 from sid.testing_demand import calculate_demand_for_tests
 from sid.testing_processing import process_tests
 from sid.update_states import update_states
+from sid.validation import validate_models
+from sid.validation import validate_params
+from sid.validation import validate_prepared_initial_states
 
 
 def get_simulate_func(
     params,
     initial_states,
-    initial_infections,
     contact_models,
     duration=None,
     events=None,
@@ -51,14 +48,12 @@ def get_simulate_func(
     to process the user input is only incurred once in :func:`get_simulate_func` and not
     when the resulting function is called.
 
-
     Args:
         params (pandas.DataFrame): DataFrame with parameters that influence the number
             of contacts, contagiousness and dangerousness of the disease, ... .
-        initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the column
-            "date" because it is used internally.
-        initial_infections (pandas.Series): Series with the same index as states with
-            initial infections.
+        initial_states (pandas.DataFrame): The output of
+            :func:`sid.spread_infections.spreat_out_infections` or from a
+            past simulation or estimation.
         contact_models (dict): Dictionary of dictionaries where each dictionary
             describes a channel by which contacts can be formed. See
             :ref:`contact_models`.
@@ -96,26 +91,19 @@ def get_simulate_func(
     """
     events = {} if events is None else events
     contact_policies = {} if contact_policies is None else contact_policies
-    testing_demand_models = (
-        {} if testing_demand_models is None else testing_demand_models
-    )
-    testing_allocation_models = (
-        {} if testing_allocation_models is None else testing_allocation_models
-    )
-    testing_processing_models = (
-        {} if testing_processing_models is None else testing_processing_models
-    )
-    optional_state_columns = _process_optional_state_columns(optional_state_columns)
-    user_state_columns = initial_states.columns
+    if testing_demand_models is None:
+        testing_demand_models = {}
+    if testing_allocation_models is None:
+        testing_allocation_models = {}
+    if testing_processing_models is None:
+        testing_processing_models = {}
+
+    params = params.copy(deep=True)
     initial_states = initial_states.copy(deep=True)
-    params = _prepare_params(params)
 
-    path = _create_output_directory(path)
-
-    _check_inputs(
-        params,
-        initial_states,
-        initial_infections,
+    validate_params(params)
+    validate_prepared_initial_states(initial_states)
+    validate_models(
         contact_models,
         contact_policies,
         testing_demand_models,
@@ -134,15 +122,17 @@ def get_simulate_func(
 
     indexers = _prepare_assortative_matching_indexers(initial_states, assort_bys)
 
+    optional_state_columns = process_optional_state_columns(optional_state_columns)
     cols_to_keep = _process_saved_columns(
-        saved_columns, user_state_columns, contact_models, optional_state_columns
+        saved_columns, initial_states.columns, contact_models, optional_state_columns
     )
+
+    path = _create_output_directory(path)
 
     sim_func = functools.partial(
         _simulate,
         initial_states=initial_states,
         assort_bys=assort_bys,
-        initial_infections=initial_infections,
         contact_models=contact_models,
         duration=duration,
         events=events,
@@ -163,7 +153,6 @@ def _simulate(
     params,
     initial_states,
     assort_bys,
-    initial_infections,
     contact_models,
     duration,
     events,
@@ -182,10 +171,9 @@ def _simulate(
     Args:
         params (pandas.DataFrame): DataFrame with parameters that influence the number
             of contacts, contagiousness and dangerousness of the disease, ... .
-        initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the column
-            "date" because it is used internally.
-        initial_infections (pandas.Series): Series with the same index as states with
-            initial infections.
+        initial_states (pandas.DataFrame): The output of
+            :func:`sid.preparation.prepare_initial_states` or states from a former
+            simulation or estimation.
         contact_models (dict): Dictionary of dictionaries where each dictionary
             describes a channel by which contacts can be formed. See
             :ref:`contact_models`.
@@ -217,20 +205,12 @@ def _simulate(
 
     """
     seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
+    states = initial_states
 
     cum_probs = _prepare_assortative_matching_probabilities(
-        initial_states, assort_bys, params, contact_models
+        states, assort_bys, params, contact_models
     )
 
-    states = draw_course_of_disease(initial_states, params, seed)
-    states = update_states(
-        states=states,
-        newly_infected_contacts=initial_infections,
-        newly_infected_events=initial_infections,
-        params=params,
-        seed=seed,
-        optional_state_columns=optional_state_columns,
-    )
     for date in duration["dates"]:
         states["date"] = date
 
@@ -253,7 +233,7 @@ def _simulate(
         newly_infected_events = calculate_infections_by_events(states, params, events)
 
         if testing_demand_models:
-            demands_test, demands_test_reason = calculate_demand_for_tests(
+            demands_test = calculate_demand_for_tests(
                 states, testing_demand_models, params, date, seed
             )
             allocated_tests = allocate_tests(
@@ -266,8 +246,6 @@ def _simulate(
                 states, testing_processing_models, params, date
             )
         else:
-            demands_test = None
-            allocated_tests = None
             to_be_processed_tests = None
 
         states = update_states(
@@ -293,34 +271,6 @@ def _simulate(
     simulation_results = _return_dask_dataframe(path, categoricals)
 
     return simulation_results
-
-
-def _prepare_params(params):
-    """Check the supplied params and set the index if not done."""
-    if not isinstance(params, pd.DataFrame):
-        raise ValueError("params must be a DataFrame.")
-
-    params = params.copy()
-    if not (
-        isinstance(params.index, pd.MultiIndex) and params.index.names == INDEX_NAMES
-    ):
-        raise ValueError(
-            "params must have the index levels 'category', 'subcategory' and 'name'."
-        )
-
-    if np.any(params.index.to_frame().isna()):
-        raise ValueError(
-            "No NaNs allowed in the params index. Repeat the previous index level "
-            "instead."
-        )
-
-    if params.index.duplicated().any():
-        raise ValueError("No duplicates in the params index allowed.")
-
-    if params["value"].isna().any():
-        raise ValueError("The 'value' column of params must not contain NaNs.")
-
-    return params
 
 
 def _create_output_directory(path):
@@ -410,113 +360,6 @@ def _process_assort_bys(contact_models):
     return assort_bys
 
 
-def _check_inputs(
-    params,
-    initial_states,
-    initial_infections,
-    contact_models,
-    contact_policies,
-    testing_demand_models,
-    testing_allocation_models,
-    testing_processing_models,
-):
-    """Check the user inputs."""
-    cd_names = sorted(COUNTDOWNS)
-    gb = params.loc[cd_names].groupby(INDEX_NAMES[:2])
-    prob_sums = gb["value"].sum()
-    problematic = prob_sums[~prob_sums.between(1 - 1e-08, 1 + 1e-08)].index.tolist()
-    assert (
-        len(problematic) == 0
-    ), f"The following countdown probabilities don't add up to 1: {problematic}"
-
-    if not isinstance(initial_states, pd.DataFrame):
-        raise ValueError("initial_states must be a DataFrame.")
-
-    if not isinstance(initial_infections, pd.Series):
-        raise ValueError("initial_infections must be a pandas Series.")
-
-    if not initial_infections.index.equals(initial_states.index):
-        raise ValueError("initial_states and initial_infections must have same index.")
-
-    if not isinstance(contact_models, dict):
-        raise ValueError("contact_models must be a dictionary.")
-
-    for cm_name, cm in contact_models.items():
-        if not isinstance(cm, dict):
-            raise ValueError(f"Each contact model must be a dictionary: {cm_name}.")
-
-    if not isinstance(contact_policies, dict):
-        raise ValueError("policies must be a dictionary.")
-
-    for name, pol in contact_policies.items():
-        if not isinstance(pol, dict):
-            raise ValueError(f"Each policy must be a dictionary: {name}.")
-        if "affected_contact_model" not in pol:
-            raise KeyError(
-                f"contact_policy {name} must have a 'affected_contact_model' specified."
-            )
-        model = pol["affected_contact_model"]
-        if model not in contact_models:
-            raise ValueError(f"Unknown affected_contact_model for {name}.")
-        if "policy" not in pol:
-            raise KeyError(f"contact_policy {name} must have a 'policy' specified.")
-
-        # the policy must either be a callable or a number between 0 and 1.
-        if not callable(pol["policy"]):
-            if not isinstance(pol["policy"], (float, int)):
-                raise ValueError(
-                    f"The 'policy' entry of {name} must be callable or a number."
-                )
-            elif (pol["policy"] > 1.0) or (pol["policy"] < 0.0):
-                raise ValueError(
-                    f"If 'policy' is a number it must lie between 0 and 1. "
-                    f"For {name} it is {pol['policy']}."
-                )
-            else:
-                recurrent = contact_models[model]["is_recurrent"]
-                assert not recurrent or pol["policy"] == 0.0, (
-                    f"Specifying multipliers for recurrent models such as {name} for "
-                    f"{pol['affected_contact_model']} will not change the contacts "
-                    "of anyone because for recurrent models it is only checked"
-                    "where the number of contacts is larger than 0. "
-                    "This is unaffected by any multiplier other than 0"
-                )
-
-    for testing_model in [
-        testing_demand_models,
-        testing_allocation_models,
-        testing_processing_models,
-    ]:
-        for name in testing_model:
-            if not isinstance(testing_model[name], dict):
-                raise ValueError(f"Each testing model must be a dictionary: {name}.")
-
-            if "model" not in testing_model[name]:
-                raise ValueError(
-                    f"Each testing model must have a 'model' entry: {name}."
-                )
-
-    first_levels = params.index.get_level_values("category")
-    assort_prob_matrices = [
-        x for x in first_levels if x.startswith("assortative_matching_")
-    ]
-    for name in assort_prob_matrices:
-        meeting_prob = params.loc[name]["value"].unstack()
-        assert len(meeting_prob.index) == len(
-            meeting_prob.columns
-        ), f"assortative probability matrices must be square but isn't for {name}."
-        assert (
-            meeting_prob.index == meeting_prob.columns
-        ).all(), (
-            f"assortative probability matrices must be square but isn't for {name}."
-        )
-        assert (meeting_prob.sum(axis=1) > 0.9999).all() & (
-            meeting_prob.sum(axis=1) < 1.00001
-        ).all(), (
-            f"the meeting probabilities of {name} do not add up to one in every row."
-        )
-
-
 def _prepare_assortative_matching_indexers(states, assort_bys):
     """Create indexers and first stage probabilities for assortative matching.
 
@@ -589,9 +432,6 @@ def _process_initial_states(states, assort_bys):
         states (pandas.DataFrame): Processed states.
 
     """
-    if np.any(states.isna()):
-        raise ValueError("'initial_states' are not allowed to contain NaNs.")
-
     # Check if all assort_by columns are categoricals. This is important to save memory.
     assort_by_variables = list(
         set(it.chain.from_iterable(a_b for a_b in assort_bys.values()))
@@ -604,18 +444,6 @@ def _process_initial_states(states, assort_bys):
     # be dropped while writing to parquet. Parquet stores an efficient range index
     # instead.
     states = states.sort_index().reset_index()
-
-    for col in BOOLEAN_STATE_COLUMNS:
-        if col not in states.columns:
-            states[col] = False
-
-    for col in COUNTDOWNS:
-        if col not in states.columns:
-            states[col] = -1
-        states[col] = states[col].astype(DTYPE_COUNTDOWNS)
-
-    states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
-    states["pending_test_date"] = pd.NaT
 
     for model_name, assort_by in assort_bys.items():
         states[f"group_codes_{model_name}"], _ = factorize_assortative_variables(
@@ -694,13 +522,4 @@ def _combine_column_lists(user_entries, all_entries):
     else:
         res = []
     res = list(res)
-    return res
-
-
-def _process_optional_state_columns(opt_state_cols):
-    res = (
-        OPTIONAL_STATE_COLUMNS
-        if opt_state_cols is None
-        else {**OPTIONAL_STATE_COLUMNS, **opt_state_cols}
-    )
     return res

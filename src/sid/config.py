@@ -18,6 +18,8 @@ BOOLEAN_STATE_COLUMNS = [
     "demands_test",
     "allocated_test",
     "to_be_processed_test",
+    "newly_deceased",
+    "new_known_case",
 ]
 
 DTYPE_COUNTDOWNS = np.int16
@@ -50,7 +52,7 @@ SAVED_COLUMNS = {
     "contacts": False,
     "countdown_draws": False,
     "group_codes": False,
-    "other": ["n_has_infected", "newly_infected"],
+    "other": ["n_has_infected", "newly_infected", "new_known_case"],
 }
 
 
@@ -61,3 +63,10 @@ OPTIONAL_STATE_COLUMNS = {
 
 
 SID_TIME_START = pd.Timestamp("2019-01-01")
+
+
+INITIAL_CONDITIONS = {
+    "burn_in_periods": 14,
+    "assort_by": ["county"],
+    "growth_rate": 1.3,
+}
