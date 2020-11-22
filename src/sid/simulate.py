@@ -653,17 +653,20 @@ def _process_saved_columns(
     )
 
     all_columns = {
+        "time": ["date", "period"],
         "initial_states": initial_state_columns,
         "disease_states": [col for col in BOOLEAN_STATE_COLUMNS if "test" not in col],
-        "testing_states": [col for col in BOOLEAN_STATE_COLUMNS if "test" in col]
-        + ["pending_test_date"],
+        "testing_states": (
+            [col for col in BOOLEAN_STATE_COLUMNS if "test" in col]
+            + ["pending_test_date"]
+        ),
         "countdowns": list(COUNTDOWNS),
         "contacts": [f"n_contacts_{model}" for model in contact_models],
         "countdown_draws": [f"{cd}_draws" for cd in COUNTDOWNS],
         "group_codes": [f"group_codes_{model}" for model in contact_models],
     }
 
-    keep = ["date"]
+    keep = []
     for category in all_columns:
         keep += _combine_column_lists(saved_columns[category], all_columns[category])
 
