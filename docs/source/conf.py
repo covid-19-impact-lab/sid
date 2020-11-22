@@ -55,13 +55,7 @@ autodoc_member_order = "bysource"
 autosummary_generate = True
 add_module_names = False
 
-autodoc_mock_imports = [
-    "bokeh",
-    "dask",
-    "numba",
-    "numpy",
-    "pandas",
-]
+autodoc_mock_imports = ["bokeh", "dask", "joblib", "numba", "numpy", "pandas"]
 
 extlinks = {
     "ghuser": ("https://github.com/%s", "@"),

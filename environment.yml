@@ -16,6 +16,7 @@ dependencies:
   - bokeh
   - dask
   - fastparquet
+  - joblib
   - jupyterlab
   - nbsphinx
   - numba>=0.48

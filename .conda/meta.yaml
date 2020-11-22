@@ -25,6 +25,7 @@ requirements:
     - bokeh
     - dask
     - fastparquet
+    - joblib
     - numba >=0.48
     - numpy
     - pandas >=1
