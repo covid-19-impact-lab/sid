@@ -42,8 +42,11 @@ def calculate_demand_for_tests(states, testing_demand_models, params, date, seed
     )
 
     demands_test = _sample_which_individuals_demand_a_test(demand_probabilities, seed)
+    demands_test_reason = _sample_reason_for_demanding_a_test(
+        demand_probabilities, demands_test, seed
+    )
 
-    return demands_test
+    return demands_test, demands_test_reason
 
 
 def _calculate_demand_probabilities(states, testing_demand_models, params, date):

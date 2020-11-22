@@ -28,6 +28,7 @@ def get_msm_func(
     empirical_moments,
     replace_nans,
     weighting_matrix=None,
+    return_scalar=True,
 ):
     """Get the msm function.
 
@@ -61,9 +62,6 @@ def get_msm_func(
     """
     if weighting_matrix is None:
         weighting_matrix = get_diag_weighting_matrix(empirical_moments)
-
-    if not _is_diagonal(weighting_matrix):
-        raise ValueError("weighting_matrix must be diagonal.")
 
     empirical_moments = copy.deepcopy(empirical_moments)
 
@@ -103,6 +101,7 @@ def get_msm_func(
         empirical_moments=empirical_moments,
         replace_nans=replace_nans,
         weighting_matrix=weighting_matrix,
+        return_scalar=return_scalar,
     )
 
     return msm_func
@@ -115,6 +114,7 @@ def _msm(
     empirical_moments,
     replace_nans,
     weighting_matrix,
+    return_scalar,
 ):
     """The MSM criterion function.
 
@@ -125,7 +125,6 @@ def _msm(
     empirical_moments = copy.deepcopy(empirical_moments)
 
     df = simulate(params)
-    df = df.compute()
 
     simulated_moments = {name: func(df) for name, func in calc_moments.items()}
 
@@ -145,15 +144,14 @@ def _msm(
 
     # Return moment errors as indexed DataFrame or calculate weighted square product of
     # moment errors depending on return_scalar.
-    root_contribs = np.sqrt(np.diagonal(weighting_matrix)) * moment_errors
-    value = np.sum(root_contribs ** 2)
-
-    out = {
-        "value": value,
-        "root_contributions": root_contribs,
-        "empirical_moments": empirical_moments,
-        "simulated_moments": simulated_moments,
-    }
+    if return_scalar:
+        out = moment_errors.T @ weighting_matrix @ moment_errors
+    else:
+        out = moment_errors @ np.sqrt(weighting_matrix)
+        if isinstance(moment_errors, pd.Series):
+            out = moment_errors.to_numpy()
+        else:
+            out = moment_errors
 
     return out
 
@@ -274,7 +272,3 @@ def _flatten_index(data):
         data_flat.append(df)
 
     return pd.concat(data_flat)
-
-
-def _is_diagonal(mat):
-    return not np.count_nonzero(mat - np.diag(np.diagonal(mat)))

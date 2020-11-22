@@ -69,9 +69,8 @@ the preparation and ramp up of existing capacities in a country.
 .. rubric:: References
 
 - `Allocated tests and testing capacity in Germany
-  <https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/nCoV_node.html>`_ under
-  "Daten zum Download" and "Tabellen zu Testzahlen, Testkapazitäten und Probenrückstau
-  ...".
+  <https://de.wikipedia.org/wiki/COVID-19-Pandemie_in_Deutschland/Statistik>`_ on
+  Wikipedia, collected from daily RKI reports.
 
 
 Immunity Countdown
