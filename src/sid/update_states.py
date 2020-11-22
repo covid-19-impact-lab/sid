@@ -15,6 +15,7 @@ def update_states(
     indexers=None,
     contacts=None,
     to_be_processed_test=None,
+    was_infected_by_contact=None,
 ):
     """Update the states with new infections and advance it by one period.
 
@@ -60,6 +61,9 @@ def update_states(
 
     states["newly_infected"] = newly_infected_contacts | newly_infected_events
     states["immune"] = states["immune"] | states["newly_infected"]
+
+    if was_infected_by_contact is not None:
+        states["was_infected_by_contact"] = was_infected_by_contact
 
     # Save channel of infection; For speed reasons start with integer labels and
     # convert to string labels later
