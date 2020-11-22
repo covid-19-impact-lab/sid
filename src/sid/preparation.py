@@ -73,8 +73,6 @@ def prepare_initial_states(
     validate_params(params)
 
     optional_state_columns = process_optional_state_columns(optional_state_columns)
-    # There is not contact information, yet.
-    optional_state_columns["contacts"] = False
 
     seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
 
