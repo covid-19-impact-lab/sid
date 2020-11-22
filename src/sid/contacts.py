@@ -150,9 +150,9 @@ def calculate_infections_by_contacts(
     )
     missed_contacts.loc[:, is_recurrent] = 0
 
-    was_infected_by = pd.Categorical(pd.Series(was_infected_by, index=states.index))
+    was_infected_by = pd.Series(was_infected_by, index=states.index).astype("category")
     categories = {-1: "not_infected_by_contact", **code_to_contact_model}
-    was_infected_by.rename_categories(new_categories=categories, inplace=True)
+    was_infected_by.cat.rename_categories(new_categories=categories, inplace=True)
 
     return infected, n_has_additionally_infected, missed_contacts, was_infected_by
 

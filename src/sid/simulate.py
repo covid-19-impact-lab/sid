@@ -211,7 +211,7 @@ def _simulate(
         states, assort_bys, params, contact_models
     )
 
-    code_to_contact_model = dict(zip(range(len(contact_models)), list(contact_models)))
+    code_to_contact_model = dict(enumerate(contact_models))
 
     for date in duration["dates"]:
         states["date"] = date
