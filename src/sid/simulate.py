@@ -212,33 +212,25 @@ def _simulate(
         states, assort_bys, params, contact_models
     )
 
-    code_to_contact_model = dict(enumerate(contact_models))
-
     for date in duration["dates"]:
         states["date"] = date
         states["period"] = timestamp_to_sid_period(date)
 
         contacts = calculate_contacts(
-            contact_models=contact_models,
-            contact_policies=contact_policies,
-            states=states,
-            params=params,
-            date=date,
+            contact_models, contact_policies, states, params, date
         )
 
         (
             newly_infected_contacts,
             n_has_additionally_infected,
             newly_missed_contacts,
-            was_infected_by_contact,
         ) = calculate_infections_by_contacts(
-            states=states,
-            contacts=contacts,
-            params=params,
-            indexers=indexers,
-            group_cdfs=cum_probs,
-            code_to_contact_model=code_to_contact_model,
-            seed=seed,
+            states,
+            contacts,
+            params,
+            indexers,
+            cum_probs,
+            seed,
         )
         newly_infected_events = calculate_infections_by_events(states, params, events)
 
@@ -269,7 +261,6 @@ def _simulate(
             indexers=indexers,
             contacts=contacts,
             to_be_processed_test=to_be_processed_tests,
-            was_infected_by_contact=was_infected_by_contact,
         )
 
         _dump_periodic_states(states, columns_to_keep, path, date)

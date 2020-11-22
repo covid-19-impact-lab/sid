@@ -61,7 +61,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
 
 
 def calculate_infections_by_contacts(
-    states, contacts, params, indexers, group_cdfs, code_to_contact_model, seed
+    states, contacts, params, indexers, group_cdfs, seed
 ):
     """Calculate infections from contacts.
 
@@ -125,7 +125,6 @@ def calculate_infections_by_contacts(
         infection_counter,
         immune,
         missed,
-        was_infected_by,
     ) = _calculate_infections_by_contacts_numba(
         reduced_contacts,
         infectious,
@@ -150,11 +149,7 @@ def calculate_infections_by_contacts(
     )
     missed_contacts.loc[:, is_recurrent] = 0
 
-    was_infected_by = pd.Series(was_infected_by, index=states.index).astype("category")
-    categories = {-1: "not_infected_by_contact", **code_to_contact_model}
-    was_infected_by.cat.rename_categories(new_categories=categories, inplace=True)
-
-    return infected, n_has_additionally_infected, missed_contacts, was_infected_by
+    return infected, n_has_additionally_infected, missed_contacts
 
 
 @nb.njit
@@ -286,7 +281,6 @@ def _calculate_infections_by_contacts_numba(
     infected = np.zeros(len(contacts), dtype=DTYPE_INFECTED)
     infection_counter = np.zeros(len(contacts), dtype=DTYPE_INFECTION_COUNTER)
     groups_list = [np.arange(len(gp)) for gp in group_cdfs]
-    was_infected_by = np.full(len(contacts), -1, dtype=np.int16)
 
     # Loop over all individual-contact_model combinations
     for k in range(len(loop_order)):
@@ -310,7 +304,6 @@ def _calculate_infections_by_contacts_numba(
                             infection_counter[i] += 1
                             infected[j] = 1
                             immune[j] = True
-                            was_infected_by[j] = cm
 
         else:
             # get the probabilities for meeting another group which depend on the
@@ -341,17 +334,15 @@ def _calculate_infections_by_contacts_numba(
                         infection_counter[i] += 1
                         infected[j] = 1
                         immune[j] = True
-                        was_infected_by[j] = cm
 
                     elif infectious[j] and not immune[i]:
                         infection_counter[j] += 1
                         infected[i] = 1
                         immune[i] = True
-                        was_infected_by[i] = cm
 
     missed = contacts
 
-    return infected, infection_counter, immune, missed, was_infected_by
+    return infected, infection_counter, immune, missed
 
 
 @nb.njit
