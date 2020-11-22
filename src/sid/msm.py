@@ -278,24 +278,3 @@ def _flatten_index(data):
 
 def _is_diagonal(mat):
     return not np.count_nonzero(mat - np.diag(np.diagonal(mat)))
-
-
-def cumulative_outcome(df, outcome, scaling_factor):
-    return (
-        df.groupby(pd.Grouper(key="date", freq="W"))[outcome].mean().fillna(0).cumsum()
-        * scaling_factor
-    )
-
-
-def outcome(df, outcome, scaling_factor):
-    return (
-        df.groupby(pd.Grouper(key="date", freq="W"))[outcome].mean().fillna(0)
-        * scaling_factor
-    )
-
-
-def outcome_by_groups(df, outcome, group, scaling_factor):
-    return (
-        df.groupby([pd.Grouper(key="date", freq="W"), group])[outcome].mean().fillna(0)
-        * scaling_factor
-    )
