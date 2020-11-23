@@ -24,12 +24,14 @@ def scale_and_spread_initial_infections(
         states=states,
         params=params,
         assort_by=initial_conditions["assort_by"],
+        seed=seed,
     )
 
     spread_out_infections = _spread_out_initial_infections(
         scaled_infections=scaled_infections,
         burn_in_periods=initial_conditions["burn_in_periods"],
         growth_rate=initial_conditions["growth_rate"],
+        seed=seed,
     )
 
     # Number of contacts are only available during the simulation.
@@ -49,7 +51,7 @@ def scale_and_spread_initial_infections(
     return states
 
 
-def _scale_up_initial_infections(initial_infections, states, params, assort_by):
+def _scale_up_initial_infections(initial_infections, states, params, assort_by, seed):
     r"""Increase number of infections by a multiplier taken from params.
 
     The probability for each individual to become infectious depends on the share of
@@ -68,6 +70,7 @@ def _scale_up_initial_infections(initial_infections, states, params, assort_by):
         states (pandas.DataFrame): The states DataFrame.
         params (pandas.DataFrame): The parameters DataFrame.
         assort_by (List[str]): A list of ``assort_by`` variables.
+        seed (itertools.count): A seed counter.
 
     Returns:
         scaled_up (pandas.Series): A boolean series with upscaled infections.
@@ -83,14 +86,52 @@ def _scale_up_initial_infections(initial_infections, states, params, assort_by):
     prob = prob_numerator / prob_denominator
 
     scaled_up_arr = _scale_up_initial_infections_numba(
-        initial_infections.to_numpy(), prob.to_numpy()
+        initial_infections.to_numpy(), prob.to_numpy(), next(seed)
     )
     scaled_up = pd.Series(scaled_up_arr, index=states.index)
     return scaled_up
 
 
-def _spread_out_initial_infections(scaled_infections, burn_in_periods, growth_rate):
-    """Spread out initial infections over several periods, given a growth rate."""
+@nb.njit
+def _scale_up_initial_infections_numba(initial_infections, probabilities, seed):
+    """Scale up initial infections.
+
+    Args:
+        initial_infections (numpy.ndarray): Boolean array indicating initial infections.
+        probabilities (numpy.ndarray): Probabilities for becoming infected.
+        seed (int): Seed to control randomness.
+
+    Returns:
+        scaled_infections (numpy.ndarray): Upscaled infections.
+
+    """
+    np.random.seed(seed)
+    n_obs = initial_infections.shape[0]
+    scaled_infections = initial_infections.copy()
+    for i in range(n_obs):
+        if not scaled_infections[i]:
+            scaled_infections[i] = boolean_choice(probabilities[i])
+    return scaled_infections
+
+
+def _spread_out_initial_infections(
+    scaled_infections, burn_in_periods, growth_rate, seed
+):
+    """Spread out initial infections over several periods, given a growth rate.
+
+    Args:
+        scaled_infections (pandas.Series):
+        burn_in_periods (int): Number of burn-in periods.
+        growth_rate (float): Growth rate.
+        seed (itertools.count): The seed counter.
+
+    Return:
+        spread_infections (List[ArrayLike[bool]]): A list of boolean arrays which
+            indicate new infections for each day of the burn-in period.
+
+    """
+    np.random.seed(next(seed))
+
     scaled_infections = scaled_infections.to_numpy()
     reversed_shares = []
     end_of_period_share = 1
@@ -113,23 +154,3 @@ def _spread_out_initial_infections(scaled_infections, burn_in_periods, growth_ra
         spread_infections.append(hypothetially_infected_on_that_day & infected_at_all)
 
     return spread_infections
-
-
-@nb.jit
-def _scale_up_initial_infections_numba(initial_infections, probabilities):
-    """Scale up initial infections.
-
-    Args:
-        initial_infections (numpy.ndarray): Boolean array indicating initial infections.
-        probabilities (numpy.ndarray): Probabilities for becoming infected.
-
-    Returns:
-        scaled_infections (numpy.ndarray): Upscaled infections.
-
-    """
-    n_obs = initial_infections.shape[0]
-    scaled_infections = initial_infections.copy()
-    for i in range(n_obs):
-        if not scaled_infections[i]:
-            scaled_infections[i] = boolean_choice(probabilities[i])
-    return scaled_infections
