@@ -5,7 +5,6 @@ import warnings
 from pathlib import Path
 
 import dask.dataframe as dd
-import numba as nb
 import numpy as np
 import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
@@ -15,12 +14,12 @@ from sid.config import INDEX_NAMES
 from sid.config import INITIAL_CONDITIONS
 from sid.config import OPTIONAL_STATE_COLUMNS
 from sid.config import SAVED_COLUMNS
-from sid.contacts import boolean_choice
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
 from sid.countdowns import COUNTDOWNS
 from sid.events import calculate_infections_by_events
+from sid.initial_conditions import scale_and_spread_initial_infections
 from sid.matching_probabilities import create_group_transition_probs
 from sid.parse_model import parse_duration
 from sid.pathogenesis import draw_course_of_disease
@@ -107,15 +106,13 @@ def get_simulate_func(
     """
     events = {} if events is None else events
     contact_policies = {} if contact_policies is None else contact_policies
-    testing_demand_models = (
-        {} if testing_demand_models is None else testing_demand_models
-    )
-    testing_allocation_models = (
-        {} if testing_allocation_models is None else testing_allocation_models
-    )
-    testing_processing_models = (
-        {} if testing_processing_models is None else testing_processing_models
-    )
+    if testing_demand_models is None:
+        testing_demand_models = {}
+    if testing_allocation_models is None:
+        testing_allocation_models = {}
+    if testing_processing_models is None:
+        testing_processing_models = {}
+
     initial_conditions = (
         INITIAL_CONDITIONS
         if initial_conditions is None
@@ -251,27 +248,14 @@ def _simulate(
 
     states = draw_course_of_disease(initial_states, params, seed)
 
-    scaled_infections = _scale_up_initial_infections(
-        initial_infections=initial_infections,
-        states=states,
-        params=params,
-        assort_by=initial_conditions["assort_by"],
+    states = scale_and_spread_initial_infections(
+        states,
+        initial_infections,
+        params,
+        initial_conditions,
+        optional_state_columns,
+        seed,
     )
-    spread_out_infections = _spread_out_initial_infections(
-        scaled_infections=scaled_infections,
-        burn_in_periods=initial_conditions["burn_in_periods"],
-        growth_rate=initial_conditions["growth_rate"],
-    )
-
-    for infections in spread_out_infections:
-        states = update_states(
-            states=states,
-            newly_infected_contacts=infections,
-            newly_infected_events=infections,
-            params=params,
-            seed=seed,
-            optional_state_columns=optional_state_columns,
-        )
 
     for date in duration["dates"]:
         states["date"] = date
@@ -295,7 +279,6 @@ def _simulate(
         newly_infected_events = calculate_infections_by_events(states, params, events)
 
         if testing_demand_models:
-            # demands_test, demands_test_reason = calculate_demand_for_tests(
             demands_test = calculate_demand_for_tests(
                 states, testing_demand_models, params, date, seed
             )
@@ -743,69 +726,4 @@ def _process_optional_state_columns(opt_state_cols):
         if opt_state_cols is None
         else {**OPTIONAL_STATE_COLUMNS, **opt_state_cols}
     )
-    return res
-
-
-def _spread_out_initial_infections(scaled_infections, burn_in_periods, growth_rate):
-    """Spread out initial infections over several periods, given a growth rate."""
-    scaled_infections = scaled_infections.to_numpy()
-    reversed_shares = []
-    end_of_period_share = 1
-    for _ in range(burn_in_periods):
-        start_of_period_share = end_of_period_share / growth_rate
-        added = end_of_period_share - start_of_period_share
-        reversed_shares.append(added)
-        end_of_period_share = start_of_period_share
-    shares = reversed_shares[::-1]
-    shares[-1] = 1 - np.sum([shares[:-1]])
-
-    hypothetical_infection_day = np.random.choice(
-        burn_in_periods, p=shares, replace=True, size=len(scaled_infections)
-    )
-
-    spread_infections = []
-    for period in range(burn_in_periods):
-        hypothetially_infected_on_that_day = hypothetical_infection_day == period
-        infected_at_all = scaled_infections
-        spread_infections.append(hypothetially_infected_on_that_day & infected_at_all)
-
-    return spread_infections
-
-
-def _scale_up_initial_infections(initial_infections, states, params, assort_by):
-    """Increase number of infections by a multiplier taken from params.
-
-    The relative number of cases between groups defined by the variables in
-    ``assort_by`` is preserved.
-
-    """
-    states = states.copy()
-    index_tup = (
-        "known_cases_multiplier",
-        "known_cases_multiplier",
-        "known_cases_multiplier",
-    )
-    multiplier = params.loc[index_tup, "value"]
-    states["known_infections"] = initial_infections
-    average_infections = states.groupby(assort_by)["known_infections"].transform(
-        np.mean
-    )
-    prob_numerator = average_infections * (multiplier - 1)
-    prob_denominator = 1 - average_infections
-    prob = prob_numerator / prob_denominator
-
-    scaled_up_arr = _scale_up_initial_infections_numba(
-        initial_infections.to_numpy(), prob.to_numpy()
-    )
-    scaled_up = pd.Series(scaled_up_arr, index=states.index)
-    return scaled_up
-
-
-@nb.jit
-def _scale_up_initial_infections_numba(initial_infections, probabilities):
-    n_obs = initial_infections.shape[0]
-    res = initial_infections.copy()
-    for i in range(n_obs):
-        if not res[i]:
-            res[i] = boolean_choice(probabilities[i])
     return res
