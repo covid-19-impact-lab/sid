@@ -1,17 +1,15 @@
 sid
 ===
 
-sid is a simulator for infectious diseases. It combines features of a prototypical
-Susceptible-Exposed-Infected-Recovered (SEIR) model and an agent based simulation model.
+.. include:: ../../README.rst
+   :start-after: start-badges
+   :end-before: end-badges
 
-sid's focus is on predicting the effects of policies on the spread of an infectious
-disease. To accomplish this task it is built to capture important aspects of human
-contacts. In particular, sid allows:
 
-- Recurrent contacts (e.g. school mates meeting Monday through Friday).
-- Different types of contacts (e.g. work and leisure contacts).
-- Varying number of contacts, infection probabilities, matching patterns and disease
-  progressions according to individual characteristics such as age and gender.
+.. include:: ../../README.rst
+   :start-after: start-installation
+   :end-before: end-installation
+
 
 The documentation is structured into four parts.
 
