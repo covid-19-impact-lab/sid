@@ -1,6 +1,5 @@
 .. _contact_models:
 
-==============
 Contact Models
 ==============
 
