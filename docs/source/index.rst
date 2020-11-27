@@ -10,8 +10,8 @@ sid
    :start-after: start-installation
    :end-before: end-installation
 
-More information can be found in the `working paper <https://www.iza.org/publications/
-dp/13899>`_ or in the four following chapters of the documentation.
+More information can be found in the `discussion paper <https://www.iza.org/
+publications/ dp/13899>`_ or in the four following chapters of the documentation.
 
 .. raw:: html
 

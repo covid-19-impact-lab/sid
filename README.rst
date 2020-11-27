@@ -51,7 +51,9 @@ contacts. In particular, sid has the following features:
    the infection probabilities are fit to the data and the remaining parameters are
    calibrated from the medical literature and datasets on contact frequencies.
 
-More information can be found in the `working paper <https://www.iza.org/publications/dp/13899>`_ or in the `documentation <https://sid-dev.readthedocs.io/en/latest/>`_.
+More information can be found in the `discussion paper
+<https://www.iza.org/publications/dp/13899>`_ or in the `documentation
+<https://sid-dev.readthedocs.io/en/latest/>`_.
 
 
 .. start-installation
