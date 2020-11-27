@@ -70,5 +70,3 @@ sid will soon become available as a conda package and will be installed with
 For now, clone the repository and install the package with pip or conda.
 
 .. end-installation
-
-
