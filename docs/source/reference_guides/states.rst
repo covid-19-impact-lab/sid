@@ -1,6 +1,5 @@
 .. _states:
 
-========================
 The ``states`` DataFrame
 ========================
 
@@ -57,8 +56,8 @@ the `basic and effective replication number
 <https://en.wikipedia.org/wiki/Basic_reproduction_number>`_.
 
 The effective replication number over the past k days can be calculated by averaging
-over the infection counter of all individuals who became non-infectious in the past
-k days, i.e. those with ``cd_infectious_false`` between 0 and -k.
+over the infection counter of all individuals who became non-infectious in the past k
+days, i.e. those with ``cd_infectious_false`` between 0 and -k.
 
 People can become non-infectious for the following reasons:
 
@@ -66,8 +65,8 @@ People can become non-infectious for the following reasons:
 - recovery from intensive care.
 - death.
 
-In all cases ``cd_infectious_false`` is set to zero when infectiousness stop,
-even if the end of infectiousness was not triggered by that countdown.
+In all cases ``cd_infectious_false`` is set to zero when infectiousness stop, even if
+the end of infectiousness was not triggered by that countdown.
 
 
 .. _countdowns:
