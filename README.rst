@@ -35,17 +35,23 @@ sid's focus is on predicting the effects of policies on the spread of an infecti
 disease. To accomplish this task it is built to capture important aspects of human
 contacts. In particular, sid has the following features:
 
-1. At the core of the model, people meet people based on a matching algorithm. One can
-   distinguish various types of contacts, for example, households, leisure activities,
-   schools, nurseries, and contacts at the workplace. Contact types can be random or
-   recurrent and vary in frequency.
+1. At the core of the model, people meet people based on a matching algorithm. We
+   distinguish various types of contacts. Currently, these are households, leisure
+   activities, schools, nurseries and several types of contacts at the workplace.
+   Contact types can be random or recurrent and vary in frequency.
 
 2. Policies can be implemented as shutting down contact types entirely or partially. The
    reduction of contacts can be random or systematic, e.g., to allow for essential
    workers.
 
-3. Infection probabilities vary across contact types and matching patterns and disease
-   progressions according to individual characteristics such as age and gender.
+3. Infection probabilities vary across contact types, but are invariant to policies
+   which reduce contacts.
+
+4. The model achieves a good fit on German infection and fatality rate data even if only
+   the infection probabilities are fit to the data and the remaining parameters are
+   calibrated from the medical literature and datasets on contact frequencies.
+
+More information can be found in the `working paper <https://www.iza.org/publications/dp/13899>`_ or in the `documentation <https://sid-dev.readthedocs.io/en/latest/>`_.
 
 
 .. start-installation
@@ -53,11 +59,14 @@ contacts. In particular, sid has the following features:
 Installation
 ------------
 
-sid will soon become available as a conda package. To install sid, type
+sid will soon become available as a conda package and will be installed with
 
 .. code-block:: bash
 
     $ conda install -c covid-19-impact-lab sid
 
+For now, clone the repository and install the package with pip or conda.
 
 .. end-installation
+
+
