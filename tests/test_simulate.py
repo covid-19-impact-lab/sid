@@ -2,13 +2,12 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandas.api.types import is_categorical_dtype
+from resources import CONTACT_MODELS
 from sid.config import INDEX_NAMES
 from sid.simulate import _prepare_params
 from sid.simulate import _process_assort_bys
 from sid.simulate import _process_initial_states
 from sid.simulate import get_simulate_func
-
-from resources import CONTACT_MODELS
 
 
 def test_simple_run(params, initial_states, tmp_path):

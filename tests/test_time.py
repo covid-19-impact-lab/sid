@@ -1,13 +1,13 @@
 import numpy as np
 import pandas as pd
 import pytest
+from resources import CONTACT_MODELS
 from sid.config import SID_TIME_START
+from sid.simulate import get_simulate_func
 from sid.time import period_to_timestamp
 from sid.time import sid_period_to_timestamp
 from sid.time import timestamp_to_period
 from sid.time import timestamp_to_sid_period
-from sid.simulate import get_simulate_func
-from resources import CONTACT_MODELS
 
 
 @pytest.mark.unit
