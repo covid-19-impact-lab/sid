@@ -40,9 +40,10 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
     df = df.compute()
 
     assert isinstance(df, pd.DataFrame)
-    assert set(df["was_infected_by_contact"].cat.categories) == set(
-        ["not_infected_by_contact", "standard"]
-    )
+    assert set(df["was_infected_by_contact"].cat.categories) == {
+        "not_infected_by_contact",
+        "standard",
+    }
 
 
 def test_check_assort_by_are_categoricals(initial_states):

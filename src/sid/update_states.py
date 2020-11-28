@@ -1,9 +1,12 @@
+import itertools
+from typing import Any
+from typing import Dict
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.countdowns import COUNTDOWNS
-from typing import Optional, Dict, Any
-import itertools
 
 
 def update_states(
