@@ -14,9 +14,10 @@ sys.path.insert(0, os.path.abspath("../../src"))
 
 # -- Project information -----------------------------------------------------
 
-project = "sid - A simulator for infectious diseases"
+project = "sid"
 copyright = "2020, Janos Gabler, Tobias Raabe, Klara Röhrl"  # noqa: A001
 author = "Janos Gabler, Tobias Raabe, Klara Röhrl"
+release = "0.0.1"
 
 
 # -- General configuration ---------------------------------------------------
@@ -80,6 +81,10 @@ autoapi_dirs = ["../../src"]
 autoapi_keep_files = False
 autoapi_add_toctree_entry = False
 
+# Remove prefixed $ for bash, >>> for Python prompts, and In [1]: for IPython prompts.
+copybutton_prompt_text = r"\$ |>>> |In \[\d\]: "
+copybutton_prompt_is_regexp = True
+
 
 # Configuration for nbsphinx.
 nbsphinx_execute = "never"
@@ -100,12 +105,17 @@ nbsphinx_prolog = r"""
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
-html_theme = "pydata_sphinx_theme"
-html_logo = "_static/images/logo.svg"
+html_theme = "alabaster"
 
 html_theme_options = {
-    "github_url": "https://github.com/covid-19-impact-lab/sid",
+    "extra_nav_links": {"On Github": "https://github.com/covid-19-impact-lab/sid"},
+    "logo_name": True,
+    "description": "A simulator for infectious diseases",
+    "github_button": False,
+    "github_user": "covid-19-impact-lab",
+    "github_repo": "sid",
+    "font_family": '"Avenir Next", Calibri, "PT Sans", sans-serif',
+    "head_font_family": '"Avenir Next", Calibri, "PT Sans", sans-serif',
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
