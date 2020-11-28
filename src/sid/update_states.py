@@ -2,20 +2,22 @@ import numpy as np
 import pandas as pd
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.countdowns import COUNTDOWNS
+from typing import Optional, Dict, Any
+import itertools
 
 
 def update_states(
-    states,
-    newly_infected_contacts,
-    newly_infected_events,
-    params,
-    seed,
-    optional_state_columns,
-    n_has_additionally_infected=None,
-    indexers=None,
-    contacts=None,
-    to_be_processed_test=None,
-    was_infected_by_contact=None,
+    states: pd.DataFrame,
+    newly_infected_contacts: pd.Series,
+    newly_infected_events: pd.Series,
+    params: pd.DataFrame,
+    seed: itertools.count,
+    optional_state_columns: Dict[str, Any],
+    n_has_additionally_infected: Optional[pd.Series] = None,
+    indexers: Optional[Dict[int, np.ndarray]] = None,
+    contacts: Optional[np.ndarray] = None,
+    to_be_processed_test: Optional[pd.Series] = None,
+    was_infected_by_contact: Optional[pd.Series] = None,
 ):
     """Update the states with new infections and advance it by one period.
 
@@ -23,21 +25,26 @@ def update_states(
 
     Args:
         states (pandas.DataFrame): See :ref:`states`.
-        newly_infected (pandas.Series): Boolean Series with same index as states.
+        newly_infected_contacts (pandas.Series): Boolean series indicating individuals
+            infected by contacts. There can be an overlap with infections by events.
+        newly_infected_events (pandas.Series): Boolean series indicating individuals
+            infected by events. There can be an overlap with infections by contacts.
         params (pandas.DataFrame): See :ref:`params`.
         seed (itertools.count): Seed counter to control randomness.
-        n_has_additionally_infected (pandas.Series): Additionally infected persons by
-            this individual.
-        indexers (dict): Dictionary with contact models as keys in the same order as the
-            contacts matrix.
-        contacts (numpy.ndarray): Matrix with number of contacts for each contact model.
-        to_be_processed_test (pandas.Series): Tests which are going to be processed.
         optional_state_columns (dict): Dictionary with categories of state columns
             that can additionally be added to the states dataframe, either for use in
             contact models and policies or to be saved. Most types of columns are added
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
             will not be saved. The categories are "contacts" and "reason_for_infection".
+        n_has_additionally_infected (Optional[pandas.Series]): Additionally infected
+            persons by this individual.
+        indexers (dict): Dictionary with contact models as keys in the same order as the
+            contacts matrix.
+        contacts (numpy.ndarray): Matrix with number of contacts for each contact model.
+        to_be_processed_test (pandas.Series): Tests which are going to be processed.
+        was_infected_by_contact (pandas.Series): A categorical series containing the
+            information which contact model lead to the infection.
 
     Returns: states (pandas.DataFrame): Updated states with reduced countdown lengths,
         newly started countdowns, and killed people over the ICU limit.

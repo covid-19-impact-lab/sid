@@ -10,7 +10,7 @@ cd_needs_icu_true,all,10,1,,
 cd_dead_true,all,2,1,,
 cd_needs_icu_false,all,20,1,,
 health_system,icu_limit_relative,icu_limit_relative,0.0005,,
-infection_prob,standard,standard,0.05,,
+infection_prob,standard,standard,0.1,,
 cd_received_test_result_true,all,2,1
 cd_knows_immune_false,all,-1,1
 cd_knows_infectious_false,all,-1,1
