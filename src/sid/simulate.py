@@ -693,6 +693,8 @@ def _combine_column_lists(user_entries, all_entries):
         res = all_entries
     elif isinstance(user_entries, list):
         res = [e for e in user_entries if e in all_entries]
+    elif isinstance(user_entries, str):
+        res = [user_entries] if user_entries in all_entries else []
     else:
         res = []
     res = list(res)

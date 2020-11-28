@@ -8,18 +8,7 @@ from sid.simulate import _process_assort_bys
 from sid.simulate import _process_initial_states
 from sid.simulate import get_simulate_func
 
-
-def meet_two(states, params):  # noqa: U100
-    return pd.Series(index=states.index, data=2)
-
-
-CONTACT_MODELS = {
-    "standard": {
-        "model": meet_two,
-        "assort_by": ["age_group", "region"],
-        "is_recurrent": False,
-    }
-}
+from resources import CONTACT_MODELS
 
 
 def test_simple_run(params, initial_states, tmp_path):
