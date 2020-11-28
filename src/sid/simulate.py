@@ -253,7 +253,6 @@ def _simulate(
         initial_infections,
         params,
         initial_conditions,
-        optional_state_columns,
         seed,
     )
 

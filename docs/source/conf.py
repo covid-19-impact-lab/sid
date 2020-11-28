@@ -74,12 +74,27 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3.8", None),
 }
 
-# Configuration for autoapi
+# Configuration for autoapi.
 autoapi_type = "python"
 autoapi_dirs = ["../../src"]
 autoapi_keep_files = False
 autoapi_add_toctree_entry = False
 
+
+# Configuration for nbsphinx.
+nbsphinx_execute = "never"
+nbsphinx_prolog = r"""
+{% set docname = env.doc2path(env.docname, base=None) %}
+{% set github = 'https://github.com/covid-19-impact-lab/sid' %}
+
+.. only:: html
+
+    .. nbinfo::
+
+        View and download the notebook `here
+        <{{ github }}/tree/v{{ env.config.release }}/docs/source/{{ docname }}>`_!
+
+"""
 
 # -- Options for HTML output -------------------------------------------------
 

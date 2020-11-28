@@ -6,8 +6,6 @@ growth rate for infections over a period of time and advancing individuals healt
 statuses in time.
 
 """
-import copy
-
 import numba as nb
 import numpy as np
 import pandas as pd
@@ -16,7 +14,7 @@ from sid.update_states import update_states
 
 
 def scale_and_spread_initial_infections(
-    states, initial_infections, params, initial_conditions, optional_state_columns, seed
+    states, initial_infections, params, initial_conditions, seed
 ):
     """Scale up and spread initial infections."""
     scaled_infections = _scale_up_initial_infections(
@@ -34,10 +32,6 @@ def scale_and_spread_initial_infections(
         seed=seed,
     )
 
-    # Number of contacts are only available during the simulation.
-    optional_columns = copy.deepcopy(optional_state_columns)
-    optional_columns["contacts"] = False
-
     for infections in spread_out_infections:
         states = update_states(
             states=states,
@@ -45,7 +39,7 @@ def scale_and_spread_initial_infections(
             newly_infected_events=infections,
             params=params,
             seed=seed,
-            optional_state_columns=optional_columns,
+            optional_state_columns={},
         )
 
     return states

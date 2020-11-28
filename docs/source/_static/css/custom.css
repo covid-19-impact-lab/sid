@@ -1,8 +1,8 @@
 /* Remove execution count for notebook cells. */
-div.prompt {
+.nbinput .prompt,
+.nboutput .prompt {
     display: none;
 }
-
 /* Getting started index page */
 
 .intro-card {

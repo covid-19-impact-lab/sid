@@ -10,3 +10,4 @@ simple model and show you how to use sid to simulate your own model.
    how_to_simulate
    how_to_specify_policies
    how_to_test
+   how_to_use_initial_conditions
