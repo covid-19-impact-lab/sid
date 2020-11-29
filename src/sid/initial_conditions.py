@@ -156,13 +156,15 @@ def _spread_out_initial_infections(
     """
     np.random.seed(next(seed))
 
-    scaled_infections = scaled_infections.to_numpy()
-    shares = -np.diff(1 / growth_rate ** np.arange(burn_in_periods + 1))[::-1]
-    shares = shares / shares.sum()
-
-    hypothetical_infection_day = np.random.choice(
-        burn_in_periods, p=shares, replace=True, size=len(scaled_infections)
-    )
+    if burn_in_periods > 1:
+        scaled_infections = scaled_infections.to_numpy()
+        shares = -np.diff(1 / growth_rate ** np.arange(burn_in_periods + 1))[::-1]
+        shares = shares / shares.sum()
+        hypothetical_infection_day = np.random.choice(
+            burn_in_periods, p=shares, replace=True, size=len(scaled_infections)
+        )
+    else:
+        hypothetical_infection_day = np.zeros(len(scaled_infections))
 
     spread_infections = [
         (hypothetical_infection_day == period) & scaled_infections
