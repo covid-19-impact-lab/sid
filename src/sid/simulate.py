@@ -94,11 +94,21 @@ def get_simulate_func(
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
             will not be saved. The categories are "contacts" and "reason_for_infection".
-        initial_conditions (dict): Dict containing the entries "burn_in_period" (int),
-            "assort_by": list and "growth_rate". burn_in_periods and growth_rate are
-            needed to spread out the initial infections over a period of time.
-            "assort_by" specifies the aggregation level on which
-            we scale up the initial infections to account for unknown cases.
+        initial_conditions (Option[Dict]): Dict containing the following entries:
+
+            - burn_in_period (int): The number of periods over which infections are
+              distributed and can progress. The default is one period.
+            - assort_by (Optional[Union[str, List[str]]]): The relative infections is
+              preserved between the groups formed by ``assort_by`` variables. By
+              default, no group is formed and infections spread across the whole
+              population.
+            - growth_rate (float): The growth rate specifies the increase of infections
+              from one burn-in period to the next. For example, two indicates doubling
+              case numbers every period. Default is one which is no distribution over
+              time.
+            - burn_in_periods (int): The number of periods over which infections are
+              distributed.
+
     Returns:
         callable: Simulates dataset based on parameters.
 
@@ -221,11 +231,20 @@ def _simulate(
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
             will not be saved. The categories are "contacts" and "reason_for_infection".
-        initial_conditions (dict): Dict containing the entries "burn_in_period" (int),
-            "assort_by": list and "growth_rate". burn_in_periods and growth_rate are
-            needed to spread out the initial infections over a period of time.
-            "assort_by" specifies the aggregation level on which
-            we scale up the initial infections to account for unknown cases.
+        initial_conditions (Option[Dict]): Dict containing the following entries:
+
+            - burn_in_period (int): The number of periods over which infections are
+              distributed and can progress. The default is one period.
+            - assort_by (Optional[Union[str, List[str]]]): The relative infections is
+              preserved between the groups formed by ``assort_by`` variables. By
+              default, no group is formed and infections spread across the whole
+              population.
+            - growth_rate (float): The growth rate specifies the increase of infections
+              from one burn-in period to the next. For example, two indicates doubling
+              case numbers every period. Default is one which is no distribution over
+              time.
+            - burn_in_periods (int): The number of periods over which infections are
+              distributed.
 
     Returns:
         simulation_results (dask.dataframe): The simulation results in form of a long

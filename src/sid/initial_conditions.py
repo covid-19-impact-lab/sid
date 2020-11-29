@@ -51,7 +51,7 @@ def _parse_initial_conditions(initial_conditions):
     """Parse the initial conditions."""
     initial_conditions = (
         INITIAL_CONDITIONS
-        if initial_conditions is None
+        if initial_conditions in [None, False]
         else {**INITIAL_CONDITIONS, **initial_conditions}
     )
 
