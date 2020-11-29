@@ -1,26 +1,25 @@
-import pytest
-from sid.initial_conditions import (
-    _parse_initial_conditions,
-    _scale_up_initial_infections,
-    _scale_up_initial_infections_numba,
-    _spread_out_initial_infections,
-)
-from sid.config import INITIAL_CONDITIONS, INDEX_NAMES
-import pandas as pd
-import numpy as np
 import itertools
+
+import numpy as np
+import pandas as pd
+import pytest
+from sid.config import INITIAL_CONDITIONS
+from sid.initial_conditions import _parse_initial_conditions
+from sid.initial_conditions import _scale_up_initial_infections
+from sid.initial_conditions import _scale_up_initial_infections_numba
+from sid.initial_conditions import _spread_out_initial_infections
 
 
 def _create_initial_infections(n_people, n_infections):
-    infected_indices = np.random.choice(100_000, size=10_000, replace=False)
-    initial_infections = pd.Series(index=pd.RangeIndex(100_000), data=False)
+    infected_indices = np.random.choice(n_people, size=n_infections, replace=False)
+    initial_infections = pd.Series(index=pd.RangeIndex(n_people), data=False)
     initial_infections.iloc[infected_indices] = True
     return initial_infections
 
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "initial_conditions, expected",
+    ("initial_conditions", "expected"),
     [
         (None, INITIAL_CONDITIONS),
         (
