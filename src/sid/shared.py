@@ -1,3 +1,4 @@
+import numba as nb
 import numpy as np
 import pandas as pd
 from sid.config import DTYPE_GROUP_CODE
@@ -201,3 +202,43 @@ def date_is_within_start_and_end_date(date, start, end):
         is_within = False
 
     return is_within
+
+
+@nb.njit
+def boolean_choice(truth_probability):
+    """Sample boolean value with probability given for ``True``.
+
+    Args:
+        truth_probability (float): Must be between 0 and 1.
+
+    Returns:
+        bool: Boolean array.
+
+    Example:
+        >>> boolean_choice(1)
+        True
+        >>> boolean_choice(0)
+        False
+
+    """
+    u = np.random.uniform(0, 1)
+    return u <= truth_probability
+
+
+@nb.njit
+def boolean_choices(truth_probabilities):
+    """Sample boolean value with probabilities given for ``True``.
+
+    Args:
+        truth_probabilities (float): Must be between 0 and 1.
+
+    Returns:
+        bool: Boolean array.
+
+    Example:
+        >>> boolean_choice(np.array([1, 0]))
+        array([ True, False])
+
+    """
+    u = np.random.uniform(0, 1, size=len(truth_probabilities))
+    return u <= truth_probabilities

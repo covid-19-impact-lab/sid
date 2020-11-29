@@ -6,6 +6,7 @@ from sid.config import DTYPE_INDEX
 from sid.config import DTYPE_INFECTED
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_N_CONTACTS
+from sid.shared import boolean_choice
 from sid.shared import factorize_assortative_variables
 from sid.shared import validate_return_is_series_or_ndarray
 
@@ -453,30 +454,6 @@ def _get_index_refining_search(u, cdf):
         i += 1
 
     return i
-
-
-@nb.njit
-def boolean_choice(truth_prob):
-    """Return True with probability truth_prob.
-
-    Note: This function is also used in sid-estimation.
-
-    Args:
-        truth_prob (float): Must be between 0 and 1.
-
-    Returns:
-        bool
-
-    Example:
-        >>> boolean_choice(1)
-        True
-
-        >>> boolean_choice(0)
-        False
-
-    """
-    u = np.random.uniform(0, 1)
-    return u <= truth_prob
 
 
 def create_group_indexer(states, assort_by):

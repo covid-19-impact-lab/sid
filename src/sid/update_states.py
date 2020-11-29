@@ -20,7 +20,9 @@ def update_states(
     indexers: Optional[Dict[int, np.ndarray]] = None,
     contacts: Optional[np.ndarray] = None,
     to_be_processed_test: Optional[pd.Series] = None,
-    was_infected_by_contact: Optional[pd.Series] = None,
+    channel_infected_by_contact: Optional[pd.Series] = None,
+    channel_infected_by_event: Optional[pd.Series] = None,
+    channel_demands_test: Optional[pd.Series] = None,
 ):
     """Update the states with new infections and advance it by one period.
 
@@ -46,8 +48,10 @@ def update_states(
             contacts matrix.
         contacts (numpy.ndarray): Matrix with number of contacts for each contact model.
         to_be_processed_test (pandas.Series): Tests which are going to be processed.
-        was_infected_by_contact (pandas.Series): A categorical series containing the
+        channel_infected_by_contact (pandas.Series): A categorical series containing the
             information which contact model lead to the infection.
+        channel_infected_by_event (pandas.Series): A categorical series containing the
+            information which event model lead to the infection.
 
     Returns: states (pandas.DataFrame): Updated states with reduced countdown lengths,
         newly started countdowns, and killed people over the ICU limit.
@@ -69,24 +73,11 @@ def update_states(
     states["newly_infected"] = newly_infected_contacts | newly_infected_events
     states["immune"] = states["immune"] | states["newly_infected"]
 
-    if was_infected_by_contact is not None:
-        states["was_infected_by_contact"] = was_infected_by_contact
+    if channel_infected_by_contact is not None:
+        states["channel_infected_by_contact"] = channel_infected_by_contact
 
-    # Save channel of infection; For speed reasons start with integer labels and
-    # convert to string labels later
-    if optional_state_columns["reason_for_infection"]:
-        labels = {0: "contact or event", 1: "contact", 2: "event"}
-        channel = np.zeros(len(states))
-        newly_infected_contacts = newly_infected_contacts.to_numpy()
-        newly_infected_events = newly_infected_events.to_numpy()
-        channel[newly_infected_contacts & ~newly_infected_events] = 1
-        channel[newly_infected_events & ~newly_infected_contacts] = 2
-        # set categories is necessary in case one of the categories was not present in
-        # the data. Setting them via set_categories is much faster than passing them
-        # into pd.Categorical directly
-        states["newly_infected_reason"] = (
-            pd.Categorical(channel).set_categories([0, 1, 2]).rename_categories(labels)
-        )
+    if channel_infected_by_event is not None:
+        states["channel_infected_by_event"] = channel_infected_by_event
 
     # Update states with new infections and add corresponding countdowns.
     locs = states.query("newly_infected").index
@@ -109,6 +100,9 @@ def update_states(
             for i, contact_model in enumerate(indexers):
                 if f"n_contacts_{contact_model}" in cols_to_add:
                     states[f"n_contacts_{contact_model}"] = contacts[:, i]
+
+    if channel_demands_test is not None and optional_state_columns["channels"]:
+        states["channel_demands_test"] = channel_demands_test
 
     if n_has_additionally_infected is not None:
         states["n_has_infected"] += n_has_additionally_infected
