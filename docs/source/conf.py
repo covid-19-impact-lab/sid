@@ -95,7 +95,6 @@ nbsphinx_prolog = r"""
 .. only:: html
 
     .. nbinfo::
-
         View and download the notebook `here
         <{{ github }}/tree/v{{ env.config.release }}/docs/source/{{ docname }}>`_!
 

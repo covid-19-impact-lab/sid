@@ -10,7 +10,7 @@ def update_states(
     newly_infected_events,
     params,
     seed,
-    optional_state_columns,
+    optional_state_columns=None,
     n_has_additionally_infected=None,
     indexers=None,
     contacts=None,
@@ -42,6 +42,9 @@ def update_states(
         newly started countdowns, and killed people over the ICU limit.
 
     """
+    if optional_state_columns is None:
+        optional_state_columns = {"reason_for_infection": False, "contacts": False}
+
     # Reduce all existing countdowns by 1.
     for countdown in COUNTDOWNS:
         states[countdown] -= 1

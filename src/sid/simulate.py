@@ -11,7 +11,6 @@ from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import INDEX_NAMES
-from sid.config import INITIAL_CONDITIONS
 from sid.config import OPTIONAL_STATE_COLUMNS
 from sid.config import SAVED_COLUMNS
 from sid.contacts import calculate_contacts
@@ -112,12 +111,6 @@ def get_simulate_func(
         testing_allocation_models = {}
     if testing_processing_models is None:
         testing_processing_models = {}
-
-    initial_conditions = (
-        INITIAL_CONDITIONS
-        if initial_conditions is None
-        else {**INITIAL_CONDITIONS, **initial_conditions}
-    )
 
     optional_state_columns = _process_optional_state_columns(optional_state_columns)
     user_state_columns = initial_states.columns
