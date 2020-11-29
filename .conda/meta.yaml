@@ -38,6 +38,7 @@ test:
     - pytest-xdist
   source_files:
     - tox.ini
+    - src
     - tests
   imports:
     - sid
