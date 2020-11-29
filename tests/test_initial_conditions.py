@@ -11,6 +11,13 @@ import numpy as np
 import itertools
 
 
+def _create_initial_infections(n_people, n_infections):
+    infected_indices = np.random.choice(100_000, size=10_000, replace=False)
+    initial_infections = pd.Series(index=pd.RangeIndex(100_000), data=False)
+    initial_infections.iloc[infected_indices] = True
+    return initial_infections
+
+
 @pytest.mark.unit
 @pytest.mark.parametrize(
     "initial_conditions, expected",
@@ -35,21 +42,10 @@ def test_parse_initial_conditions(initial_conditions, expected):
 def test_scale_up_initial_infections_without_assort_by():
     states = pd.DataFrame(index=pd.RangeIndex(100_000))
 
-    infected_indices = np.random.choice(100_000, size=10_000, replace=False)
-    initial_infections = pd.Series(index=pd.RangeIndex(100_000), data=False)
-    initial_infections.iloc[infected_indices] = True
-
-    params = pd.DataFrame(
-        {
-            "category": ["known_cases_multiplier"],
-            "subcategory": ["known_cases_multiplier"],
-            "name": ["known_cases_multiplier"],
-            "value": [1.3],
-        }
-    ).set_index(INDEX_NAMES)
+    initial_infections = _create_initial_infections(100_000, 10_000)
 
     scaled_up_infections = _scale_up_initial_infections(
-        initial_infections, states, params, None, itertools.count()
+        initial_infections, states, None, 1.3, itertools.count()
     )
 
     assert np.isclose(scaled_up_infections.mean(), 0.13, atol=0.001)
@@ -61,21 +57,10 @@ def test_scale_up_initial_infections_with_assort_by_equal_groups():
         {"region": np.random.choice(["North", "East", "South", "West"], size=100_000)}
     )
 
-    infected_indices = np.random.choice(100_000, size=10_000, replace=False)
-    initial_infections = pd.Series(index=pd.RangeIndex(100_000), data=False)
-    initial_infections.iloc[infected_indices] = True
-
-    params = pd.DataFrame(
-        {
-            "category": ["known_cases_multiplier"],
-            "subcategory": ["known_cases_multiplier"],
-            "name": ["known_cases_multiplier"],
-            "value": [1.3],
-        }
-    ).set_index(INDEX_NAMES)
+    initial_infections = _create_initial_infections(100_000, 10_000)
 
     scaled_up_infections = _scale_up_initial_infections(
-        initial_infections, states, params, None, itertools.count()
+        initial_infections, states, None, 1.3, itertools.count()
     )
 
     assert np.isclose(scaled_up_infections.mean(), 0.13, atol=0.001)
@@ -90,21 +75,10 @@ def test_scale_up_initial_infections_with_assort_by_unequal_groups():
     regions = np.random.choice(["N", "E", "S", "W"], p=probs, size=100_000)
     states = pd.DataFrame({"region": regions})
 
-    infected_indices = np.random.choice(100_000, size=10_000, replace=False)
-    initial_infections = pd.Series(index=pd.RangeIndex(100_000), data=False)
-    initial_infections.iloc[infected_indices] = True
-
-    params = pd.DataFrame(
-        {
-            "category": ["known_cases_multiplier"],
-            "subcategory": ["known_cases_multiplier"],
-            "name": ["known_cases_multiplier"],
-            "value": [1.3],
-        }
-    ).set_index(INDEX_NAMES)
+    initial_infections = _create_initial_infections(100_000, 10_000)
 
     scaled_up_infections = _scale_up_initial_infections(
-        initial_infections, states, params, ["region"], itertools.count()
+        initial_infections, states, ["region"], 1.3, itertools.count()
     )
 
     assert np.isclose(scaled_up_infections.mean(), 0.13, atol=0.001)
@@ -131,9 +105,7 @@ def test_scale_up_initial_infections_numba():
 
 @pytest.mark.unit
 def test_spread_out_initial_infections():
-    infected_indices = np.random.choice(100_000, size=20_000, replace=False)
-    infections = pd.Series(index=pd.RangeIndex(100_000), data=False)
-    infections.iloc[infected_indices] = True
+    infections = _create_initial_infections(100_000, 20_000)
 
     spread_infections = _spread_out_initial_infections(
         infections, 4, 2, itertools.count()

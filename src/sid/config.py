@@ -60,7 +60,8 @@ OPTIONAL_STATE_COLUMNS = {
 
 
 INITIAL_CONDITIONS = {
-    "burn_in_periods": 14,
     "assort_by": ["county"],
+    "burn_in_periods": 14,
     "growth_rate": 1.3,
+    "known_cases_multiplier": 1.3,
 }

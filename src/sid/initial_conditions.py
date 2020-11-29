@@ -23,8 +23,8 @@ def scale_and_spread_initial_infections(
     scaled_infections = _scale_up_initial_infections(
         initial_infections=initial_infections,
         states=states,
-        params=params,
         assort_by=initial_conditions["assort_by"],
+        known_cases_multiplier=initial_conditions["known_cases_multiplier"],
         seed=seed,
     )
 
@@ -61,7 +61,9 @@ def _parse_initial_conditions(initial_conditions):
     return initial_conditions
 
 
-def _scale_up_initial_infections(initial_infections, states, params, assort_by, seed):
+def _scale_up_initial_infections(
+    initial_infections, states, assort_by, known_cases_multiplier, seed
+):
     r"""Increase number of infections by a multiplier taken from params.
 
     If no ``assort_by`` variables are provided, infections are simply scaled up in the
@@ -81,16 +83,16 @@ def _scale_up_initial_infections(initial_infections, states, params, assort_by, 
     Args:
         initial_infections (pandas.Series): Boolean array indicating initial infections.
         states (pandas.DataFrame): The states DataFrame.
-        params (pandas.DataFrame): The parameters DataFrame.
         assort_by (Optional[List[str]]): A list of ``assort_by`` variables if infections
             should be proportional between groups or ``None`` if no groups are used.
+        known_cases_multiplier (float): The multiplier which can be used to scale
+            infections from observed infections to the real number of infections.
         seed (itertools.count): A seed counter.
 
     Returns:
         scaled_up (pandas.Series): A boolean series with upscaled infections.
 
     """
-    multiplier = params.loc[("known_cases_multiplier",) * 3, "value"]
     states["known_infections"] = initial_infections
 
     if assort_by is None:
@@ -103,7 +105,7 @@ def _scale_up_initial_infections(initial_infections, states, params, assort_by, 
         )
     states.drop(columns="known_infections", inplace=True)
 
-    prob_numerator = share_infections * (multiplier - 1)
+    prob_numerator = share_infections * (known_cases_multiplier - 1)
     prob_denominator = 1 - share_infections
     prob = prob_numerator / prob_denominator
 
