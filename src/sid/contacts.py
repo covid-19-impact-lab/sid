@@ -447,7 +447,7 @@ def _get_index_refining_search(u, cdf):
 
 
 @nb.njit
-def boolean_choice(truth_prob):
+def boolean_choice(truth_probability):
     """Return True with probability truth_prob.
 
     Note: This function is also used in sid-estimation.
@@ -467,7 +467,7 @@ def boolean_choice(truth_prob):
 
     """
     u = np.random.uniform(0, 1)
-    return u <= truth_prob
+    return u <= truth_probability
 
 
 def create_group_indexer(states, assort_by):
