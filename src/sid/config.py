@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 
 BOOLEAN_STATE_COLUMNS = [
@@ -34,6 +35,7 @@ DTYPE_INDEX = np.uint32
 DTYPE_INFECTED = np.bool_
 DTYPE_INFECTION_COUNTER = np.uint16
 DTYPE_N_CONTACTS = np.uint32
+DTYPE_SID_PERIOD = np.int16
 
 INDEX_NAMES = ["category", "subcategory", "name"]
 
@@ -42,6 +44,7 @@ ROOT_DIR = Path(__file__).parent
 RELATIVE_POPULATION_PARAMETER = 1 / 100_000
 
 SAVED_COLUMNS = {
+    "time": ["date"],
     "initial_states": True,
     "disease_states": True,
     "testing_states": False,
@@ -64,3 +67,6 @@ INITIAL_CONDITIONS = {
     "assort_by": ["county"],
     "growth_rate": 1.3,
 }
+
+
+SID_TIME_START = pd.Timestamp("2019-01-01")
