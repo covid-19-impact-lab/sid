@@ -2,24 +2,12 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandas.api.types import is_categorical_dtype
+from resources import CONTACT_MODELS
 from sid.config import INDEX_NAMES
 from sid.simulate import _prepare_params
 from sid.simulate import _process_assort_bys
 from sid.simulate import _process_initial_states
 from sid.simulate import get_simulate_func
-
-
-def meet_two(states, params):  # noqa: U100
-    return pd.Series(index=states.index, data=2)
-
-
-CONTACT_MODELS = {
-    "standard": {
-        "model": meet_two,
-        "assort_by": ["age_group", "region"],
-        "is_recurrent": False,
-    }
-}
 
 
 def test_simulate_a_simple_model(params, initial_states, tmp_path):
