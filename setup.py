@@ -4,7 +4,7 @@ from setuptools import find_packages
 from setuptools import setup
 
 
-DESCRIPTION = "Simulate the spread of covid-19 with different policies."
+DESCRIPTION = "Simulate the spread of COVID-19 with different policies."
 PROJECT_URLS = {
     "Bug Tracker": "https://github.com/covid-19-impact-lab/sid/issues",
     "Documentation": "https://sid-dev.readthedocs.io/en/latest",
@@ -19,7 +19,7 @@ setup(
     description=DESCRIPTION,
     long_description=DESCRIPTION + "\n\n" + README,
     long_description_content_type="text/x-rst",
-    license="None",
+    license="MIT",
     url="https://github.com/covid-19-impact-lab/sid",
     author="Gabler, Raabe, Röhrl",
     author_email="janos.gabler@gmail.com",
