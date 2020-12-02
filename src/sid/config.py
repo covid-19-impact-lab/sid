@@ -67,6 +67,7 @@ INITIAL_CONDITIONS = {
     "burn_in_periods": 1,
     "growth_rate": 1,
     "known_cases_multiplier": 1,
+    "initial_infections": 0.01,
 }
 
 

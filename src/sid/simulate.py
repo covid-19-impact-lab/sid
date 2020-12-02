@@ -34,7 +34,6 @@ from sid.update_states import update_states
 def get_simulate_func(
     params,
     initial_states,
-    initial_infections,
     contact_models,
     duration=None,
     events=None,
@@ -60,11 +59,6 @@ def get_simulate_func(
             of contacts, contagiousness and dangerousness of the disease, ... .
         initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the column
             "date" because it is used internally.
-        initial_infections (pandas.Series): Series with the same index as states with
-            initial infections. They are initial known cases. Sid will assume that
-            unknown cases have the same geographical structure. The number of
-            unknown cases is governed by the parameter ("initial_infections",
-            "known_cases_multiplier", "known_cases_multiplier").
         contact_models (dict): Dictionary of dictionaries where each dictionary
             describes a channel by which contacts can be formed. See
             :ref:`contact_models`.
@@ -97,18 +91,35 @@ def get_simulate_func(
             will not be saved. The categories are "contacts" and "reason_for_infection".
         initial_conditions (Option[Dict]): Dict containing the following entries:
 
-            - burn_in_period (int): The number of periods over which infections are
-              distributed and can progress. The default is one period.
-            - assort_by (Optional[Union[str, List[str]]]): The relative infections is
-              preserved between the groups formed by ``assort_by`` variables. By
+            - ``assort_by`` (Optional[Union[str, List[str]]]): The relative infections
+              is preserved between the groups formed by ``assort_by`` variables. By
               default, no group is formed and infections spread across the whole
               population.
-            - growth_rate (float): The growth rate specifies the increase of infections
-              from one burn-in period to the next. For example, two indicates doubling
-              case numbers every period. Default is one which is no distribution over
-              time.
-            - burn_in_periods (int): The number of periods over which infections are
-              distributed.
+            - ``burn_in_period`` (int): The number of periods over which infections are
+              distributed and can progress. The default is one period.
+            - ``growth_rate`` (float): The growth rate specifies the increase of
+              infections from one burn-in period to the next. For example, two indicates
+              doubling case numbers every period. Default is one which is no
+              distribution over time.
+            - ``initial_immunity`` (Union[int, float, pandas.Series]): The people who
+              are immune in the beginning can be specified as an integer for the number,
+              a float between 0 and 1 for the share, and a :class:`pandas.Series` with
+              the same index as states. By default, only infected individuals indicated
+              by the initial infections are immune.
+            - ``initial_infections`` (Union[int, float, pandas.Series,
+              pandas.DataFrame]): The initial infections can be given as an integer
+              which is the number of randomly infected individuals, as a float for the
+              share or as a :class:`pandas.Series` which indicates whether an
+              individuals is infected. If initial infections are a
+              :class:`pandas.DataFrame`, then, the index is the same as ``states``,
+              columns are burn-in periods, and values are infected individuals on that
+              date. This step will skip upscaling and distributing infections over days
+              and directly jump to the evolution of states. By default, 1% of
+              individuals is infected.
+            - ``known_cases_multiplier`` (int): The factor can be used to scale up the
+              initial infections while keeping shares between ``assort_by`` variables
+              constant. This is helpful if official numbers are underreporting the
+              number of cases.
 
     Returns:
         callable: Simulates dataset based on parameters.
@@ -133,7 +144,6 @@ def get_simulate_func(
     _check_inputs(
         params,
         initial_states,
-        initial_infections,
         contact_models,
         contact_policies,
         testing_demand_models,
@@ -160,7 +170,6 @@ def get_simulate_func(
         _simulate,
         initial_states=initial_states,
         assort_bys=assort_bys,
-        initial_infections=initial_infections,
         contact_models=contact_models,
         duration=duration,
         events=events,
@@ -182,7 +191,6 @@ def _simulate(
     params,
     initial_states,
     assort_bys,
-    initial_infections,
     contact_models,
     duration,
     events,
@@ -204,11 +212,6 @@ def _simulate(
             of contacts, contagiousness and dangerousness of the disease, ... .
         initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the column
             "date" because it is used internally.
-        initial_infections (pandas.Series): Series with the same index as states with
-            initial infections. They are initial known cases. Sid will assume that
-            unknown cases have the same geographical structure. The number of
-            unknown cases is governed by the parameter ("initial_infections",
-            "known_cases_multiplier", "known_cases_multiplier").
         contact_models (dict): Dictionary of dictionaries where each dictionary
             describes a channel by which contacts can be formed. See
             :ref:`contact_models`.
@@ -234,18 +237,35 @@ def _simulate(
             will not be saved. The categories are "contacts" and "reason_for_infection".
         initial_conditions (Option[Dict]): Dict containing the following entries:
 
-            - burn_in_period (int): The number of periods over which infections are
-              distributed and can progress. The default is one period.
-            - assort_by (Optional[Union[str, List[str]]]): The relative infections is
-              preserved between the groups formed by ``assort_by`` variables. By
+            - ``assort_by`` (Optional[Union[str, List[str]]]): The relative infections
+              is preserved between the groups formed by ``assort_by`` variables. By
               default, no group is formed and infections spread across the whole
               population.
-            - growth_rate (float): The growth rate specifies the increase of infections
-              from one burn-in period to the next. For example, two indicates doubling
-              case numbers every period. Default is one which is no distribution over
-              time.
-            - burn_in_periods (int): The number of periods over which infections are
-              distributed.
+            - ``burn_in_period`` (int): The number of periods over which infections are
+              distributed and can progress. The default is one period.
+            - ``growth_rate`` (float): The growth rate specifies the increase of
+              infections from one burn-in period to the next. For example, two indicates
+              doubling case numbers every period. Default is one which is no
+              distribution over time.
+            - ``initial_immunity`` (Union[int, float, pandas.Series]): The people who
+              are immune in the beginning can be specified as an integer for the number,
+              a float between 0 and 1 for the share, and a :class:`pandas.Series` with
+              the same index as states. By default, only infected individuals indicated
+              by the initial infections are immune.
+            - ``initial_infections`` (Union[int, float, pandas.Series,
+              pandas.DataFrame]): The initial infections can be given as an integer
+              which is the number of randomly infected individuals, as a float for the
+              share or as a :class:`pandas.Series` which indicates whether an
+              individuals is infected. If initial infections are a
+              :class:`pandas.DataFrame`, then, the index is the same as ``states``,
+              columns are burn-in periods, and values are infected individuals on that
+              date. This step will skip upscaling and distributing infections over days
+              and directly jump to the evolution of states. By default, 1% of
+              individuals is infected.
+            - ``known_cases_multiplier`` (int): The factor can be used to scale up the
+              initial infections while keeping shares between ``assort_by`` variables
+              constant. This is helpful if official numbers are underreporting the
+              number of cases.
 
     Returns:
         simulation_results (dask.dataframe): The simulation results in form of a long
@@ -262,11 +282,7 @@ def _simulate(
     states = draw_course_of_disease(initial_states, params, seed)
 
     states = scale_and_spread_initial_infections(
-        states,
-        initial_infections,
-        params,
-        initial_conditions,
-        seed,
+        states, params, initial_conditions, seed
     )
 
     for date in duration["dates"]:
@@ -452,7 +468,6 @@ def _process_assort_bys(contact_models):
 def _check_inputs(
     params,
     initial_states,
-    initial_infections,
     contact_models,
     contact_policies,
     testing_demand_models,
@@ -470,12 +485,6 @@ def _check_inputs(
 
     if not isinstance(initial_states, pd.DataFrame):
         raise ValueError("initial_states must be a DataFrame.")
-
-    if not isinstance(initial_infections, pd.Series):
-        raise ValueError("initial_infections must be a pandas Series.")
-
-    if not initial_infections.index.equals(initial_states.index):
-        raise ValueError("initial_states and initial_infections must have same index.")
 
     if not isinstance(contact_models, dict):
         raise ValueError("contact_models must be a dictionary.")

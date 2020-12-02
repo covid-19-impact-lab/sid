@@ -11,13 +11,9 @@ from sid.simulate import get_simulate_func
 
 
 def test_simple_run(params, initial_states, tmp_path):
-    initial_infections = pd.Series(index=initial_states.index, data=False)
-    initial_infections.iloc[0] = True
-
     simulate = get_simulate_func(
         params,
         initial_states,
-        initial_infections,
         CONTACT_MODELS,
         path=tmp_path,
     )

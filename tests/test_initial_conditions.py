@@ -1,4 +1,4 @@
-import itertools
+from contextlib import ExitStack as does_not_raise  # noqa: N813
 
 import numpy as np
 import pandas as pd
@@ -7,14 +7,10 @@ from sid.config import INITIAL_CONDITIONS
 from sid.initial_conditions import _parse_initial_conditions
 from sid.initial_conditions import _scale_up_initial_infections
 from sid.initial_conditions import _scale_up_initial_infections_numba
-from sid.initial_conditions import _spread_out_initial_infections
-
-
-def _create_initial_infections(n_people, n_infections):
-    infected_indices = np.random.choice(n_people, size=n_infections, replace=False)
-    initial_infections = pd.Series(index=pd.RangeIndex(n_people), data=False)
-    initial_infections.iloc[infected_indices] = True
-    return initial_infections
+from sid.initial_conditions import (
+    _spread_out_initial_infections,
+)
+from sid.initial_conditions import create_initial_infections
 
 
 @pytest.mark.unit
@@ -41,10 +37,10 @@ def test_parse_initial_conditions(initial_conditions, expected):
 def test_scale_up_initial_infections_without_assort_by():
     states = pd.DataFrame(index=pd.RangeIndex(100_000))
 
-    initial_infections = _create_initial_infections(100_000, 10_000)
+    initial_infections = create_initial_infections(0.1, 100_000)
 
     scaled_up_infections = _scale_up_initial_infections(
-        initial_infections, states, None, 1.3, itertools.count()
+        initial_infections, states, None, 1.3, 0
     )
 
     assert np.isclose(scaled_up_infections.mean(), 0.13, atol=0.001)
@@ -56,10 +52,10 @@ def test_scale_up_initial_infections_with_assort_by_equal_groups():
         {"region": np.random.choice(["North", "East", "South", "West"], size=100_000)}
     )
 
-    initial_infections = _create_initial_infections(100_000, 10_000)
+    initial_infections = create_initial_infections(0.1, 100_000)
 
     scaled_up_infections = _scale_up_initial_infections(
-        initial_infections, states, None, 1.3, itertools.count()
+        initial_infections, states, None, 1.3, 0
     )
 
     assert np.isclose(scaled_up_infections.mean(), 0.13, atol=0.001)
@@ -74,10 +70,10 @@ def test_scale_up_initial_infections_with_assort_by_unequal_groups():
     regions = np.random.choice(["N", "E", "S", "W"], p=probs, size=100_000)
     states = pd.DataFrame({"region": regions})
 
-    initial_infections = _create_initial_infections(100_000, 10_000)
+    initial_infections = create_initial_infections(0.1, 100_000)
 
     scaled_up_infections = _scale_up_initial_infections(
-        initial_infections, states, ["region"], 1.3, itertools.count()
+        initial_infections, states, ["region"], 1.3, 0
     )
 
     assert np.isclose(scaled_up_infections.mean(), 0.13, atol=0.001)
@@ -104,12 +100,34 @@ def test_scale_up_initial_infections_numba():
 
 @pytest.mark.unit
 def test_spread_out_initial_infections():
-    infections = _create_initial_infections(100_000, 20_000)
+    infections = create_initial_infections(0.2, 100_000)
 
-    spread_infections = _spread_out_initial_infections(
-        infections, 4, 2, itertools.count()
-    )
+    spread_infections = _spread_out_initial_infections(infections, 4, 2, 0)
 
     infections_per_day = np.sum(spread_infections, axis=1)
     shares_per_day = infections_per_day / infections_per_day.sum()
     assert np.allclose(shares_per_day, np.array([1, 2, 4, 8]) / 15, atol=0.01)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "infections, n_people, index, seed, expectation, expected",
+    [
+        (None, None, None, -1, pytest.raises(ValueError, match="Seed must be"), None),
+        ([], 1, None, 0, pytest.raises(ValueError, match="'infections' must"), None),
+        (0.2, None, None, 0, pytest.raises(ValueError, match="Either 'n_people"), None),
+        (0.2, 5, pd.RangeIndex(4), 0, pytest.raises(ValueError, match="'n_peop"), None),
+        (0.2, 100_000, None, 0, does_not_raise(), lambda x: np.isclose(x.mean(), 0.2)),
+        (20000, 100000, None, 0, does_not_raise(), lambda x: np.isclose(x.mean(), 0.2)),
+    ],
+)
+def test_create_initial_infections(
+    infections, n_people, index, seed, expectation, expected
+):
+    with expectation:
+        out = create_initial_infections(infections, n_people, index, seed)
+
+        if callable(expected):
+            assert expected(out)
+        else:
+            assert out == expected

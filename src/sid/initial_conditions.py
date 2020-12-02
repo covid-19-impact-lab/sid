@@ -6,6 +6,8 @@ growth rate for infections over a period of time and advancing individuals healt
 statuses in time.
 
 """
+import math
+
 import numba as nb
 import numpy as np
 import pandas as pd
@@ -14,26 +16,41 @@ from sid.contacts import boolean_choice
 from sid.update_states import update_states
 
 
-def scale_and_spread_initial_infections(
-    states, initial_infections, params, initial_conditions, seed
-):
+def scale_and_spread_initial_infections(states, params, initial_conditions, seed):
     """Scale up and spread initial infections."""
     initial_conditions = _parse_initial_conditions(initial_conditions)
 
-    scaled_infections = _scale_up_initial_infections(
-        initial_infections=initial_infections,
-        states=states,
-        assort_by=initial_conditions["assort_by"],
-        known_cases_multiplier=initial_conditions["known_cases_multiplier"],
-        seed=seed,
-    )
+    initial_infections = initial_conditions["initial_infections"]
+    if not isinstance(initial_infections, pd.DataFrame):
+        if isinstance(initial_infections, pd.Series):
+            pass
+        elif isinstance(initial_infections, (float, int)):
+            initial_infections = create_initial_infections(
+                initial_infections, index=states.index
+            )
+        else:
+            raise ValueError(
+                "'initial_infections' must be a pd.DataFrame, pd.Series, int or float "
+                "between 0 and 1."
+            )
 
-    spread_out_infections = _spread_out_initial_infections(
-        scaled_infections=scaled_infections,
-        burn_in_periods=initial_conditions["burn_in_periods"],
-        growth_rate=initial_conditions["growth_rate"],
-        seed=seed,
-    )
+        scaled_infections = _scale_up_initial_infections(
+            initial_infections=initial_infections,
+            states=states,
+            assort_by=initial_conditions["assort_by"],
+            known_cases_multiplier=initial_conditions["known_cases_multiplier"],
+            seed=next(seed),
+        )
+
+        spread_out_infections = _spread_out_initial_infections(
+            scaled_infections=scaled_infections,
+            burn_in_periods=initial_conditions["burn_in_periods"],
+            growth_rate=initial_conditions["growth_rate"],
+            seed=next(seed),
+        )
+
+    else:
+        spread_out_infections = initial_conditions["initial_infections"]
 
     for infections in spread_out_infections:
         states = update_states(
@@ -87,7 +104,7 @@ def _scale_up_initial_infections(
             should be proportional between groups or ``None`` if no groups are used.
         known_cases_multiplier (float): The multiplier which can be used to scale
             infections from observed infections to the real number of infections.
-        seed (itertools.count): A seed counter.
+        seed (int): The seed.
 
     Returns:
         scaled_up (pandas.Series): A boolean series with upscaled infections.
@@ -110,7 +127,7 @@ def _scale_up_initial_infections(
     prob = prob_numerator / prob_denominator
 
     scaled_up_arr = _scale_up_initial_infections_numba(
-        initial_infections.to_numpy(), prob.to_numpy(), next(seed)
+        initial_infections.to_numpy(), prob.to_numpy(), seed
     )
     scaled_up = pd.Series(scaled_up_arr, index=states.index)
     return scaled_up
@@ -144,17 +161,18 @@ def _spread_out_initial_infections(
     """Spread out initial infections over several periods, given a growth rate.
 
     Args:
-        scaled_infections (pandas.Series):
+        scaled_infections (pandas.Series): The scaled infections.
         burn_in_periods (int): Number of burn-in periods.
-        growth_rate (float): Growth rate.
+        growth_rate (float): The growth rate of infections from one burn-in period to
+            the next.
         seed (itertools.count): The seed counter.
 
     Return:
-        spread_infections (List[ArrayLike[bool]]): A list of boolean arrays which
-            indicate new infections for each day of the burn-in period.
+        spread_infections (pandas.DataFrame): A list of boolean arrays which indicate
+            new infections for each day of the burn-in period.
 
     """
-    np.random.seed(next(seed))
+    np.random.seed(seed)
 
     if burn_in_periods > 1:
         scaled_infections = scaled_infections.to_numpy()
@@ -172,3 +190,44 @@ def _spread_out_initial_infections(
     ]
 
     return spread_infections
+
+
+def create_initial_infections(infections, n_people=None, index=None, seed=None):
+    """Create a :class:`pandas.Series` indicating infected individuals.
+
+    Args:
+        infections (Union[int, float]): The infections can be either a
+            :class:`pandas.Series` where each individual has an indicator for the
+            infection status, an integer representing the number of infected people or a
+            float representing the share of infected individuals.
+        n_people (Optional[int]): The number of individuals.
+        index (Optional[pandas.Index]): The index for the infections.
+        seed (Optional[int]): A seed.
+
+    Returns:
+        infections (pandas.Series): A series indicating infected individuals.
+
+    """
+    seed = np.random.randint(0, 1_000_000) if seed is None else seed
+    np.random.seed(seed)
+
+    if n_people is None and index is None:
+        raise ValueError("Either 'n_people' or 'index' has to be provided.")
+    elif n_people is None and index is not None:
+        n_people = len(index)
+    elif index is not None and n_people != len(index):
+        raise ValueError("'n_people' has to match the length of 'index'.")
+
+    if isinstance(infections, int):
+        pass
+    elif isinstance(infections, float) and 0 <= infections < 1:
+        infections = math.ceil(n_people * infections)
+    else:
+        raise ValueError("'infections' must be an int or a float between 0 and 1.")
+
+    index = pd.RangeIndex(n_people) if index is None else index
+    infected_indices = np.random.choice(n_people, size=infections, replace=False)
+    infections = pd.Series(index=index, data=False)
+    infections.iloc[infected_indices] = True
+
+    return infections

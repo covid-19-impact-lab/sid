@@ -86,7 +86,7 @@ def update_states(
         locs, "cd_infectious_true_draws"
     ]
 
-    states = _kill_people_over_icu_limit(states, params, seed)
+    states = _kill_people_over_icu_limit(states, params, next(seed))
 
     # important: this has to be called after _kill_people_over_icu_limit!
     states["newly_deceased"] = states["cd_dead_true"] == 0
@@ -143,7 +143,7 @@ def update_states(
 
 def _kill_people_over_icu_limit(states, params, seed):
     """Kill people over the ICU limit."""
-    np.random.seed(next(seed))
+    np.random.seed(seed)
 
     relative_limit = params.loc[
         ("health_system", "icu_limit_relative", "icu_limit_relative"), "value"
