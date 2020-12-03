@@ -198,6 +198,16 @@ def test_create_initial_infections(
             pytest.raises(ValueError, match="'burn_in_periods' must be an integer"),
             None,
         ),
+        (
+            {
+                "initial_infections": pd.DataFrame(
+                    {0: [True] * 8 + [False] * 7, 1: [False] * 8 + [True] * 7}
+                )
+            },
+            itertools.count(),
+            does_not_raise(),
+            pd.Series([True] * 15),
+        ),
     ],
 )
 def test_scale_and_spread_initial_infections(
