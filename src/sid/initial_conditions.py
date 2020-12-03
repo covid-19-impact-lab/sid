@@ -19,6 +19,7 @@ from sid.update_states import update_states
 def scale_and_spread_initial_infections(states, params, initial_conditions, seed):
     """Scale up and spread initial infections."""
     initial_conditions = _parse_initial_conditions(initial_conditions)
+    validate_initial_conditions(initial_conditions)
 
     initial_infections = initial_conditions["initial_infections"]
     if not isinstance(initial_infections, pd.DataFrame):
@@ -26,12 +27,7 @@ def scale_and_spread_initial_infections(states, params, initial_conditions, seed
             pass
         elif isinstance(initial_infections, (float, int)):
             initial_infections = create_initial_infections(
-                initial_infections, index=states.index
-            )
-        else:
-            raise ValueError(
-                "'initial_infections' must be a pd.DataFrame, pd.Series, int or float "
-                "between 0 and 1."
+                initial_infections, index=states.index, seed=next(seed)
             )
 
         scaled_infections = _scale_up_initial_infections(
@@ -52,7 +48,7 @@ def scale_and_spread_initial_infections(states, params, initial_conditions, seed
     else:
         spread_out_infections = initial_conditions["initial_infections"]
 
-    for infections in spread_out_infections:
+    for _, infections in spread_out_infections.sort_index(axis=1).items():
         states = update_states(
             states=states,
             newly_infected_contacts=infections,
@@ -176,18 +172,24 @@ def _spread_out_initial_infections(
 
     if burn_in_periods > 1:
         scaled_infections = scaled_infections.to_numpy()
-        shares = -np.diff(1 / growth_rate ** np.arange(burn_in_periods + 1))[::-1]
-        shares = shares / shares.sum()
+        if growth_rate == 1:
+            shares = np.array([1] + [0] * (burn_in_periods - 1))
+        else:
+            shares = -np.diff(1 / growth_rate ** np.arange(burn_in_periods + 1))[::-1]
+            shares = shares / shares.sum()
         hypothetical_infection_day = np.random.choice(
             burn_in_periods, p=shares, replace=True, size=len(scaled_infections)
         )
     else:
         hypothetical_infection_day = np.zeros(len(scaled_infections))
 
-    spread_infections = [
-        (hypothetical_infection_day == period) & scaled_infections
-        for period in range(burn_in_periods)
-    ]
+    spread_infections = pd.concat(
+        [
+            pd.Series((hypothetical_infection_day == period) & scaled_infections)
+            for period in range(burn_in_periods)
+        ],
+        axis=1,
+    )
 
     return spread_infections
 
@@ -231,3 +233,25 @@ def create_initial_infections(infections, n_people=None, index=None, seed=None):
     infections.iloc[infected_indices] = True
 
     return infections
+
+
+def validate_initial_conditions(initial_conditions):
+    initial_infections = initial_conditions["initial_infections"]
+    if not (
+        isinstance(initial_infections, (pd.DataFrame, pd.Series))
+        or (isinstance(initial_infections, int) and initial_infections >= 0)
+        or (isinstance(initial_infections, float) and 0 <= initial_infections <= 1)
+    ):
+        raise ValueError(
+            "'initial_infections' must be a pd.DataFrame, pd.Series, int or float "
+            "between 0 and 1."
+        )
+
+    if not initial_conditions["growth_rate"] >= 1:
+        raise ValueError("'growth_rate' must be greater than or equal to 1.")
+
+    burn_in_periods = initial_conditions["burn_in_periods"]
+    if not (isinstance(burn_in_periods, int) and burn_in_periods >= 1):
+        raise ValueError(
+            "'burn_in_periods' must be an integer which is greater than or equal to 1."
+        )

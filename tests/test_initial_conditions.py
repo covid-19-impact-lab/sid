@@ -1,5 +1,5 @@
 from contextlib import ExitStack as does_not_raise  # noqa: N813
-
+import itertools
 import numpy as np
 import pandas as pd
 import pytest
@@ -9,8 +9,11 @@ from sid.initial_conditions import _scale_up_initial_infections
 from sid.initial_conditions import _scale_up_initial_infections_numba
 from sid.initial_conditions import (
     _spread_out_initial_infections,
+    scale_and_spread_initial_infections,
 )
 from sid.initial_conditions import create_initial_infections
+from sid.simulate import _process_initial_states
+from sid.pathogenesis import draw_course_of_disease
 
 
 @pytest.mark.unit
@@ -104,17 +107,28 @@ def test_spread_out_initial_infections():
 
     spread_infections = _spread_out_initial_infections(infections, 4, 2, 0)
 
-    infections_per_day = np.sum(spread_infections, axis=1)
+    infections_per_day = spread_infections.sum()
     shares_per_day = infections_per_day / infections_per_day.sum()
     assert np.allclose(shares_per_day, np.array([1, 2, 4, 8]) / 15, atol=0.01)
+
+
+@pytest.mark.unit
+def test_spread_out_initial_infections_no_growth():
+    infections = create_initial_infections(0.2, 100_000)
+
+    spread_infections = _spread_out_initial_infections(infections, 4, 1, 0)
+
+    infections_per_day = spread_infections.sum()
+    shares_per_day = infections_per_day / infections_per_day.sum()
+    assert np.allclose(shares_per_day, np.array([1, 0, 0, 0]), atol=0.01)
 
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
     "infections, n_people, index, seed, expectation, expected",
     [
-        (None, None, None, -1, pytest.raises(ValueError, match="Seed must be"), None),
         ([], 1, None, 0, pytest.raises(ValueError, match="'infections' must"), None),
+        (None, None, None, -1, pytest.raises(ValueError, match="Seed must be"), None),
         (0.2, None, None, 0, pytest.raises(ValueError, match="Either 'n_people"), None),
         (0.2, 5, pd.RangeIndex(4), 0, pytest.raises(ValueError, match="'n_peop"), None),
         (0.2, 100_000, None, 0, does_not_raise(), lambda x: np.isclose(x.mean(), 0.2)),
@@ -131,3 +145,70 @@ def test_create_initial_infections(
             assert expected(out)
         else:
             assert out == expected
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "initial_conditions, seed, expectation, expected",
+    [
+        (
+            {"initial_infections": None},
+            itertools.count(),
+            pytest.raises(ValueError, match="'initial_infections' must"),
+            None,
+        ),
+        (
+            {"initial_infections": 1},
+            itertools.count(-1),
+            pytest.raises(ValueError, match="Seed"),
+            None,
+        ),
+        (
+            {"initial_infections": 0.9999999},
+            itertools.count(),
+            does_not_raise(),
+            pd.Series([True] * 15),
+        ),
+        (
+            {"initial_infections": 15, "burn_in_periods": 2},
+            itertools.count(),
+            does_not_raise(),
+            pd.Series([True] * 15),
+        ),
+        (
+            {"initial_infections": pd.Series([True] * 15)},
+            itertools.count(),
+            does_not_raise(),
+            pd.Series([True] * 15),
+        ),
+        (
+            {"growth_rate": 0},
+            itertools.count(),
+            pytest.raises(ValueError, match="'growth_rate' must be greater than or"),
+            None,
+        ),
+        (
+            {"burn_in_periods": 0},
+            itertools.count(),
+            pytest.raises(ValueError, match="'burn_in_periods' must be an integer"),
+            None,
+        ),
+        (
+            {"burn_in_periods": 2.},
+            itertools.count(),
+            pytest.raises(ValueError, match="'burn_in_periods' must be an integer"),
+            None,
+        ),
+    ],
+)
+def test_scale_and_spread_initial_infections(
+    initial_states, params, initial_conditions, seed, expectation, expected
+):
+    with expectation:
+        initial_states = _process_initial_states(initial_states, {"a": []})
+        initial_states = draw_course_of_disease(initial_states, params, 0)
+
+        result = scale_and_spread_initial_infections(
+            initial_states, params, initial_conditions, seed
+        )
+        assert result["ever_infected"].equals(expected)

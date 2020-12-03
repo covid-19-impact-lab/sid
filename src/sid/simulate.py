@@ -99,8 +99,8 @@ def get_simulate_func(
               distributed and can progress. The default is one period.
             - ``growth_rate`` (float): The growth rate specifies the increase of
               infections from one burn-in period to the next. For example, two indicates
-              doubling case numbers every period. Default is one which is no
-              distribution over time.
+              doubling case numbers every period. The value must be greater than or
+              equal to one. Default is one which is no distribution over time.
             - ``initial_immunity`` (Union[int, float, pandas.Series]): The people who
               are immune in the beginning can be specified as an integer for the number,
               a float between 0 and 1 for the share, and a :class:`pandas.Series` with
@@ -112,10 +112,10 @@ def get_simulate_func(
               share or as a :class:`pandas.Series` which indicates whether an
               individuals is infected. If initial infections are a
               :class:`pandas.DataFrame`, then, the index is the same as ``states``,
-              columns are burn-in periods, and values are infected individuals on that
-              date. This step will skip upscaling and distributing infections over days
-              and directly jump to the evolution of states. By default, 1% of
-              individuals is infected.
+              columns are dates or periods which can be sorted, and values are infected
+              individuals on that date. This step will skip upscaling and distributing
+              infections over days and directly jump to the evolution of states. By
+              default, 1% of individuals is infected.
             - ``known_cases_multiplier`` (int): The factor can be used to scale up the
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
@@ -245,8 +245,8 @@ def _simulate(
               distributed and can progress. The default is one period.
             - ``growth_rate`` (float): The growth rate specifies the increase of
               infections from one burn-in period to the next. For example, two indicates
-              doubling case numbers every period. Default is one which is no
-              distribution over time.
+              doubling case numbers every period. The value must be greater than or
+              equal to one. Default is one which is no distribution over time.
             - ``initial_immunity`` (Union[int, float, pandas.Series]): The people who
               are immune in the beginning can be specified as an integer for the number,
               a float between 0 and 1 for the share, and a :class:`pandas.Series` with
@@ -258,10 +258,10 @@ def _simulate(
               share or as a :class:`pandas.Series` which indicates whether an
               individuals is infected. If initial infections are a
               :class:`pandas.DataFrame`, then, the index is the same as ``states``,
-              columns are burn-in periods, and values are infected individuals on that
-              date. This step will skip upscaling and distributing infections over days
-              and directly jump to the evolution of states. By default, 1% of
-              individuals is infected.
+              columns are dates or periods which can be sorted, and values are infected
+              individuals on that date. This step will skip upscaling and distributing
+              infections over days and directly jump to the evolution of states. By
+              default, 1% of individuals is infected.
             - ``known_cases_multiplier`` (int): The factor can be used to scale up the
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
@@ -279,7 +279,7 @@ def _simulate(
         initial_states, assort_bys, params, contact_models
     )
 
-    states = draw_course_of_disease(initial_states, params, seed)
+    states = draw_course_of_disease(initial_states, params, next(seed))
 
     states = scale_and_spread_initial_infections(
         states, params, initial_conditions, seed
