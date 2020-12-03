@@ -1,5 +1,6 @@
-from contextlib import ExitStack as does_not_raise  # noqa: N813
 import itertools
+from contextlib import ExitStack as does_not_raise  # noqa: N813
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -7,13 +8,11 @@ from sid.config import INITIAL_CONDITIONS
 from sid.initial_conditions import _parse_initial_conditions
 from sid.initial_conditions import _scale_up_initial_infections
 from sid.initial_conditions import _scale_up_initial_infections_numba
-from sid.initial_conditions import (
-    _spread_out_initial_infections,
-    scale_and_spread_initial_infections,
-)
+from sid.initial_conditions import _spread_out_initial_infections
 from sid.initial_conditions import create_initial_infections
-from sid.simulate import _process_initial_states
+from sid.initial_conditions import scale_and_spread_initial_infections
 from sid.pathogenesis import draw_course_of_disease
+from sid.simulate import _process_initial_states
 
 
 @pytest.mark.unit
@@ -194,7 +193,7 @@ def test_create_initial_infections(
             None,
         ),
         (
-            {"burn_in_periods": 2.},
+            {"burn_in_periods": 2.0},
             itertools.count(),
             pytest.raises(ValueError, match="'burn_in_periods' must be an integer"),
             None,
