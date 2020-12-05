@@ -10,16 +10,18 @@ from sid.simulate import _process_initial_states
 from sid.simulate import get_simulate_func
 
 
-def test_simple_run(params, initial_states, tmp_path):
+def test_simulate_a_simple_model(params, initial_states, tmp_path):
     initial_infections = pd.Series(index=initial_states.index, data=False)
-    initial_infections.iloc[0] = True
+    initial_infections.iloc[:3] = True
 
     simulate = get_simulate_func(
         params,
         initial_states,
         initial_infections,
         CONTACT_MODELS,
+        saved_columns={"other": ["channel_infected_by_contact"]},
         path=tmp_path,
+        seed=0,
     )
 
     df = simulate(params)
@@ -27,6 +29,10 @@ def test_simple_run(params, initial_states, tmp_path):
     df = df.compute()
 
     assert isinstance(df, pd.DataFrame)
+    assert set(df["channel_infected_by_contact"].cat.categories) == {
+        "not_infected_by_contact",
+        "standard",
+    }
 
 
 def test_check_assort_by_are_categoricals(initial_states):

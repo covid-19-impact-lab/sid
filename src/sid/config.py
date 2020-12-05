@@ -51,13 +51,11 @@ SAVED_COLUMNS = {
     "countdown_draws": False,
     "group_codes": False,
     "other": ["n_has_infected", "newly_infected"],
+    "channels": False,
 }
 
 
-OPTIONAL_STATE_COLUMNS = {
-    "contacts": False,
-    "reason_for_infection": False,
-}
+OPTIONAL_STATE_COLUMNS = {"contacts": False, "channels": False}
 
 
 SID_TIME_START = pd.Timestamp("2019-01-01")
