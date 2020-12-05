@@ -7,6 +7,10 @@ statuses in time.
 
 """
 import math
+from typing import Any
+from typing import Dict
+from typing import Optional
+from typing import Union
 
 import numba as nb
 import numpy as np
@@ -57,21 +61,25 @@ def scale_and_spread_initial_infections(states, params, initial_conditions, seed
             seed=seed,
         )
 
+    initial_immunity = create_initial_immunity(
+        initial_conditions["initial_immunity"], states["immune"], next(seed)
+    )
+    states = _integrate_immune_individuals(states, initial_immunity)
+
     return states
 
 
-def _parse_initial_conditions(initial_conditions):
+def _parse_initial_conditions(ic):
     """Parse the initial conditions."""
-    initial_conditions = (
-        INITIAL_CONDITIONS
-        if initial_conditions in [None, False]
-        else {**INITIAL_CONDITIONS, **initial_conditions}
-    )
+    ic = INITIAL_CONDITIONS if ic in [None, False] else {**INITIAL_CONDITIONS, **ic}
 
-    if isinstance(initial_conditions["assort_by"], str):
-        initial_conditions["assort_by"] = [initial_conditions["assort_by"]]
+    if isinstance(ic["assort_by"], str):
+        ic["assort_by"] = [ic["assort_by"]]
 
-    return initial_conditions
+    if ic["initial_immunity"] is None:
+        ic["initial_immunity"] = ic["initial_infections"]
+
+    return ic
 
 
 def _scale_up_initial_infections(
@@ -152,8 +160,8 @@ def _scale_up_initial_infections_numba(initial_infections, probabilities, seed):
 
 
 def _spread_out_initial_infections(
-    scaled_infections, burn_in_periods, growth_rate, seed
-):
+    scaled_infections: pd.Series, burn_in_periods: int, growth_rate: float, seed: int
+) -> pd.DataFrame:
     """Spread out initial infections over several periods, given a growth rate.
 
     Args:
@@ -194,7 +202,12 @@ def _spread_out_initial_infections(
     return spread_infections
 
 
-def create_initial_infections(infections, n_people=None, index=None, seed=None):
+def create_initial_infections(
+    infections: Union[int, float],
+    n_people: Optional[int] = None,
+    index: Optional[pd.Index] = None,
+    seed: Optional[int] = None,
+) -> pd.Series:
     """Create a :class:`pandas.Series` indicating infected individuals.
 
     Args:
@@ -235,7 +248,60 @@ def create_initial_infections(infections, n_people=None, index=None, seed=None):
     return infections
 
 
-def validate_initial_conditions(initial_conditions):
+def create_initial_immunity(
+    immunity: Union[int, float, pd.Series],
+    infected_or_immune: pd.Series,
+    seed: Optional[int],
+) -> pd.Series:
+    """Create indicator for initially immune people.
+
+    There are some special cases to handle:
+
+    1. Infected individuals are always treated as being immune and reduce the number of
+       additional immune individuals.
+    2. If immunity is given as an integer or float, additional immune individuals are
+       sampled randomly.
+    3. If immunity is given as a series, immune and infected individuals form the total
+       immune population.
+
+    Args:
+        immunity (Union[int, float, pandas.Series]): The people who are immune in the
+            beginning can be specified as an integer for the number, a float between 0
+            and 1 for the share, and a :class:`pandas.Series` with the same index as
+            states. Note that, infected individuals are immune and included.
+        infected_or_immune (pandas.Series): A series which indicates either immune or
+            infected individuals.
+
+    Returns:
+        initial_immunity (pandas.Series): Indicates immune individuals.
+
+    """
+    seed = np.random.randint(0, 1_000_000) if seed is None else seed
+    np.random.seed(seed)
+
+    n_people = len(infected_or_immune)
+
+    if isinstance(immunity, float):
+        immunity = math.ceil(n_people * immunity)
+
+    initial_immunity = infected_or_immune.copy()
+    if isinstance(immunity, int):
+        n_immune = initial_immunity.sum()
+        n_additional_immune = immunity - n_immune
+        if 0 < n_additional_immune <= n_people - n_immune:
+            choices = np.arange(len(initial_immunity))[~initial_immunity]
+            ilocs = np.random.choice(choices, size=n_additional_immune, replace=False)
+            initial_immunity.iloc[ilocs] = True
+
+    elif isinstance(immunity, pd.Series):
+        initial_immunity = initial_immunity | immunity
+    else:
+        raise ValueError("'initial_immunity' must be an int, float or pd.Series.")
+
+    return initial_immunity
+
+
+def validate_initial_conditions(initial_conditions: Dict[str, Any]) -> None:
     initial_infections = initial_conditions["initial_infections"]
     if not (
         isinstance(initial_infections, (pd.DataFrame, pd.Series))
@@ -255,3 +321,18 @@ def validate_initial_conditions(initial_conditions):
         raise ValueError(
             "'burn_in_periods' must be an integer which is greater than or equal to 1."
         )
+
+
+def _integrate_immune_individuals(
+    states: pd.DataFrame, initial_immunity: pd.Series
+) -> pd.DataFrame:
+    """Integrate immune individuals in states."""
+    extra_immune = initial_immunity & ~states["immune"]
+    states.loc[extra_immune, "immune"] = True
+    states.loc[extra_immune, "ever_infected"] = True
+    states.loc[extra_immune, "cd_ever_infected"] = 0
+    states.loc[extra_immune, "cd_immune_false"] = states.loc[
+        extra_immune, "cd_immune_false_draws"
+    ]
+
+    return states

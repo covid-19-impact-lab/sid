@@ -104,8 +104,9 @@ def get_simulate_func(
             - ``initial_immunity`` (Union[int, float, pandas.Series]): The people who
               are immune in the beginning can be specified as an integer for the number,
               a float between 0 and 1 for the share, and a :class:`pandas.Series` with
-              the same index as states. By default, only infected individuals indicated
-              by the initial infections are immune.
+              the same index as states. Note that, infected individuals are immune and
+              included. By default, only infected individuals indicated by the initial
+              infections are immune.
             - ``initial_infections`` (Union[int, float, pandas.Series,
               pandas.DataFrame]): The initial infections can be given as an integer
               which is the number of randomly infected individuals, as a float for the
@@ -250,8 +251,9 @@ def _simulate(
             - ``initial_immunity`` (Union[int, float, pandas.Series]): The people who
               are immune in the beginning can be specified as an integer for the number,
               a float between 0 and 1 for the share, and a :class:`pandas.Series` with
-              the same index as states. By default, only infected individuals indicated
-              by the initial infections are immune.
+              the same index as states. Note that, infected individuals are immune and
+              included. By default, only infected individuals indicated by the initial
+              infections are immune.
             - ``initial_infections`` (Union[int, float, pandas.Series,
               pandas.DataFrame]): The initial infections can be given as an integer
               which is the number of randomly infected individuals, as a float for the

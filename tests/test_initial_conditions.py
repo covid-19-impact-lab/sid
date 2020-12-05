@@ -9,6 +9,7 @@ from sid.initial_conditions import _parse_initial_conditions
 from sid.initial_conditions import _scale_up_initial_infections
 from sid.initial_conditions import _scale_up_initial_infections_numba
 from sid.initial_conditions import _spread_out_initial_infections
+from sid.initial_conditions import create_initial_immunity
 from sid.initial_conditions import create_initial_infections
 from sid.initial_conditions import scale_and_spread_initial_infections
 from sid.pathogenesis import draw_course_of_disease
@@ -19,14 +20,28 @@ from sid.simulate import _process_initial_states
 @pytest.mark.parametrize(
     ("initial_conditions", "expected"),
     [
-        (None, INITIAL_CONDITIONS),
+        (
+            None,
+            {
+                **INITIAL_CONDITIONS,
+                "initial_immunity": INITIAL_CONDITIONS["initial_infections"],
+            },
+        ),
         (
             {"assort_by": ["region"]},
-            {**INITIAL_CONDITIONS, **{"assort_by": ["region"]}},
+            {
+                **INITIAL_CONDITIONS,
+                "assort_by": ["region"],
+                "initial_immunity": INITIAL_CONDITIONS["initial_infections"],
+            },
         ),
         (
             {"assort_by": "region"},
-            {**INITIAL_CONDITIONS, **{"assort_by": ["region"]}},
+            {
+                **INITIAL_CONDITIONS,
+                "assort_by": ["region"],
+                "initial_immunity": INITIAL_CONDITIONS["initial_infections"],
+            },
         ),
     ],
 )
@@ -221,3 +236,36 @@ def test_scale_and_spread_initial_infections(
             initial_states, params, initial_conditions, seed
         )
         assert result["ever_infected"].equals(expected)
+
+
+@pytest.mark.parametrize(
+    "immunity, infected_or_immune, expectation, expected",
+    [
+        (
+            7,
+            pd.Series([True] * 5 + [False] * 5),
+            does_not_raise(),
+            lambda x: np.isclose(x.mean(), 0.7),
+        ),
+        (
+            0.7,
+            pd.Series([True] * 5 + [False] * 5),
+            does_not_raise(),
+            lambda x: np.isclose(x.mean(), 0.7),
+        ),
+        (
+            pd.DataFrame(),
+            [],
+            pytest.raises(ValueError, match="'initial_immunity' must be"),
+            None,
+        ),
+    ],
+)
+def test_create_initial_immunity(immunity, infected_or_immune, expectation, expected):
+    with expectation:
+        out = create_initial_immunity(immunity, infected_or_immune, 0)
+
+        if callable(expected):
+            assert expected(out)
+        else:
+            assert out == expected

@@ -69,6 +69,7 @@ INITIAL_CONDITIONS = {
     "growth_rate": 1,
     "known_cases_multiplier": 1,
     "initial_infections": 0.01,
+    "initial_immunity": None,
 }
 
 
