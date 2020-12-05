@@ -15,7 +15,7 @@ def update_states(
     newly_infected_events: pd.Series,
     params: pd.DataFrame,
     seed: itertools.count,
-    optional_state_columns: Dict[str, Any],
+    optional_state_columns: Dict[str, Any] = None,
     n_has_additionally_infected: Optional[pd.Series] = None,
     indexers: Optional[Dict[int, np.ndarray]] = None,
     contacts: Optional[np.ndarray] = None,
