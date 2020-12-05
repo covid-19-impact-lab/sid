@@ -9,9 +9,11 @@ from sid.initial_conditions import _parse_initial_conditions
 from sid.initial_conditions import _scale_up_initial_infections
 from sid.initial_conditions import _scale_up_initial_infections_numba
 from sid.initial_conditions import _spread_out_initial_infections
-from sid.initial_conditions import create_initial_immunity
-from sid.initial_conditions import create_initial_infections
-from sid.initial_conditions import scale_and_spread_initial_infections
+from sid.initial_conditions import (
+    sample_initial_distribution_of_infections_and_immunity,
+)
+from sid.initial_conditions import sample_initial_immunity
+from sid.initial_conditions import sample_initial_infections
 from sid.pathogenesis import draw_course_of_disease
 from sid.simulate import _process_initial_states
 
@@ -43,7 +45,7 @@ def test_parse_initial_conditions(initial_conditions, expected):
 def test_scale_up_initial_infections_without_assort_by():
     states = pd.DataFrame(index=pd.RangeIndex(100_000))
 
-    initial_infections = create_initial_infections(0.1, 100_000)
+    initial_infections = sample_initial_infections(0.1, 100_000)
 
     scaled_up_infections = _scale_up_initial_infections(
         initial_infections, states, None, 1.3, 0
@@ -58,7 +60,7 @@ def test_scale_up_initial_infections_with_assort_by_equal_groups():
         {"region": np.random.choice(["North", "East", "South", "West"], size=100_000)}
     )
 
-    initial_infections = create_initial_infections(0.1, 100_000)
+    initial_infections = sample_initial_infections(0.1, 100_000)
 
     scaled_up_infections = _scale_up_initial_infections(
         initial_infections, states, None, 1.3, 0
@@ -76,7 +78,7 @@ def test_scale_up_initial_infections_with_assort_by_unequal_groups():
     regions = np.random.choice(["N", "E", "S", "W"], p=probs, size=100_000)
     states = pd.DataFrame({"region": regions})
 
-    initial_infections = create_initial_infections(0.1, 100_000)
+    initial_infections = sample_initial_infections(0.1, 100_000)
 
     scaled_up_infections = _scale_up_initial_infections(
         initial_infections, states, ["region"], 1.3, 0
@@ -106,7 +108,7 @@ def test_scale_up_initial_infections_numba():
 
 @pytest.mark.unit
 def test_spread_out_initial_infections():
-    infections = create_initial_infections(0.2, 100_000)
+    infections = sample_initial_infections(0.2, 100_000)
 
     spread_infections = _spread_out_initial_infections(infections, 4, 2, 0)
 
@@ -117,7 +119,7 @@ def test_spread_out_initial_infections():
 
 @pytest.mark.unit
 def test_spread_out_initial_infections_no_growth():
-    infections = create_initial_infections(0.2, 100_000)
+    infections = sample_initial_infections(0.2, 100_000)
 
     spread_infections = _spread_out_initial_infections(infections, 4, 1, 0)
 
@@ -142,7 +144,7 @@ def test_create_initial_infections(
     infections, n_people, index, seed, expectation, expected
 ):
     with expectation:
-        out = create_initial_infections(infections, n_people, index, seed)
+        out = sample_initial_infections(infections, n_people, index, seed)
 
         if callable(expected):
             assert expected(out)
@@ -221,7 +223,7 @@ def test_scale_and_spread_initial_infections(
         initial_states = _process_initial_states(initial_states, {"a": []})
         initial_states = draw_course_of_disease(initial_states, params, 0)
 
-        result = scale_and_spread_initial_infections(
+        result = sample_initial_distribution_of_infections_and_immunity(
             initial_states, params, initial_conditions, seed
         )
         assert result["ever_infected"].equals(expected)
@@ -264,7 +266,7 @@ def test_scale_and_spread_initial_infections(
 )
 def test_create_initial_immunity(immunity, infected_or_immune, expectation, expected):
     with expectation:
-        out = create_initial_immunity(immunity, infected_or_immune, 0)
+        out = sample_initial_immunity(immunity, infected_or_immune, 0)
 
         if callable(expected):
             assert expected(out)

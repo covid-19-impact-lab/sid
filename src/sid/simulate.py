@@ -18,7 +18,9 @@ from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
 from sid.countdowns import COUNTDOWNS
 from sid.events import calculate_infections_by_events
-from sid.initial_conditions import scale_and_spread_initial_infections
+from sid.initial_conditions import (
+    sample_initial_distribution_of_infections_and_immunity,
+)
 from sid.matching_probabilities import create_group_transition_probs
 from sid.parse_model import parse_duration
 from sid.pathogenesis import draw_course_of_disease
@@ -89,7 +91,11 @@ def get_simulate_func(
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
             will not be saved. The categories are "contacts" and "reason_for_infection".
-        initial_conditions (Option[Dict]): Dict containing the following entries:
+        initial_conditions (Option[Dict]): The initial conditions allow you to govern
+            the distribution of infections and immunity and the heterogeneity of courses
+            of disease at the start of the simulation. Use ``None`` to assume no
+            heterogeneous courses of diseases and 1% infections. Otherwise,
+            ``initial_conditions`` is a dictionary containing the following entries:
 
             - ``assort_by`` (Optional[Union[str, List[str]]]): The relative infections
               is preserved between the groups formed by ``assort_by`` variables. By
@@ -101,12 +107,13 @@ def get_simulate_func(
               infections from one burn-in period to the next. For example, two indicates
               doubling case numbers every period. The value must be greater than or
               equal to one. Default is one which is no distribution over time.
-            - ``initial_immunity`` (Union[int, float, pandas.Series]): The people who
+            - ``initial_immunity`` (Union[int, float, pandas.Series]): The n_people who
               are immune in the beginning can be specified as an integer for the number,
               a float between 0 and 1 for the share, and a :class:`pandas.Series` with
-              the same index as states. Note that, infected individuals are immune and
-              included. By default, only infected individuals indicated by the initial
-              infections are immune.
+              the same index as states. Note that infected individuals are also immune.
+              For a 10% pre-existing immunity with 2% currently infected people, set the
+              key to 0.12. By default, only infected individuals indicated by the
+              initial infections are immune.
             - ``initial_infections`` (Union[int, float, pandas.Series,
               pandas.DataFrame]): The initial infections can be given as an integer
               which is the number of randomly infected individuals, as a float for the
@@ -236,7 +243,11 @@ def _simulate(
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
             will not be saved. The categories are "contacts" and "reason_for_infection".
-        initial_conditions (Option[Dict]): Dict containing the following entries:
+        initial_conditions (Option[Dict]): The initial conditions allow you to govern
+            the distribution of infections and immunity and the heterogeneity of courses
+            of disease at the start of the simulation. Use ``None`` to assume no
+            heterogeneous courses of diseases and 1% infections. Otherwise,
+            ``initial_conditions`` is a dictionary containing the following entries:
 
             - ``assort_by`` (Optional[Union[str, List[str]]]): The relative infections
               is preserved between the groups formed by ``assort_by`` variables. By
@@ -248,12 +259,13 @@ def _simulate(
               infections from one burn-in period to the next. For example, two indicates
               doubling case numbers every period. The value must be greater than or
               equal to one. Default is one which is no distribution over time.
-            - ``initial_immunity`` (Union[int, float, pandas.Series]): The people who
+            - ``initial_immunity`` (Union[int, float, pandas.Series]): The n_people who
               are immune in the beginning can be specified as an integer for the number,
               a float between 0 and 1 for the share, and a :class:`pandas.Series` with
-              the same index as states. Note that, infected individuals are immune and
-              included. By default, only infected individuals indicated by the initial
-              infections are immune.
+              the same index as states. Note that infected individuals are also immune.
+              For a 10% pre-existing immunity with 2% currently infected people, set the
+              key to 0.12. By default, only infected individuals indicated by the
+              initial infections are immune.
             - ``initial_infections`` (Union[int, float, pandas.Series,
               pandas.DataFrame]): The initial infections can be given as an integer
               which is the number of randomly infected individuals, as a float for the
@@ -283,7 +295,7 @@ def _simulate(
 
     states = draw_course_of_disease(initial_states, params, next(seed))
 
-    states = scale_and_spread_initial_infections(
+    states = sample_initial_distribution_of_infections_and_immunity(
         states, params, initial_conditions, seed
     )
 
@@ -376,6 +388,21 @@ def _prepare_params(params):
 
     if params["value"].isna().any():
         raise ValueError("The 'value' column of params must not contain NaNs.")
+
+    try:
+        relative_limit = params.loc[
+            ("health_system", "icu_limit_relative", "icu_limit_relative"), "value"
+        ]
+    except KeyError:
+        warnings.warn(
+            "A limit of ICU beds is not specified in 'params'. Individuals who need "
+            "intensive care will decease immediately.\n\n"
+            "Set ('health_system', 'icu_limit_relative', 'icu_limit_relative') in "
+            "'params' to beds per 100,000 individuals to silence the warning."
+        )
+    else:
+        if relative_limit < 1:
+            warnings.warn("The limit for ICU beds per 100,000 individuals is below 1.")
 
     return params
 

@@ -1,5 +1,5 @@
 category,subcategory,name,value
-health_system,icu_limit_relative,icu_limit_relative,0.0005
+health_system,icu_limit_relative,icu_limit_relative,50
 cd_immune_false,all,1000,1
 cd_infectious_true,all,1,0.39
 cd_infectious_true,all,2,0.35

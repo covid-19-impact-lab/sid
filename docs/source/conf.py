@@ -88,17 +88,7 @@ copybutton_prompt_is_regexp = True
 
 # Configuration for nbsphinx.
 nbsphinx_execute = "never"
-nbsphinx_prolog = r"""
-{% set docname = env.doc2path(env.docname, base=None) %}
-{% set github = 'https://github.com/covid-19-impact-lab/sid' %}
 
-.. only:: html
-
-    .. nbinfo::
-        View and download the notebook `here
-        <{{ github }}/tree/v{{ env.config.release }}/docs/source/{{ docname }}>`_!
-
-"""
 
 # -- Options for HTML output -------------------------------------------------
 
