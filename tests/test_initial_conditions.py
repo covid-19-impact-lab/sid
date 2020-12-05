@@ -22,26 +22,15 @@ from sid.simulate import _process_initial_states
     [
         (
             None,
-            {
-                **INITIAL_CONDITIONS,
-                "initial_immunity": INITIAL_CONDITIONS["initial_infections"],
-            },
+            {**INITIAL_CONDITIONS},
         ),
         (
             {"assort_by": ["region"]},
-            {
-                **INITIAL_CONDITIONS,
-                "assort_by": ["region"],
-                "initial_immunity": INITIAL_CONDITIONS["initial_infections"],
-            },
+            {**INITIAL_CONDITIONS, "assort_by": ["region"]},
         ),
         (
             {"assort_by": "region"},
-            {
-                **INITIAL_CONDITIONS,
-                "assort_by": ["region"],
-                "initial_immunity": INITIAL_CONDITIONS["initial_infections"],
-            },
+            {**INITIAL_CONDITIONS, "assort_by": ["region"]},
         ),
     ],
 )
@@ -252,6 +241,18 @@ def test_scale_and_spread_initial_infections(
             pd.Series([True] * 5 + [False] * 5),
             does_not_raise(),
             lambda x: np.isclose(x.mean(), 0.7),
+        ),
+        (
+            0,
+            pd.Series([True] * 5 + [False] * 5),
+            does_not_raise(),
+            lambda x: np.isclose(x.mean(), 0.5),
+        ),
+        (
+            None,
+            pd.Series([True] * 5 + [False] * 5),
+            does_not_raise(),
+            lambda x: np.isclose(x.mean(), 0.5),
         ),
         (
             pd.DataFrame(),

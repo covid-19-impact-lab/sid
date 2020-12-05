@@ -76,9 +76,6 @@ def _parse_initial_conditions(ic):
     if isinstance(ic["assort_by"], str):
         ic["assort_by"] = [ic["assort_by"]]
 
-    if ic["initial_immunity"] is None:
-        ic["initial_immunity"] = ic["initial_infections"]
-
     return ic
 
 
@@ -249,7 +246,7 @@ def create_initial_infections(
 
 
 def create_initial_immunity(
-    immunity: Union[int, float, pd.Series],
+    immunity: Union[int, float, pd.Series, None],
     infected_or_immune: pd.Series,
     seed: Optional[int],
 ) -> pd.Series:
@@ -278,6 +275,8 @@ def create_initial_immunity(
     """
     seed = np.random.randint(0, 1_000_000) if seed is None else seed
     np.random.seed(seed)
+
+    immunity = 0 if immunity is None else immunity
 
     n_people = len(infected_or_immune)
 
