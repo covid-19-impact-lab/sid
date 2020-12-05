@@ -225,7 +225,6 @@ def boolean_choice(truth_probability):
     return u <= truth_probability
 
 
-@nb.njit
 def boolean_choices(truth_probabilities):
     """Sample boolean value with probabilities given for ``True``.
 
