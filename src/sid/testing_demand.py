@@ -1,11 +1,14 @@
 """Contains the code for calculating the demand for tests."""
 import numpy as np
 import pandas as pd
+from sid.shared import boolean_choices
 from sid.shared import date_is_within_start_and_end_date
 from sid.shared import random_choice
 
 
-def calculate_demand_for_tests(states, testing_demand_models, params, date, seed):
+def calculate_demand_for_tests(
+    states, testing_demand_models, params, date, optional_state_columns, seed
+):
     """Calculate the demand for tests.
 
     The following is a three-staged process:
@@ -26,6 +29,7 @@ def calculate_demand_for_tests(states, testing_demand_models, params, date, seed
             testing.
         params (pandas.DataFrame): The parameter DataFrame.
         date (pandas.Timestamp): Current date.
+        optional_state_columns (Dict[str, Any]): Columns which are optionally created.
         seed (itertools.count): The seed counter.
 
     Returns:
@@ -33,7 +37,7 @@ def calculate_demand_for_tests(states, testing_demand_models, params, date, seed
 
             - demands_test (pandas.Series): A boolean series indicating which person
               demands a test.
-            - demands_test_reason (pandas.Series): A series indicating the demand model
+            - channel_demands_test (pandas.Series): A series indicating the demand model
               which made the individual ask for a test.
 
     """
@@ -43,7 +47,16 @@ def calculate_demand_for_tests(states, testing_demand_models, params, date, seed
 
     demands_test = _sample_which_individuals_demand_a_test(demand_probabilities, seed)
 
-    return demands_test
+    if (optional_state_columns["channels"] is True) or (
+        "channel_demands_test" in optional_state_columns
+    ):
+        channel_demands_test = _sample_reason_for_demanding_a_test(
+            demand_probabilities, demands_test, seed
+        )
+    else:
+        channel_demands_test = None
+
+    return demands_test, channel_demands_test
 
 
 def _calculate_demand_probabilities(states, testing_demand_models, params, date):
@@ -98,14 +111,12 @@ def _sample_which_individuals_demand_a_test(demand_probabilities, seed):
     """
     np.random.seed(next(seed))
 
-    probability_demands_no_test = (1 - demand_probabilities).prod(axis=1)
-    probability_demands_any_test = 1 - probability_demands_no_test
-    probabilities = np.column_stack(
-        (probability_demands_any_test, probability_demands_no_test)
-    )
+    probability_demands_any_test = 1 - (1 - demand_probabilities).prod(axis=1)
 
-    demands_test = random_choice([True, False], probabilities)
-    demands_test = pd.Series(index=demand_probabilities.index, data=demands_test)
+    demands_test = pd.Series(
+        index=demand_probabilities.index,
+        data=boolean_choices(probability_demands_any_test.to_numpy()),
+    )
 
     return demands_test
 
@@ -145,16 +156,16 @@ def _sample_reason_for_demanding_a_test(demand_probabilities, demands_test, seed
         demand_probabilities[demands_test]
     )
     sampled_reason = random_choice(
-        demand_probabilities.columns.tolist(), normalized_probabilities
+        len(demand_probabilities.columns), normalized_probabilities
     )
 
-    demands_test_reason = pd.Series(
-        index=demands_test.index,
-        data=pd.Categorical(
-            np.full(len(demands_test), np.nan), categories=demand_probabilities.columns
-        ),
-    )
+    demands_test_reason = pd.Series(index=demands_test.index, data=-1)
     demands_test_reason.loc[demands_test] = sampled_reason
+
+    codes_to_reason = {-1: "no_reason", **dict(enumerate(demand_probabilities.columns))}
+    demands_test_reason = demands_test_reason.astype("category").cat.rename_categories(
+        codes_to_reason
+    )
 
     return demands_test_reason
 

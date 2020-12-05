@@ -51,6 +51,7 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
         infection_counter,
         immune,
         missed,
+        was_infected_by,
     ) = _calculate_infections_by_contacts_numba(
         contacts,
         infectious,
@@ -188,12 +189,14 @@ def test_calculate_infections_only_recurrent_all_participate(
         calc_infected,
         calc_n_has_additionally_infected,
         calc_missed_contacts,
+        was_infected_by,
     ) = calculate_infections_by_contacts(
         states=states,
         contacts=contacts,
         params=params,
         indexers=indexers,
         group_cdfs=group_probs,
+        code_to_contact_model={0: "the_model"},
         seed=itertools.count(),
     )
 
@@ -221,12 +224,14 @@ def test_calculate_infections_only_recurrent_sick_skips(
         calc_infected,
         calc_n_has_additionally_infected,
         calc_missed_contacts,
+        was_infected_by,
     ) = calculate_infections_by_contacts(
         states=states,
         contacts=contacts,
         params=params,
         indexers=indexers,
         group_cdfs=group_probs,
+        code_to_contact_model={0: "the_model"},
         seed=itertools.count(),
     )
 
@@ -251,12 +256,14 @@ def test_calculate_infections_only_recurrent_one_skips(
         calc_infected,
         calc_n_has_additionally_infected,
         calc_missed_contacts,
+        was_infected_by,
     ) = calculate_infections_by_contacts(
         states=states,
         contacts=contacts,
         params=params,
         indexers=indexers,
         group_cdfs=group_probs,
+        code_to_contact_model={0: "the_model"},
         seed=itertools.count(),
     )
 
@@ -279,12 +286,14 @@ def test_calculate_infections_only_recurrent_one_immune(
         calc_infected,
         calc_n_has_additionally_infected,
         calc_missed_contacts,
+        was_infected_by,
     ) = calculate_infections_by_contacts(
         states=states,
         contacts=contacts,
         params=params,
         indexers=indexers,
         group_cdfs=group_probs,
+        code_to_contact_model={0: "the_model"},
         seed=itertools.count(),
     )
 
@@ -341,12 +350,14 @@ def test_calculate_infections_only_non_recurrent(
             calc_infected,
             calc_n_has_additionally_infected,
             calc_missed_contacts,
+            was_infected_by,
         ) = calculate_infections_by_contacts(
             states=states,
             contacts=contacts,
             params=params,
             indexers=indexers,
             group_cdfs=group_probs,
+            code_to_contact_model={0: "the_model"},
             seed=itertools.count(),
         )
 

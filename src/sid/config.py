@@ -54,13 +54,11 @@ SAVED_COLUMNS = {
     "countdown_draws": False,
     "group_codes": False,
     "other": ["n_has_infected", "newly_infected", "new_known_case"],
+    "channels": False,
 }
 
 
-OPTIONAL_STATE_COLUMNS = {
-    "contacts": False,
-    "reason_for_infection": False,
-}
+OPTIONAL_STATE_COLUMNS = {"contacts": False, "channels": False}
 
 
 INITIAL_CONDITIONS = {
