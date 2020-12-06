@@ -12,14 +12,12 @@ def event_infect_n(states, params, i):  # noqa: U100
 
 
 def test_no_events_combined_with_infections_by_contact(initial_states, params):
-    infections_by_events = calculate_infections_by_events(initial_states, params, {})
+    infections_by_events, was_infected_by_event = calculate_infections_by_events(
+        initial_states, params, {}
+    )
 
-    infections_by_contacts = pd.Series(data=False, index=initial_states.index)
-    infections_by_contacts.iloc[:2] = True
-
-    combined_infections = infections_by_contacts | infections_by_events
-
-    assert infections_by_contacts.equals(combined_infections)
+    assert not infections_by_events.any()
+    assert was_infected_by_event.eq("not_infected_by_event").all()
 
 
 def test_calculate_infections_by_events(initial_states, params):
@@ -28,9 +26,19 @@ def test_calculate_infections_by_events(initial_states, params):
         "infect_second": {"model": functools.partial(event_infect_n, i=1)},
     }
 
-    infections = calculate_infections_by_events(initial_states, params, events)
+    infections, was_infected_by_event = calculate_infections_by_events(
+        initial_states, params, events
+    )
 
     expected = pd.Series(data=False, index=initial_states.index)
     expected.iloc[:2] = True
 
     assert infections.equals(expected)
+    assert (
+        was_infected_by_event.cat.categories
+        == [
+            "not_infected_by_event",
+            "infect_first",
+            "infect_second",
+        ]
+    ).all()

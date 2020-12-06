@@ -83,13 +83,13 @@ def get_simulate_func(
             what you need to calculate moments to make the simulation and calculation
             of moments faster. The categories are "initial_states", "disease_states",
             "testing_states", "countdowns", "contacts", "countdown_draws", "group_codes"
-            "infection_reason" and "other".
+            and "other".
         optional_state_columns (dict): Dictionary with categories of state columns
             that can additionally be added to the states DataFrame, either for use in
             contact models and policies or to be saved. Most types of columns are added
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
-            will not be saved. The categories are "contacts" and "reason_for_infection".
+            will not be saved. The sole category is currently "contacts".
 
     Returns:
         callable: Simulates dataset based on parameters.
@@ -209,7 +209,7 @@ def _simulate(
             contact models and policies or to be saved. Most types of columns are added
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
-            will not be saved. The categories are "contacts" and "reason_for_infection".
+            will not be saved. The sole category is currently "contacts".
 
     Returns:
         simulation_results (dask.dataframe): The simulation results in form of a long
@@ -232,31 +232,47 @@ def _simulate(
         seed=seed,
         optional_state_columns=optional_state_columns,
     )
+    code_to_contact_model = dict(enumerate(contact_models))
+
     for date in duration["dates"]:
         states["date"] = date
         states["period"] = timestamp_to_sid_period(date)
 
         contacts = calculate_contacts(
-            contact_models, contact_policies, states, params, date
+            contact_models=contact_models,
+            contact_policies=contact_policies,
+            states=states,
+            params=params,
+            date=date,
         )
 
         (
             newly_infected_contacts,
             n_has_additionally_infected,
             newly_missed_contacts,
+            channel_infected_by_contact,
         ) = calculate_infections_by_contacts(
-            states,
-            contacts,
-            params,
-            indexers,
-            cum_probs,
-            seed,
+            states=states,
+            contacts=contacts,
+            params=params,
+            indexers=indexers,
+            group_cdfs=cum_probs,
+            code_to_contact_model=code_to_contact_model,
+            seed=seed,
         )
-        newly_infected_events = calculate_infections_by_events(states, params, events)
+        (
+            newly_infected_events,
+            channel_infected_by_event,
+        ) = calculate_infections_by_events(states, params, events)
 
         if testing_demand_models:
-            demands_test, demands_test_reason = calculate_demand_for_tests(
-                states, testing_demand_models, params, date, seed
+            demands_test, channel_demands_test = calculate_demand_for_tests(
+                states,
+                testing_demand_models,
+                params,
+                date,
+                optional_state_columns,
+                seed,
             )
             allocated_tests = allocate_tests(
                 states, testing_allocation_models, demands_test, params, date
@@ -269,6 +285,7 @@ def _simulate(
             )
         else:
             demands_test = None
+            channel_demands_test = None
             allocated_tests = None
             to_be_processed_tests = None
 
@@ -283,6 +300,9 @@ def _simulate(
             indexers=indexers,
             contacts=contacts,
             to_be_processed_test=to_be_processed_tests,
+            channel_infected_by_contact=channel_infected_by_contact,
+            channel_infected_by_event=channel_infected_by_event,
+            channel_demands_test=channel_demands_test,
         )
 
         _dump_periodic_states(states, columns_to_keep, path, date)
@@ -666,6 +686,11 @@ def _process_saved_columns(
         "contacts": [f"n_contacts_{model}" for model in contact_models],
         "countdown_draws": [f"{cd}_draws" for cd in COUNTDOWNS],
         "group_codes": [f"group_codes_{model}" for model in contact_models],
+        "channels": [
+            "channel_infected_by_contact",
+            "channel_infected_by_event",
+            "channel_demands_test",
+        ],
     }
 
     keep = []
@@ -675,12 +700,13 @@ def _process_saved_columns(
     if isinstance(saved_columns["other"], list):
         keep += saved_columns["other"]
 
-    all_columns["contacts"] = _combine_column_lists(
+    keep += _combine_column_lists(
         optional_state_columns["contacts"], all_columns["contacts"]
     )
 
-    if not optional_state_columns["reason_for_infection"]:
-        keep = [k for k in keep if k != "reason_for_infection"]
+    keep += _combine_column_lists(
+        optional_state_columns["channels"], all_columns["channels"]
+    )
 
     # drop duplicates
     keep = list(set(keep))
