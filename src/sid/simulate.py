@@ -32,8 +32,9 @@ from sid.testing_demand import calculate_demand_for_tests
 from sid.testing_processing import process_tests
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
+from sid.validation import validate_initial_states
 from sid.validation import validate_models
-from sid.validation import validate_params, validate_initial_states_and_infections
+from sid.validation import validate_params
 
 
 def get_simulate_func(
@@ -150,7 +151,6 @@ def get_simulate_func(
     params = params.copy(deep=True)
 
     validate_params(params)
-    validate_initial_states_and_infections(initial_states, initial_infections)
     validate_models(
         contact_models,
         contact_policies,
@@ -172,12 +172,13 @@ def get_simulate_func(
     }
 
     if not _are_states_prepared(initial_states):
+        validate_initial_states(initial_states)
         initial_states = _process_initial_states(initial_states, assort_bys)
         initial_states = draw_course_of_disease(
             initial_states, params, next(startup_seed)
         )
         initial_states = sample_initial_distribution_of_infections_and_immunity(
-            initial_states, params, initial_conditions, seed
+            initial_states, params, initial_conditions, startup_seed
         )
 
     indexers = _prepare_assortative_matching_indexers(initial_states, assort_bys)
@@ -202,7 +203,6 @@ def get_simulate_func(
         columns_to_keep=cols_to_keep,
         indexers=indexers,
         optional_state_columns=optional_state_columns,
-        initial_conditions=initial_conditions,
     )
     return sim_func
 
@@ -223,7 +223,6 @@ def _simulate(
     columns_to_keep,
     indexers,
     optional_state_columns,
-    initial_conditions,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -255,43 +254,6 @@ def _simulate(
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
             will not be saved. The sole category is currently "contacts".
-        initial_conditions (Option[Dict]): The initial conditions allow you to govern
-            the distribution of infections and immunity and the heterogeneity of courses
-            of disease at the start of the simulation. Use ``None`` to assume no
-            heterogeneous courses of diseases and 1% infections. Otherwise,
-            ``initial_conditions`` is a dictionary containing the following entries:
-
-            - ``assort_by`` (Optional[Union[str, List[str]]]): The relative infections
-              is preserved between the groups formed by ``assort_by`` variables. By
-              default, no group is formed and infections spread across the whole
-              population.
-            - ``burn_in_period`` (int): The number of periods over which infections are
-              distributed and can progress. The default is one period.
-            - ``growth_rate`` (float): The growth rate specifies the increase of
-              infections from one burn-in period to the next. For example, two indicates
-              doubling case numbers every period. The value must be greater than or
-              equal to one. Default is one which is no distribution over time.
-            - ``initial_immunity`` (Union[int, float, pandas.Series]): The n_people who
-              are immune in the beginning can be specified as an integer for the number,
-              a float between 0 and 1 for the share, and a :class:`pandas.Series` with
-              the same index as states. Note that infected individuals are also immune.
-              For a 10% pre-existing immunity with 2% currently infected people, set the
-              key to 0.12. By default, only infected individuals indicated by the
-              initial infections are immune.
-            - ``initial_infections`` (Union[int, float, pandas.Series,
-              pandas.DataFrame]): The initial infections can be given as an integer
-              which is the number of randomly infected individuals, as a float for the
-              share or as a :class:`pandas.Series` which indicates whether an
-              individuals is infected. If initial infections are a
-              :class:`pandas.DataFrame`, then, the index is the same as ``states``,
-              columns are dates or periods which can be sorted, and values are infected
-              individuals on that date. This step will skip upscaling and distributing
-              infections over days and directly jump to the evolution of states. By
-              default, 1% of individuals is infected.
-            - ``known_cases_multiplier`` (int): The factor can be used to scale up the
-              initial infections while keeping shares between ``assort_by`` variables
-              constant. This is helpful if official numbers are underreporting the
-              number of cases.
 
     Returns:
         simulation_results (dask.dataframe): The simulation results in form of a long

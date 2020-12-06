@@ -1,10 +1,11 @@
 """This module contains routines to validate inputs to functions."""
+import warnings
+
 import numpy as np
 import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import INDEX_NAMES
 from sid.countdowns import COUNTDOWNS
-import warnings
 
 
 def validate_params(params: pd.DataFrame) -> None:
@@ -75,15 +76,9 @@ def validate_params(params: pd.DataFrame) -> None:
             warnings.warn("The limit for ICU beds per 100,000 individuals is below 1.")
 
 
-def validate_initial_states_and_infections(initial_states, initial_infections):
+def validate_initial_states(initial_states):
     if not isinstance(initial_states, pd.DataFrame):
         raise ValueError("initial_states must be a DataFrame.")
-
-    if not isinstance(initial_infections, pd.Series):
-        raise ValueError("initial_infections must be a pandas Series.")
-
-    if not initial_infections.index.equals(initial_states.index):
-        raise ValueError("initial_states and initial_infections must have same index.")
 
 
 def validate_prepared_initial_states(states):
