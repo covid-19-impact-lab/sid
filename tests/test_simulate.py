@@ -11,17 +11,13 @@ from sid.validation import validate_params
 
 
 def test_simulate_a_simple_model(params, initial_states, tmp_path):
-    initial_infections = pd.Series(index=initial_states.index, data=False)
-    initial_infections.iloc[:3] = True
-
     simulate = get_simulate_func(
         params=params,
         initial_states=initial_states,
-        initial_infections=initial_infections,
         contact_models=CONTACT_MODELS,
         saved_columns={"other": ["channel_infected_by_contact"]},
         path=tmp_path,
-        seed=0,
+        seed=1,
     )
 
     df = simulate(params)

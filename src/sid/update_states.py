@@ -15,7 +15,7 @@ def update_states(
     newly_infected_events: pd.Series,
     params: pd.DataFrame,
     seed: itertools.count,
-    optional_state_columns: Dict[str, Any],
+    optional_state_columns: Dict[str, Any] = None,
     n_has_additionally_infected: Optional[pd.Series] = None,
     indexers: Optional[Dict[int, np.ndarray]] = None,
     contacts: Optional[np.ndarray] = None,
@@ -57,6 +57,9 @@ def update_states(
         newly started countdowns, and killed people over the ICU limit.
 
     """
+    if optional_state_columns is None:
+        optional_state_columns = {"reason_for_infection": False, "contacts": False}
+
     # Reduce all existing countdowns by 1.
     for countdown in COUNTDOWNS:
         states[countdown] -= 1
@@ -88,7 +91,10 @@ def update_states(
         locs, "cd_infectious_true_draws"
     ]
 
-    states = _kill_people_over_icu_limit(states, params, seed)
+    states = _kill_people_over_icu_limit(states, params, next(seed))
+
+    # important: this has to be called after _kill_people_over_icu_limit!
+    states["newly_deceased"] = states["cd_dead_true"] == 0
 
     # Add additional information.
     if optional_state_columns["contacts"]:
@@ -132,6 +138,10 @@ def update_states(
         ]
         states.loc[knows_infectious, "knows_infectious"] = True
 
+        states["new_known_case"] = (
+            states["cd_received_test_result_true"] == 0
+        ) & states["immune"]
+
         # Everyone looses ``received_test_result == True`` because it is passed to the
         # more specific knows attributes.
         states.loc[states.received_test_result, "received_test_result"] = False
@@ -141,7 +151,7 @@ def update_states(
 
 def _kill_people_over_icu_limit(states, params, seed):
     """Kill people over the ICU limit."""
-    np.random.seed(next(seed))
+    np.random.seed(seed)
 
     relative_limit = params.loc[
         ("health_system", "icu_limit_relative", "icu_limit_relative"), "value"

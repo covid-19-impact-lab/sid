@@ -4,6 +4,7 @@ import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import INDEX_NAMES
 from sid.countdowns import COUNTDOWNS
+import warnings
 
 
 def validate_params(params: pd.DataFrame) -> None:
@@ -57,6 +58,21 @@ def validate_params(params: pd.DataFrame) -> None:
         ).all(), (
             f"the meeting probabilities of {name} do not add up to one in every row."
         )
+
+    try:
+        relative_limit = params.loc[
+            ("health_system", "icu_limit_relative", "icu_limit_relative"), "value"
+        ]
+    except KeyError:
+        warnings.warn(
+            "A limit of ICU beds is not specified in 'params'. Individuals who need "
+            "intensive care will decease immediately.\n\n"
+            "Set ('health_system', 'icu_limit_relative', 'icu_limit_relative') in "
+            "'params' to beds per 100,000 individuals to silence the warning."
+        )
+    else:
+        if relative_limit < 1:
+            warnings.warn("The limit for ICU beds per 100,000 individuals is below 1.")
 
 
 def validate_initial_states_and_infections(initial_states, initial_infections):
