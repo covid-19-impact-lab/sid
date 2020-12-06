@@ -1,8 +1,10 @@
 import functools
+import itertools
 import itertools as it
 import shutil
 import warnings
 from pathlib import Path
+from typing import Optional
 
 import dask.dataframe as dd
 import numpy as np
@@ -27,8 +29,8 @@ from sid.testing_demand import calculate_demand_for_tests
 from sid.testing_processing import process_tests
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
-from sid.validation import validate_params
 from sid.validation import validate_models
+from sid.validation import validate_params, validate_initial_states_and_infections
 
 
 def get_simulate_func(
@@ -52,7 +54,6 @@ def get_simulate_func(
     The resulting function only depends on parameters. The computational time it takes
     to process the user input is only incurred once in :func:`get_simulate_func` and not
     when the resulting function is called.
-
 
     Args:
         params (pandas.DataFrame): DataFrame with parameters that influence the number
@@ -96,6 +97,8 @@ def get_simulate_func(
         callable: Simulates dataset based on parameters.
 
     """
+    startup_seed, simulation_seed = _generate_seeds(seed)
+
     events = {} if events is None else events
     contact_policies = {} if contact_policies is None else contact_policies
     if testing_demand_models is None:
@@ -109,6 +112,7 @@ def get_simulate_func(
     params = params.copy(deep=True)
 
     validate_params(params)
+    validate_initial_states_and_infections(initial_states, initial_infections)
     validate_models(
         contact_models,
         contact_policies,
@@ -123,12 +127,25 @@ def get_simulate_func(
     path = _create_output_directory(path)
     contact_models = _sort_contact_models(contact_models)
     assort_bys = _process_assort_bys(contact_models)
-    initial_states = _process_initial_states(initial_states, assort_bys)
     duration = parse_duration(duration)
     contact_policies = {
         key: _add_defaults_to_policy_dict(val, duration)
         for key, val in contact_policies.items()
     }
+
+    if not _are_states_prepared(initial_states):
+        initial_states = _process_initial_states(initial_states, assort_bys)
+        initial_states = draw_course_of_disease(
+            initial_states, params, next(startup_seed)
+        )
+        initial_states = update_states(
+            states=initial_states,
+            newly_infected_contacts=initial_infections,
+            newly_infected_events=initial_infections,
+            params=params,
+            seed=startup_seed,
+            optional_state_columns=optional_state_columns,
+        )
 
     indexers = _prepare_assortative_matching_indexers(initial_states, assort_bys)
 
@@ -140,7 +157,6 @@ def get_simulate_func(
         _simulate,
         initial_states=initial_states,
         assort_bys=assort_bys,
-        initial_infections=initial_infections,
         contact_models=contact_models,
         duration=duration,
         events=events,
@@ -148,7 +164,7 @@ def get_simulate_func(
         testing_demand_models=testing_demand_models,
         testing_allocation_models=testing_allocation_models,
         testing_processing_models=testing_processing_models,
-        seed=seed,
+        seed=simulation_seed,
         path=path,
         columns_to_keep=cols_to_keep,
         indexers=indexers,
@@ -161,7 +177,6 @@ def _simulate(
     params,
     initial_states,
     assort_bys,
-    initial_infections,
     contact_models,
     duration,
     events,
@@ -182,8 +197,6 @@ def _simulate(
             of contacts, contagiousness and dangerousness of the disease, ... .
         initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the column
             "date" because it is used internally.
-        initial_infections (pandas.Series): Series with the same index as states with
-            initial infections.
         contact_models (dict): Dictionary of dictionaries where each dictionary
             describes a channel by which contacts can be formed. See
             :ref:`contact_models`.
@@ -197,8 +210,8 @@ def _simulate(
             tests. See :ref:`testing_allocation_models` for more information.
         testing_processing_models (dict): Dict of dicts with processing models for
             tests. See :ref:`testing_processing_models` for more information.
-        seed (int): Seed is used as the starting point of a sequence of seeds
-            used to control randomness internally.
+        seed (int): Seed sequence used to control randomness during the
+            simulation.
         path (pathlib.Path): Path to the directory where the simulated data is stored.
         columns_to_keep (list): Columns of states that will be saved in each period.
         optional_state_columns (dict): Dictionary with categories of state columns
@@ -214,22 +227,14 @@ def _simulate(
             (see :ref:`states`) and a column called newly_infected.
 
     """
-    seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
+    seed = itertools.count(seed)
 
     cum_probs = _prepare_assortative_matching_probabilities(
         initial_states, assort_bys, params, contact_models
     )
 
-    states = draw_course_of_disease(initial_states, params, seed)
-    states = update_states(
-        states=states,
-        newly_infected_contacts=initial_infections,
-        newly_infected_events=initial_infections,
-        params=params,
-        seed=seed,
-        optional_state_columns=optional_state_columns,
-    )
     code_to_contact_model = dict(enumerate(contact_models))
+    states = initial_states
 
     for date in duration["dates"]:
         states["date"] = date
@@ -312,6 +317,34 @@ def _simulate(
     simulation_results = _return_dask_dataframe(path, categoricals)
 
     return simulation_results
+
+
+def _generate_seeds(seed: Optional[int]):
+    """Generate seeds for startup and simulation.
+
+    We use the user provided seed or a random seed to generate two other seeds. The
+    first seed will be turned to a seed sequence and used to control randomness during
+    the preparation of the simulate function. The second seed is for the randomness in
+    the simulation, but stays an integer so that the seed sequence can be rebuild every
+    iteration.
+
+    Args:
+        seed (Optional[int]): The seed provided by the user.
+
+    Returns:
+        startup_seed (itertools.count): The seed sequence for the startup.
+        simulation_seed (int): The starting point for the seed sequence in the
+            simulation.
+
+    """
+    seed = np.random.randint(0, 1_000_000) if seed is None else seed
+
+    np.random.seed(seed)
+
+    startup_seed = itertools.count(np.random.randint(0, 10_000))
+    simulation_seed = np.random.randint(100_000, 1_000_000)
+
+    return startup_seed, simulation_seed
 
 
 def _create_output_directory(path):
@@ -597,3 +630,7 @@ def _process_optional_state_columns(opt_state_cols):
         else {**OPTIONAL_STATE_COLUMNS, **opt_state_cols}
     )
     return res
+
+
+def _are_states_prepared(states):  # noqa: U100
+    return False

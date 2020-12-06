@@ -29,7 +29,7 @@ def draw_course_of_disease(states, params, seed):
         states (pandas.DataFrame): The initial states extended with countdown lengths.
 
     """
-    np.random.seed(next(seed))
+    np.random.seed(seed)
 
     for cd in COUNTDOWNS:
         states[f"{cd}_draws"] = _draw_countdowns(states, params.loc[cd])
