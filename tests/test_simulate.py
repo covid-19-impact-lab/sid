@@ -22,10 +22,10 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
 
     df = simulate(params)
 
-    df = df.compute()
+    df = df.to_dataframe()
 
     assert isinstance(df, pd.DataFrame)
-    assert set(df["channel_infected_by_contact"].cat.categories) == {
+    assert set(df["channel_infected_by_contact"].astype("category").cat.categories) == {
         "not_infected_by_contact",
         "standard",
     }

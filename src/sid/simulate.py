@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Optional
 import xarray as xr
 
-import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
@@ -36,6 +35,7 @@ from sid.update_states import update_states
 from sid.validation import validate_initial_states
 from sid.validation import validate_models
 from sid.validation import validate_params
+from sid.inference_data import InferenceData
 
 
 def get_simulate_func(
@@ -271,6 +271,9 @@ def _simulate(
     )
 
     code_to_contact_model = dict(enumerate(contact_models))
+    categoricals = set(initial_states.select_dtypes("category").columns) & set(
+        columns_to_keep
+    )
     states = initial_states
 
     for date in duration["dates"]:
@@ -344,14 +347,10 @@ def _simulate(
             channel_demands_test=channel_demands_test,
         )
 
-        _dump_periodic_states(states, columns_to_keep, path, date)
+        _dump_periodic_states(states, columns_to_keep, categoricals, path, date)
 
-    categoricals = {
-        column: initial_states[column].cat.categories.shape[0]
-        for column in initial_states.select_dtypes("category").columns
-        if column in columns_to_keep
-    }
-    simulation_results = _return_dask_dataframe(path, categoricals)
+    states.to_xarray().to_zarr(path, group="last_states")
+    simulation_results = _return_dask_dataframe(path)
 
     return simulation_results
 
@@ -580,7 +579,7 @@ def _process_initial_states(states, assort_bys):
 
 
 def _dump_periodic_states(
-    states, columns_to_keep, output_directory, date
+    states, columns_to_keep, categoricals, output_directory, date
 ):
     """Dump periodic states.
 
@@ -600,28 +599,22 @@ def _dump_periodic_states(
         append_dim = time_dim
     new_index = ["index", time_dim]
 
-    xr_data = (
-        states[columns_to_keep]
-        .reset_index()
-        .set_index(new_index)
-        .to_xarray()
-    )
+    xr_data = states[columns_to_keep].reset_index().set_index(new_index).to_xarray()
 
-    xr_data.to_zarr(output_directory, append_dim=append_dim)
+    xr_data.to_zarr(output_directory, group="time_series", append_dim=append_dim)
 
 
-def _return_dask_dataframe(output_directory, categoricals):
+def _return_dask_dataframe(output_directory):
     """Process the simulation results.
 
     Args:
         output_directory (pathlib.Path): Path to output directory.
-        categoricals (list): List of variable names which are categoricals.
 
     Returns:
         df (dask.dataframe): A dask DataFrame which contains the simulation results.
 
     """
-    return xr.open_zarr(output_directory)
+    return InferenceData.from_zarr(output_directory)
 
 
 def _process_saved_columns(

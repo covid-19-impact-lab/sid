@@ -95,7 +95,7 @@ def test_replace_date_with_period_in_simulation(params, initial_states, tmp_path
 
     df = simulate(params)
 
-    df = df.compute()
+    df = df.to_dataframe().reset_index()
 
     assert isinstance(df, pd.DataFrame)
     assert "period" in df
