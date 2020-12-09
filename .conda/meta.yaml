@@ -22,6 +22,7 @@ requirements:
 
   run:
     - python >=3.6
+    - attrs
     - bokeh
     - dask
     - fastparquet
@@ -32,6 +33,7 @@ requirements:
     - pytest-regressions
     - python-snappy
     - seaborn
+    - xarray
 
 test:
   requires:

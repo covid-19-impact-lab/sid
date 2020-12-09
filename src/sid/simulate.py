@@ -5,6 +5,7 @@ import shutil
 import warnings
 from pathlib import Path
 from typing import Optional
+import xarray as xr
 
 import dask.dataframe as dd
 import numpy as np
@@ -171,7 +172,9 @@ def get_simulate_func(
         for key, val in contact_policies.items()
     }
 
-    if not _are_states_prepared(initial_states):
+    if _are_states_prepared(initial_states):
+        _fix_duration_or_warn()
+    else:
         validate_initial_states(initial_states)
         initial_states = _process_initial_states(initial_states, assort_bys)
         initial_states = draw_course_of_disease(
@@ -576,9 +579,35 @@ def _process_initial_states(states, assort_bys):
     return states
 
 
-def _dump_periodic_states(states, columns_to_keep, output_directory, date):
-    states = states[columns_to_keep]
-    states.to_parquet(output_directory / f"{date.date()}.parquet", engine="fastparquet")
+def _dump_periodic_states(
+    states, columns_to_keep, output_directory, date
+):
+    """Dump periodic states.
+
+    We have to check whether the output directory is empty which is true before the
+    first date is stored on disk. In this case, ``append_dim`` in
+    :meth:`xarray.Dataset.to_zarr` must be ``None``.
+
+    Furthermore, we append data by the index and the time dimension which is either the
+    period or the date.
+
+    """
+    is_output_folder_empty = not any(output_directory.iterdir())
+    time_dim = "date" if "date" in columns_to_keep else "period"
+    if is_output_folder_empty:
+        append_dim = None
+    else:
+        append_dim = time_dim
+    new_index = ["index", time_dim]
+
+    xr_data = (
+        states[columns_to_keep]
+        .reset_index()
+        .set_index(new_index)
+        .to_xarray()
+    )
+
+    xr_data.to_zarr(output_directory, append_dim=append_dim)
 
 
 def _return_dask_dataframe(output_directory, categoricals):
@@ -592,9 +621,7 @@ def _return_dask_dataframe(output_directory, categoricals):
         df (dask.dataframe): A dask DataFrame which contains the simulation results.
 
     """
-    return dd.read_parquet(
-        output_directory, categories=categoricals, engine="fastparquet"
-    )
+    return xr.open_zarr(output_directory)
 
 
 def _process_saved_columns(

@@ -57,11 +57,13 @@ autosummary_generate = True
 add_module_names = False
 
 autodoc_mock_imports = [
+    "attrs",
     "bokeh",
     "dask",
     "numba",
     "numpy",
     "pandas",
+    "xarray",
 ]
 
 extlinks = {

@@ -13,6 +13,7 @@ dependencies:
   - conda-build
   - conda-verify
 
+  - attrs
   - bokeh
   - dask
   - fastparquet
@@ -32,6 +33,7 @@ dependencies:
   - snakeviz
   - pydata-sphinx-theme
   - python-snappy
+  - xarray
 
   - sphinx
   - sphinx-copybutton
