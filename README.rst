@@ -21,6 +21,10 @@ sid
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
+.. image:: https://results.pre-commit.ci/badge/github/covid-19-impact-lab/sid/main.svg
+   :target: https://results.pre-commit.ci/latest/github/covid-19-impact-lab/sid/main
+   :alt: pre-commit.ci status
+
 .. end-badges
 
 
