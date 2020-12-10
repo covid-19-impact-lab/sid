@@ -597,7 +597,7 @@ def _dump_periodic_states(
         append_dim = None
     else:
         append_dim = time_dim
-    new_index = ["index", time_dim]
+    new_index = ["index", time_dim, *categoricals]
 
     xr_data = states[columns_to_keep].reset_index().set_index(new_index).to_xarray()
 
