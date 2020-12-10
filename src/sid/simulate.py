@@ -77,8 +77,13 @@ def get_simulate_func(
             tests. See :ref:`testing_allocation_models` for more information.
         testing_processing_models (dict): Dict of dicts with processing models for
             tests. See :ref:`testing_processing_models` for more information.
-        seed (int, optional): Seed is used as the starting point of a sequence of seeds
-            used to control randomness internally.
+        seed (int, optional): The seed is used as the starting point for two seed
+            sequences where one is used to set up the simulation function and the other
+            seed sequence is used within the simulation and reset every parameter
+            evaluation. If you pass ``None`` as a seed, an internal seed is sampled to
+            set up the simulation function. The seed for the simulation is sampled at
+            the beginning of the simulation function and can be influenced by setting
+            :class:`numpy.random.seed` right before the call.
         path (str or pathlib.Path): Path to the directory where the simulated data is
             stored.
         saved_columns (dict or None): Dictionary with categories of state columns.
@@ -244,8 +249,13 @@ def _simulate(
             tests. See :ref:`testing_allocation_models` for more information.
         testing_processing_models (dict): Dict of dicts with processing models for
             tests. See :ref:`testing_processing_models` for more information.
-        seed (int): Seed sequence used to control randomness during the
-            simulation.
+        seed (int, optional): The seed is used as the starting point for two seed
+            sequences where one is used to set up the simulation function and the other
+            seed sequence is used within the simulation and reset every parameter
+            evaluation. If you pass ``None`` as a seed, an internal seed is sampled to
+            set up the simulation function. The seed for the simulation is sampled at
+            the beginning of the simulation function and can be influenced by setting
+            :class:`numpy.random.seed` right before the call.
         path (pathlib.Path): Path to the directory where the simulated data is stored.
         columns_to_keep (list): Columns of states that will be saved in each period.
         optional_state_columns (dict): Dictionary with categories of state columns
@@ -261,6 +271,7 @@ def _simulate(
             (see :ref:`states`) and a column called newly_infected.
 
     """
+    seed = np.random.randint(0, 1_000_000) if seed is None else seed
     seed = itertools.count(seed)
 
     cum_probs = _prepare_assortative_matching_probabilities(
@@ -371,12 +382,14 @@ def _generate_seeds(seed: Optional[int]):
             simulation.
 
     """
-    seed = np.random.randint(0, 1_000_000) if seed is None else seed
+    internal_seed = np.random.randint(0, 1_000_000) if seed is None else seed
 
-    np.random.seed(seed)
+    np.random.seed(internal_seed)
 
     startup_seed = itertools.count(np.random.randint(0, 10_000))
-    simulation_seed = np.random.randint(100_000, 1_000_000)
+    simulation_seed = (
+        np.random.randint(100_000, 1_000_000) if seed is not None else None
+    )
 
     return startup_seed, simulation_seed
 
