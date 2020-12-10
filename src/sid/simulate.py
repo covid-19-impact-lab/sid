@@ -679,5 +679,12 @@ def _process_optional_state_columns(opt_state_cols):
     return res
 
 
-def _are_states_prepared(states):  # noqa: U100
-    return False
+def _are_states_prepared(states):
+    """Are states prepared.
+
+    If the states already include health statuses and other information, we do not need
+    to generate them.
+
+    """
+    necessary_columns = BOOLEAN_STATE_COLUMNS + list(COUNTDOWNS)
+    return all(i in states.columns for i in necessary_columns)
