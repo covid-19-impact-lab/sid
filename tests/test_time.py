@@ -84,13 +84,9 @@ def test_timestamp_to_sid_period(timestamp, expected):
 
 def test_replace_date_with_period_in_simulation(params, initial_states, tmp_path):
     """Scenario described in "How to reduce memory usage" for replacing date."""
-    initial_infections = pd.Series(index=initial_states.index, data=False)
-    initial_infections.iloc[0] = True
-
     simulate = get_simulate_func(
         params,
         initial_states,
-        initial_infections,
         CONTACT_MODELS,
         duration={"start": "2019-01-01", "periods": 1},
         path=tmp_path,

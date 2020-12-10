@@ -37,7 +37,7 @@ def calculate_demand_for_tests(
 
             - demands_test (pandas.Series): A boolean series indicating which person
               demands a test.
-            - demands_test_reason (pandas.Series): A series indicating the demand model
+            - channel_demands_test (pandas.Series): A series indicating the demand model
               which made the individual ask for a test.
 
     """
@@ -47,14 +47,16 @@ def calculate_demand_for_tests(
 
     demands_test = _sample_which_individuals_demand_a_test(demand_probabilities, seed)
 
-    if optional_state_columns["channels"]:
-        demands_test_reason = _sample_reason_for_demanding_a_test(
+    if (optional_state_columns["channels"] is True) or (
+        "channel_demands_test" in optional_state_columns
+    ):
+        channel_demands_test = _sample_reason_for_demanding_a_test(
             demand_probabilities, demands_test, seed
         )
     else:
-        demands_test_reason = None
+        channel_demands_test = None
 
-    return demands_test, demands_test_reason
+    return demands_test, channel_demands_test
 
 
 def _calculate_demand_probabilities(states, testing_demand_models, params, date):

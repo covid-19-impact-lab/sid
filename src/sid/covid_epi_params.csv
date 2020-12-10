@@ -1,5 +1,5 @@
 category,subcategory,name,value
-health_system,icu_limit_relative,icu_limit_relative,0.0005
+health_system,icu_limit_relative,icu_limit_relative,50
 cd_immune_false,all,1000,1
 cd_infectious_true,all,1,0.39
 cd_infectious_true,all,2,0.35
@@ -19,7 +19,7 @@ cd_symptoms_false,all,22,0.3
 cd_symptoms_false,all,27,0.3
 cd_needs_icu_true,0-9,-1,0.99995
 cd_needs_icu_true,0-9,7,0.00005
-cd_needs_icu_true,10-19,-1,0.9997 
+cd_needs_icu_true,10-19,-1,0.9997
 cd_needs_icu_true,10-19,7,0.0003
 cd_needs_icu_true,20-29,-1,0.99925
 cd_needs_icu_true,20-29,7,0.00075
@@ -86,7 +86,11 @@ cd_dead_true,70-79,1,0.36
 cd_dead_true,70-79,12,0.20
 cd_dead_true,70-79,20,0.26
 cd_dead_true,70-79,32,0.06
-cd_dead_true,80-100,-1,1.00
+cd_dead_true,80-100,-1,0.12
+cd_dead_true,80-100,1,0.36
+cd_dead_true,80-100,12,0.20
+cd_dead_true,80-100,20,0.26
+cd_dead_true,80-100,32,0.06
 cd_needs_icu_false,all,1,0.22
 cd_needs_icu_false,all,15,0.30
 cd_needs_icu_false,all,25,0.30
