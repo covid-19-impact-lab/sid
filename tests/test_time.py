@@ -93,12 +93,14 @@ def test_replace_date_with_period_in_simulation(params, initial_states, tmp_path
         saved_columns={"time": "period"},
     )
 
-    df = simulate(params)
+    result = simulate(params)
 
-    df = df.compute()
+    time_series = result["time_series"].compute()
+    last_states = result["last_states"].compute()
 
-    assert isinstance(df, pd.DataFrame)
-    assert "period" in df
-    assert df["period"].dtype.name == "int16"
-    assert df["period"].eq(0).all()
-    assert "date" not in df
+    for df in [time_series, last_states]:
+        assert isinstance(df, pd.DataFrame)
+        assert "period" in df
+        assert df["period"].dtype.name == "int16"
+        assert df["period"].eq(0).all()
+    assert "date" not in time_series

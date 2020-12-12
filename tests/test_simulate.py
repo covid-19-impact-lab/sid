@@ -20,15 +20,17 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
         seed=1,
     )
 
-    df = simulate(params)
+    result = simulate(params)
 
-    df = df.compute()
+    time_series = result["time_series"].compute()
+    last_states = result["last_states"].compute()
 
-    assert isinstance(df, pd.DataFrame)
-    assert set(df["channel_infected_by_contact"].cat.categories) == {
-        "not_infected_by_contact",
-        "standard",
-    }
+    for df in [time_series, last_states]:
+        assert isinstance(df, pd.DataFrame)
+        assert set(df["channel_infected_by_contact"].cat.categories) == {
+            "not_infected_by_contact",
+            "standard",
+        }
 
 
 def test_check_assort_by_are_categoricals(initial_states):

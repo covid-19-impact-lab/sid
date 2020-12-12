@@ -51,3 +51,21 @@ pre {
 li pre {
   padding-left: 20px
 }
+
+
+div.note:before {
+  content: "Info";
+  font-weight: bold;
+}
+
+
+div.note {
+  border-color: #00b8d4;
+  background-color: rgba(0,184,212,.1);
+}
+
+
+div.warning:before {
+  content: "Warning";
+  font-weight: bold;
+}

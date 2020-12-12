@@ -6,6 +6,7 @@ import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import INDEX_NAMES
 from sid.countdowns import COUNTDOWNS
+from sid.shared import get_date
 
 
 def validate_params(params: pd.DataFrame) -> None:
@@ -81,13 +82,23 @@ def validate_initial_states(initial_states):
         raise ValueError("initial_states must be a DataFrame.")
 
 
-def validate_prepared_initial_states(states):
+def validate_prepared_initial_states(states, duration):
     if np.any(states.drop(columns="pending_test_date", errors="ignore").isna()):
         raise ValueError("'initial_states' are not allowed to contain NaNs.")
 
     for column in BOOLEAN_STATE_COLUMNS:
         if states[column].dtype != "bool":
             raise ValueError(f"Column '{column}' must be a boolean.")
+
+    end_previous_simulation = get_date(states)
+    new_start_simulation = end_previous_simulation + pd.Timedelta(1, unit="day")
+    if not new_start_simulation == duration["start"]:
+        raise ValueError(
+            "The resumed simulation does not start where the former ended. The former "
+            f"ended on {end_previous_simulation.date()} and should be continued on "
+            f"{new_start_simulation.date()}, but the specified 'duration' starts "
+            f"{duration['start'].date()}."
+        )
 
 
 def validate_models(
