@@ -72,3 +72,6 @@ INITIAL_CONDITIONS = {
 
 
 SID_TIME_START = pd.Timestamp("2019-01-01")
+
+
+IS_ACTIVE_CASE = "infectious | symptomatic"

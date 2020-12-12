@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from sid.config import INITIAL_CONDITIONS
-from sid.initial_conditions import _parse_initial_conditions
+from sid.parse_model import parse_initial_conditions
 from sid.initial_conditions import _scale_up_initial_infections
 from sid.initial_conditions import _scale_up_initial_infections_numba
 from sid.initial_conditions import _spread_out_initial_infections
@@ -37,7 +37,7 @@ from sid.simulate import _process_initial_states
     ],
 )
 def test_parse_initial_conditions(initial_conditions, expected):
-    result = _parse_initial_conditions(initial_conditions)
+    result = parse_initial_conditions(initial_conditions)
     assert result == expected
 
 

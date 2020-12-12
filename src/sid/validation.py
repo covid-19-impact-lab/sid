@@ -1,5 +1,6 @@
 """This module contains routines to validate inputs to functions."""
 import warnings
+from typing import Dict, Any
 
 import numpy as np
 import pandas as pd
@@ -170,3 +171,25 @@ def validate_models(
                 raise ValueError(
                     f"Each testing model must have a 'model' entry: {name}."
                 )
+
+
+def validate_initial_conditions(initial_conditions: Dict[str, Any]) -> None:
+    """Validate the initial conditions.
+
+    Args:
+        initial_conditions (Dict[str, Any]): The initial conditions.
+
+    """
+    initial_infections = initial_conditions["initial_infections"]
+    if not (
+        isinstance(initial_infections, (pd.DataFrame, pd.Series))
+        or (isinstance(initial_infections, int) and initial_infections >= 0)
+        or (isinstance(initial_infections, float) and 0 <= initial_infections <= 1)
+    ):
+        raise ValueError(
+            "'initial_infections' must be a pd.DataFrame, pd.Series, int or float "
+            "between 0 and 1."
+        )
+
+    if not initial_conditions["growth_rate"] >= 1:
+        raise ValueError("'growth_rate' must be greater than or equal to 1.")

@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.countdowns import COUNTDOWNS
+from sid.config import IS_ACTIVE_CASE
 
 
 def update_states(
@@ -23,6 +24,7 @@ def update_states(
     channel_infected_by_contact: Optional[pd.Series] = None,
     channel_infected_by_event: Optional[pd.Series] = None,
     channel_demands_test: Optional[pd.Series] = None,
+    share_known_cases: Optional[float] = None,
 ):
     """Update the states with new infections and advance it by one period.
 
@@ -52,6 +54,7 @@ def update_states(
             information which contact model lead to the infection.
         channel_infected_by_event (pandas.Series): A categorical series containing the
             information which event model lead to the infection.
+        share_known_cases (Optional[float]): Share of known cases.
 
     Returns: states (pandas.DataFrame): Updated states with reduced countdown lengths,
         newly started countdowns, and killed people over the ICU limit.
@@ -145,6 +148,9 @@ def update_states(
         # Everyone looses ``received_test_result == True`` because it is passed to the
         # more specific knows attributes.
         states.loc[states.received_test_result, "received_test_result"] = False
+
+    if share_known_cases is not None:
+        valid_infections = states.eval(IS_ACTIVE_CASE)
 
     return states
 

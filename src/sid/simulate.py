@@ -29,7 +29,11 @@ from sid.initial_conditions import (
     sample_initial_distribution_of_infections_and_immunity,
 )
 from sid.matching_probabilities import create_group_transition_probs
-from sid.parse_model import parse_duration
+from sid.parse_model import (
+    parse_duration,
+    parse_share_known_cases,
+    parse_initial_conditions,
+)
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
 from sid.testing_allocation import allocate_tests
@@ -41,7 +45,7 @@ from sid.update_states import update_states
 from sid.validation import validate_initial_states
 from sid.validation import validate_models
 from sid.validation import validate_params
-from sid.validation import validate_prepared_initial_states
+from sid.validation import validate_prepared_initial_states, validate_initial_conditions
 from tqdm import tqdm
 
 
@@ -63,6 +67,7 @@ def get_simulate_func(
     saved_columns: Optional[Dict[str, Union[bool, str, List[str]]]] = None,
     optional_state_columns=None,
     initial_conditions: Optional[Dict[str, Any]] = None,
+    share_known_cases: Optional[float, pd.Series] = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -120,7 +125,7 @@ def get_simulate_func(
               is preserved between the groups formed by ``assort_by`` variables. By
               default, no group is formed and infections spread across the whole
               population.
-            - ``burn_in_period`` (int): The number of periods over which infections are
+            - ``burn_in_periods`` (int): The number of periods over which infections are
               distributed and can progress. The default is one period.
             - ``growth_rate`` (float): The growth rate specifies the increase of
               infections from one burn-in period to the next. For example, two indicates
@@ -147,6 +152,13 @@ def get_simulate_func(
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
               number of cases.
+        share_known_cases (Optional[float, pd.Series]): Share of known cases to all
+            cases. The argument is a float or a series with :class:`pd.DatetimeIndex`
+            which covers the whole simulation period and yields the ratio of known
+            infections to all infections.
+
+            This feature can be used instead of testing models which are hard to
+            calibrate to data.
 
     Returns:
         callable: Simulates dataset based on parameters.
@@ -187,6 +199,12 @@ def get_simulate_func(
         for key, val in contact_policies.items()
     }
 
+    initial_conditions = parse_initial_conditions(initial_conditions, duration["start"])
+    validate_initial_conditions(initial_conditions)
+    share_known_cases = parse_share_known_cases(
+        share_known_cases, duration, initial_conditions["burn_in_periods"]
+    )
+
     if _are_states_prepared(initial_states):
         if initial_conditions is not None:
             raise ValueError(
@@ -202,7 +220,7 @@ def get_simulate_func(
             initial_states, params, next(startup_seed)
         )
         initial_states = sample_initial_distribution_of_infections_and_immunity(
-            initial_states, params, initial_conditions, startup_seed
+            initial_states, params, initial_conditions, share_known_cases, startup_seed
         )
 
     indexers = _prepare_assortative_matching_indexers(initial_states, assort_bys)
