@@ -4,14 +4,23 @@ import pandas as pd
 from sid.config import DTYPE_GROUP_CODE
 from sid.config import INDEX_NAMES
 from sid.config import ROOT_DIR
+from sid.time import sid_period_to_timestamp
 
 
 def get_epidemiological_parameters():
+    """Get epidemiological_parameters."""
     return pd.read_csv(ROOT_DIR / "covid_epi_params.csv", index_col=INDEX_NAMES)
 
 
 def get_date(states):
-    return states.date.iloc[0]
+    """Get date from states."""
+    if "date" in states.columns:
+        out = states["date"].iloc[0]
+    elif "period" in states.columns:
+        out = sid_period_to_timestamp(states["period"].iloc[0])
+    else:
+        raise ValueError("'states' does not contain 'date' or 'period'.")
+    return out
 
 
 def factorize_assortative_variables(states, assort_by):

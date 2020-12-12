@@ -1,16 +1,23 @@
 import functools
+import itertools
 import itertools as it
+import logging
 import shutil
 import warnings
 from pathlib import Path
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
 
 import dask.dataframe as dd
+import numba as nb
 import numpy as np
 import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
-from sid.config import INDEX_NAMES
 from sid.config import OPTIONAL_STATE_COLUMNS
 from sid.config import SAVED_COLUMNS
 from sid.contacts import calculate_contacts
@@ -31,6 +38,14 @@ from sid.testing_demand import calculate_demand_for_tests
 from sid.testing_processing import process_tests
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
+from sid.validation import validate_initial_states
+from sid.validation import validate_models
+from sid.validation import validate_params
+from sid.validation import validate_prepared_initial_states
+from tqdm import tqdm
+
+
+logger = logging.getLogger("sid")
 
 
 def get_simulate_func(
@@ -43,18 +58,17 @@ def get_simulate_func(
     testing_demand_models=None,
     testing_allocation_models=None,
     testing_processing_models=None,
-    seed=None,
-    path=None,
-    saved_columns=None,
+    seed: Optional[int] = None,
+    path: Union[str, Path, None] = None,
+    saved_columns: Optional[Dict[str, Union[bool, str, List[str]]]] = None,
     optional_state_columns=None,
-    initial_conditions=None,
+    initial_conditions: Optional[Dict[str, Any]] = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
     The resulting function only depends on parameters. The computational time it takes
     to process the user input is only incurred once in :func:`get_simulate_func` and not
     when the resulting function is called.
-
 
     Args:
         params (pandas.DataFrame): DataFrame with parameters that influence the number
@@ -74,27 +88,32 @@ def get_simulate_func(
             tests. See :ref:`testing_allocation_models` for more information.
         testing_processing_models (dict): Dict of dicts with processing models for
             tests. See :ref:`testing_processing_models` for more information.
-        seed (int, optional): Seed is used as the starting point of a sequence of seeds
-            used to control randomness internally.
-        path (str or pathlib.Path): Path to the directory where the simulated data is
-            stored.
-        saved_columns (dict or None): Dictionary with categories of state columns.
-            The corresponding values can be True, False or Lists with columns that
-            should be saved. Typically, during estimation you only want to save exactly
-            what you need to calculate moments to make the simulation and calculation
-            of moments faster. The categories are "initial_states", "disease_states",
-            "testing_states", "countdowns", "contacts", "countdown_draws", "group_codes"
-            and "other".
+        seed (Optional[int]): The seed is used as the starting point for two seed
+            sequences where one is used to set up the simulation function and the other
+            seed sequence is used within the simulation and reset every parameter
+            evaluation. If you pass ``None`` as a seed, an internal seed is sampled to
+            set up the simulation function. The seed for the simulation is sampled at
+            the beginning of the simulation function and can be influenced by setting
+            :class:`numpy.random.seed` right before the call.
+        path (Union[str, pathlib.Path, None]): Path to the directory where the simulated
+            data is stored.
+        saved_columns (Option[Dict[str, Union[bool, str, List[str]]]]): Dictionary with
+            categories of state columns. The corresponding values can be True, False or
+            Lists with columns that should be saved. Typically, during estimation you
+            only want to save exactly what you need to calculate moments to make the
+            simulation and calculation of moments faster. The categories are
+            "initial_states", "disease_states", "testing_states", "countdowns",
+            "contacts", "countdown_draws", "group_codes" and "other".
         optional_state_columns (dict): Dictionary with categories of state columns
             that can additionally be added to the states DataFrame, either for use in
             contact models and policies or to be saved. Most types of columns are added
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
             will not be saved. The sole category is currently "contacts".
-        initial_conditions (Option[Dict]): The initial conditions allow you to govern
-            the distribution of infections and immunity and the heterogeneity of courses
-            of disease at the start of the simulation. Use ``None`` to assume no
-            heterogeneous courses of diseases and 1% infections. Otherwise,
+        initial_conditions (Optional[Dict[str, Any]]): The initial conditions allow you
+            to govern the distribution of infections and immunity and the heterogeneity
+            of courses of disease at the start of the simulation. Use ``None`` to assume
+            no heterogeneous courses of diseases and 1% infections. Otherwise,
             ``initial_conditions`` is a dictionary containing the following entries:
 
             - ``assort_by`` (Optional[Union[str, List[str]]]): The relative infections
@@ -133,6 +152,8 @@ def get_simulate_func(
         callable: Simulates dataset based on parameters.
 
     """
+    startup_seed, simulation_seed = _generate_seeds(seed)
+
     events = {} if events is None else events
     contact_policies = {} if contact_policies is None else contact_policies
     if testing_demand_models is None:
@@ -142,16 +163,11 @@ def get_simulate_func(
     if testing_processing_models is None:
         testing_processing_models = {}
 
-    optional_state_columns = _process_optional_state_columns(optional_state_columns)
-    user_state_columns = initial_states.columns
     initial_states = initial_states.copy(deep=True)
-    params = _prepare_params(params)
+    params = params.copy(deep=True)
 
-    path = _create_output_directory(path)
-
-    _check_inputs(
-        params,
-        initial_states,
+    validate_params(params)
+    validate_models(
         contact_models,
         contact_policies,
         testing_demand_models,
@@ -159,14 +175,35 @@ def get_simulate_func(
         testing_processing_models,
     )
 
+    optional_state_columns = _process_optional_state_columns(optional_state_columns)
+    user_state_columns = initial_states.columns
+
+    path = _create_output_directory(path)
     contact_models = _sort_contact_models(contact_models)
     assort_bys = _process_assort_bys(contact_models)
-    initial_states = _process_initial_states(initial_states, assort_bys)
     duration = parse_duration(duration)
     contact_policies = {
         key: _add_defaults_to_policy_dict(val, duration)
         for key, val in contact_policies.items()
     }
+
+    if _are_states_prepared(initial_states):
+        if initial_conditions is not None:
+            raise ValueError(
+                "You passed both, prepared states to resume a simulation and initial "
+                "conditions, which is not possible. Either resume a simulation or "
+                "start a new one."
+            )
+        validate_prepared_initial_states(initial_states, duration)
+    else:
+        validate_initial_states(initial_states)
+        initial_states = _process_initial_states(initial_states, assort_bys)
+        initial_states = draw_course_of_disease(
+            initial_states, params, next(startup_seed)
+        )
+        initial_states = sample_initial_distribution_of_infections_and_immunity(
+            initial_states, params, initial_conditions, startup_seed
+        )
 
     indexers = _prepare_assortative_matching_indexers(initial_states, assort_bys)
 
@@ -185,12 +222,11 @@ def get_simulate_func(
         testing_demand_models=testing_demand_models,
         testing_allocation_models=testing_allocation_models,
         testing_processing_models=testing_processing_models,
-        seed=seed,
+        seed=simulation_seed,
         path=path,
         columns_to_keep=cols_to_keep,
         indexers=indexers,
         optional_state_columns=optional_state_columns,
-        initial_conditions=initial_conditions,
     )
     return sim_func
 
@@ -211,7 +247,6 @@ def _simulate(
     columns_to_keep,
     indexers,
     optional_state_columns,
-    initial_conditions,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -233,8 +268,13 @@ def _simulate(
             tests. See :ref:`testing_allocation_models` for more information.
         testing_processing_models (dict): Dict of dicts with processing models for
             tests. See :ref:`testing_processing_models` for more information.
-        seed (int): Seed is used as the starting point of a sequence of seeds
-            used to control randomness internally.
+        seed (int, optional): The seed is used as the starting point for two seed
+            sequences where one is used to set up the simulation function and the other
+            seed sequence is used within the simulation and reset every parameter
+            evaluation. If you pass ``None`` as a seed, an internal seed is sampled to
+            set up the simulation function. The seed for the simulation is sampled at
+            the beginning of the simulation function and can be influenced by setting
+            :class:`numpy.random.seed` right before the call.
         path (pathlib.Path): Path to the directory where the simulated data is stored.
         columns_to_keep (list): Columns of states that will be saved in each period.
         optional_state_columns (dict): Dictionary with categories of state columns
@@ -243,64 +283,35 @@ def _simulate(
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
             will not be saved. The sole category is currently "contacts".
-        initial_conditions (Option[Dict]): The initial conditions allow you to govern
-            the distribution of infections and immunity and the heterogeneity of courses
-            of disease at the start of the simulation. Use ``None`` to assume no
-            heterogeneous courses of diseases and 1% infections. Otherwise,
-            ``initial_conditions`` is a dictionary containing the following entries:
-
-            - ``assort_by`` (Optional[Union[str, List[str]]]): The relative infections
-              is preserved between the groups formed by ``assort_by`` variables. By
-              default, no group is formed and infections spread across the whole
-              population.
-            - ``burn_in_period`` (int): The number of periods over which infections are
-              distributed and can progress. The default is one period.
-            - ``growth_rate`` (float): The growth rate specifies the increase of
-              infections from one burn-in period to the next. For example, two indicates
-              doubling case numbers every period. The value must be greater than or
-              equal to one. Default is one which is no distribution over time.
-            - ``initial_immunity`` (Union[int, float, pandas.Series]): The n_people who
-              are immune in the beginning can be specified as an integer for the number,
-              a float between 0 and 1 for the share, and a :class:`pandas.Series` with
-              the same index as states. Note that infected individuals are also immune.
-              For a 10% pre-existing immunity with 2% currently infected people, set the
-              key to 0.12. By default, only infected individuals indicated by the
-              initial infections are immune.
-            - ``initial_infections`` (Union[int, float, pandas.Series,
-              pandas.DataFrame]): The initial infections can be given as an integer
-              which is the number of randomly infected individuals, as a float for the
-              share or as a :class:`pandas.Series` which indicates whether an
-              individuals is infected. If initial infections are a
-              :class:`pandas.DataFrame`, then, the index is the same as ``states``,
-              columns are dates or periods which can be sorted, and values are infected
-              individuals on that date. This step will skip upscaling and distributing
-              infections over days and directly jump to the evolution of states. By
-              default, 1% of individuals is infected.
-            - ``known_cases_multiplier`` (int): The factor can be used to scale up the
-              initial infections while keeping shares between ``assort_by`` variables
-              constant. This is helpful if official numbers are underreporting the
-              number of cases.
 
     Returns:
-        simulation_results (dask.dataframe): The simulation results in form of a long
-            :class:`dask.dataframe`. The DataFrame contains the states of each period
-            (see :ref:`states`) and a column called newly_infected.
+        result (dict): The simulation result which includes the following keys:
+
+        - ``time_series`` (:class:`dask.dataframe`): The DataFrame contains the states
+          of each period (see :ref:`states`).
+        - ``last_states`` (:class:`dask.dataframe`): The states of the last simulated
+          period to resume the simulation.
 
     """
-    seed = it.count(np.random.randint(0, 1_000_000)) if seed is None else it.count(seed)
+    seed = np.random.randint(0, 1_000_000) if seed is None else seed
+    seed = itertools.count(seed)
 
     cum_probs = _prepare_assortative_matching_probabilities(
         initial_states, assort_bys, params, contact_models
     )
 
-    states = draw_course_of_disease(initial_states, params, next(seed))
-
-    states = sample_initial_distribution_of_infections_and_immunity(
-        states, params, initial_conditions, seed
-    )
     code_to_contact_model = dict(enumerate(contact_models))
+    states = initial_states
 
-    for date in duration["dates"]:
+    if states.columns.isin(["date", "period"]).any():
+        logger.info("Resume the simulation...")
+    else:
+        logger.info("Start the simulation...")
+
+    pbar = tqdm(duration["dates"])
+    for date in pbar:
+        pbar.set_description(f"{date.date()}")
+
         states["date"] = date
         states["period"] = timestamp_to_sid_period(date)
 
@@ -374,60 +385,46 @@ def _simulate(
 
         _dump_periodic_states(states, columns_to_keep, path, date)
 
-    categoricals = {
-        column: initial_states[column].cat.categories.shape[0]
-        for column in initial_states.select_dtypes("category").columns
-        if column in columns_to_keep
-    }
-    simulation_results = _return_dask_dataframe(path, categoricals)
+    results = _prepare_simulation_result(path, columns_to_keep, states)
 
-    return simulation_results
+    return results
 
 
-def _prepare_params(params):
-    """Check the supplied params and set the index if not done."""
-    if not isinstance(params, pd.DataFrame):
-        raise ValueError("params must be a DataFrame.")
+def _generate_seeds(seed: Optional[int]):
+    """Generate seeds for startup and simulation.
 
-    params = params.copy()
-    if not (
-        isinstance(params.index, pd.MultiIndex) and params.index.names == INDEX_NAMES
-    ):
-        raise ValueError(
-            "params must have the index levels 'category', 'subcategory' and 'name'."
-        )
+    We use the user provided seed or a random seed to generate two other seeds. The
+    first seed will be turned to a seed sequence and used to control randomness during
+    the preparation of the simulate function. The second seed is for the randomness in
+    the simulation, but stays an integer so that the seed sequence can be rebuild every
+    iteration.
 
-    if np.any(params.index.to_frame().isna()):
-        raise ValueError(
-            "No NaNs allowed in the params index. Repeat the previous index level "
-            "instead."
-        )
+    If the seed is ``None``, only the start-up seed is sampled and the seed for
+    simulation is set to ``None``. This seed will be sampled in :func:`_simulate` and
+    can be influenced by setting ``np.random.seed(seed) right before the call.
 
-    if params.index.duplicated().any():
-        raise ValueError("No duplicates in the params index allowed.")
+    Args:
+        seed (Optional[int]): The seed provided by the user.
 
-    if params["value"].isna().any():
-        raise ValueError("The 'value' column of params must not contain NaNs.")
+    Returns:
+        startup_seed (itertools.count): The seed sequence for the startup.
+        simulation_seed (int): The starting point for the seed sequence in the
+            simulation.
 
-    try:
-        relative_limit = params.loc[
-            ("health_system", "icu_limit_relative", "icu_limit_relative"), "value"
-        ]
-    except KeyError:
-        warnings.warn(
-            "A limit of ICU beds is not specified in 'params'. Individuals who need "
-            "intensive care will decease immediately.\n\n"
-            "Set ('health_system', 'icu_limit_relative', 'icu_limit_relative') in "
-            "'params' to beds per 100,000 individuals to silence the warning."
-        )
-    else:
-        if relative_limit < 1:
-            warnings.warn("The limit for ICU beds per 100,000 individuals is below 1.")
+    """
+    internal_seed = np.random.randint(0, 1_000_000) if seed is None else seed
 
-    return params
+    np.random.seed(internal_seed)
+
+    startup_seed = itertools.count(np.random.randint(0, 10_000))
+    simulation_seed = (
+        np.random.randint(100_000, 1_000_000) if seed is not None else None
+    )
+
+    return startup_seed, simulation_seed
 
 
-def _create_output_directory(path):
+def _create_output_directory(path: Union[str, Path, None]) -> Path:
     """Determine the output directory for the data.
 
     The user can provide a path or a default path is chosen. If the user's path leads to
@@ -451,11 +448,13 @@ def _create_output_directory(path):
         shutil.rmtree(output_directory)
 
     output_directory.mkdir(parents=True, exist_ok=True)
+    output_directory.joinpath("last_states").mkdir(parents=True, exist_ok=True)
+    output_directory.joinpath("time_series").mkdir(parents=True, exist_ok=True)
 
     return output_directory
 
 
-def _sort_contact_models(contact_models):
+def _sort_contact_models(contact_models: Dict[str, Any]) -> Dict[str, Any]:
     """Sort the contact_models.
 
     First we have non recurrent, then recurrent contacts models. Within each group
@@ -477,15 +476,15 @@ def _sort_contact_models(contact_models):
     return {name: contact_models[name] for name in sorted_}
 
 
-def _process_assort_bys(contact_models):
+def _process_assort_bys(contact_models: Dict[str, Any]) -> Dict[str, List[str]]:
     """Set default values for assort_by variables and extract them into a dict.
 
     Args:
-        contact_models (dict): see :ref:`contact_models`
+        contact_models (Dict[str, Any]): see :ref:`contact_models`
 
     Returns:
-        assort_bys (dict): Keys are names of contact models, values are lists with the
-            assort_by variables of the model.
+        assort_bys (Dict[str, List[str]]): Keys are names of contact models, values are
+            lists with the assort_by variables of the model.
 
     """
     assort_bys = {}
@@ -506,7 +505,7 @@ def _process_assort_bys(contact_models):
             pass
         else:
             raise ValueError(
-                f"'assort_by' for '{model_name}' must be False str, or list."
+                f"'assort_by' for '{model_name}' must one of False, str, or list."
             )
 
         assort_bys[model_name] = assort_by
@@ -514,120 +513,18 @@ def _process_assort_bys(contact_models):
     return assort_bys
 
 
-def _check_inputs(
-    params,
-    initial_states,
-    contact_models,
-    contact_policies,
-    testing_demand_models,
-    testing_allocation_models,
-    testing_processing_models,
-):
-    """Check the user inputs."""
-    cd_names = sorted(COUNTDOWNS)
-    gb = params.loc[cd_names].groupby(INDEX_NAMES[:2])
-    prob_sums = gb["value"].sum()
-    problematic = prob_sums[~prob_sums.between(1 - 1e-08, 1 + 1e-08)].index.tolist()
-    assert (
-        len(problematic) == 0
-    ), f"The following countdown probabilities don't add up to 1: {problematic}"
-
-    if not isinstance(initial_states, pd.DataFrame):
-        raise ValueError("initial_states must be a DataFrame.")
-
-    if not isinstance(contact_models, dict):
-        raise ValueError("contact_models must be a dictionary.")
-
-    for cm_name, cm in contact_models.items():
-        if not isinstance(cm, dict):
-            raise ValueError(f"Each contact model must be a dictionary: {cm_name}.")
-        if cm["is_recurrent"] and "assort_by" not in cm:
-            raise ValueError(
-                f"{cm_name} is a recurrent contact model without an assort_by."
-            )
-
-    if not isinstance(contact_policies, dict):
-        raise ValueError("policies must be a dictionary.")
-
-    for name, pol in contact_policies.items():
-        if not isinstance(pol, dict):
-            raise ValueError(f"Each policy must be a dictionary: {name}.")
-        if "affected_contact_model" not in pol:
-            raise KeyError(
-                f"contact_policy {name} must have a 'affected_contact_model' specified."
-            )
-        model = pol["affected_contact_model"]
-        if model not in contact_models:
-            raise ValueError(f"Unknown affected_contact_model for {name}.")
-        if "policy" not in pol:
-            raise KeyError(f"contact_policy {name} must have a 'policy' specified.")
-
-        # the policy must either be a callable or a number between 0 and 1.
-        if not callable(pol["policy"]):
-            if not isinstance(pol["policy"], (float, int)):
-                raise ValueError(
-                    f"The 'policy' entry of {name} must be callable or a number."
-                )
-            elif (pol["policy"] > 1.0) or (pol["policy"] < 0.0):
-                raise ValueError(
-                    f"If 'policy' is a number it must lie between 0 and 1. "
-                    f"For {name} it is {pol['policy']}."
-                )
-            else:
-                recurrent = contact_models[model]["is_recurrent"]
-                assert not recurrent or pol["policy"] == 0.0, (
-                    f"Specifying multipliers for recurrent models such as {name} for "
-                    f"{pol['affected_contact_model']} will not change the contacts "
-                    "of anyone because for recurrent models it is only checked"
-                    "where the number of contacts is larger than 0. "
-                    "This is unaffected by any multiplier other than 0"
-                )
-
-    for testing_model in [
-        testing_demand_models,
-        testing_allocation_models,
-        testing_processing_models,
-    ]:
-        for name in testing_model:
-            if not isinstance(testing_model[name], dict):
-                raise ValueError(f"Each testing model must be a dictionary: {name}.")
-
-            if "model" not in testing_model[name]:
-                raise ValueError(
-                    f"Each testing model must have a 'model' entry: {name}."
-                )
-
-    first_levels = params.index.get_level_values("category")
-    assort_prob_matrices = [
-        x for x in first_levels if x.startswith("assortative_matching_")
-    ]
-    for name in assort_prob_matrices:
-        meeting_prob = params.loc[name]["value"].unstack()
-        assert len(meeting_prob.index) == len(
-            meeting_prob.columns
-        ), f"assortative probability matrices must be square but isn't for {name}."
-        assert (
-            meeting_prob.index == meeting_prob.columns
-        ).all(), (
-            f"assortative probability matrices must be square but isn't for {name}."
-        )
-        assert (meeting_prob.sum(axis=1) > 0.9999).all() & (
-            meeting_prob.sum(axis=1) < 1.00001
-        ).all(), (
-            f"the meeting probabilities of {name} do not add up to one in every row."
-        )
-
-
-def _prepare_assortative_matching_indexers(states, assort_bys):
+def _prepare_assortative_matching_indexers(
+    states: pd.DataFrame, assort_bys: Dict[str, List[str]]
+) -> Dict[str, nb.typed.List]:
     """Create indexers and first stage probabilities for assortative matching.
 
     Args:
         states (pd.DataFrame): see :ref:`states`.
-        assort_bys (dict): Keys are names of contact models, values are lists with the
-            assort_by variables of the model.
+        assort_bys (Dict[str, List[str]]): Keys are names of contact models, values are
+            lists with the assort_by variables of the model.
 
     returns:
-        indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
+        indexers (Dict[str, numba.typed.List]): The i_th entry of the lists are the
             indices of the i_th group.
 
     """
@@ -728,22 +625,52 @@ def _process_initial_states(states, assort_bys):
 
 def _dump_periodic_states(states, columns_to_keep, output_directory, date):
     states = states[columns_to_keep]
-    states.to_parquet(output_directory / f"{date.date()}.parquet", engine="fastparquet")
+    states.to_parquet(
+        output_directory / "time_series" / f"{date.date()}.parquet",
+        engine="fastparquet",
+    )
 
 
-def _return_dask_dataframe(output_directory, categoricals):
+def _prepare_simulation_result(output_directory, columns_to_keep, last_states):
     """Process the simulation results.
 
     Args:
         output_directory (pathlib.Path): Path to output directory.
-        categoricals (list): List of variable names which are categoricals.
+        columns_to_keep (list): List of variables which should be kept.
+        last_states (pandas.DataFrame): States of the last period.
+
     Returns:
-        df (dask.dataframe): A dask DataFrame which contains the simulation results.
+        result (dict): The simulation result which includes the following keys:
+
+            - ``time_series`` (dask.dataframe): The DataFrame contains the states of
+              each period (see :ref:`states`).
+            - ``last_states`` (dask.dataframe): The states of the last simulated period
+              to resume the simulation.
 
     """
-    return dd.read_parquet(
-        output_directory, categories=categoricals, engine="fastparquet"
+    categoricals = {
+        column: last_states[column].cat.categories.shape[0]
+        for column in last_states.select_dtypes("category").columns
+    }
+
+    last_states.to_parquet(output_directory / "last_states" / "last_states.parquet")
+    last_states = dd.read_parquet(
+        output_directory / "last_states" / "last_states.parquet",
+        categories=categoricals,
+        engine="fastparquet",
     )
+
+    reduced_categoricals = {
+        k: v for k, v in categoricals.items() if k in columns_to_keep
+    }
+
+    time_series = dd.read_parquet(
+        output_directory / "time_series",
+        categories=reduced_categoricals,
+        engine="fastparquet",
+    )
+
+    return {"time_series": time_series, "last_states": last_states}
 
 
 def _process_saved_columns(
@@ -813,3 +740,13 @@ def _process_optional_state_columns(opt_state_cols):
         else {**OPTIONAL_STATE_COLUMNS, **opt_state_cols}
     )
     return res
+
+
+def _are_states_prepared(states):
+    """Are states prepared.
+
+    If the states include information on the period or date, we assume that the states
+    are prepared.
+
+    """
+    return states.columns.isin(["date", "period"]).any()

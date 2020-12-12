@@ -1,3 +1,6 @@
+from typing import Dict
+from typing import List
+
 import numba as nb
 import numpy as np
 import pandas as pd
@@ -154,9 +157,10 @@ def calculate_infections_by_contacts(
     )
     missed_contacts.loc[:, is_recurrent] = 0
 
-    was_infected_by = pd.Series(was_infected_by, index=states.index).astype("category")
     categories = {-1: "not_infected_by_contact", **code_to_contact_model}
-    was_infected_by.cat.rename_categories(new_categories=categories, inplace=True)
+    was_infected_by = pd.Series(
+        pd.Categorical(was_infected_by, categories=list(categories)), index=states.index
+    ).cat.rename_categories(new_categories=categories)
 
     return infected, n_has_additionally_infected, missed_contacts, was_infected_by
 
@@ -459,7 +463,9 @@ def _get_index_refining_search(u, cdf):
     return i
 
 
-def create_group_indexer(states, assort_by):
+def create_group_indexer(
+    states: pd.DataFrame, assort_by: Dict[str, List[str]]
+) -> nb.typed.List:
     """Create the group indexer.
 
     The indexer is a list where the positions correspond to the group number defined by
@@ -477,7 +483,7 @@ def create_group_indexer(states, assort_by):
 
     Args:
         states (pandas.DataFrame): See :ref:`states`
-        assort_by (list): List of variables that influence matching probabilities.
+        assort_by (List[str]): List of variables that influence matching probabilities.
 
     Returns:
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
