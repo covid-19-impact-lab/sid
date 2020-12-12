@@ -25,10 +25,18 @@ from sid.contacts import create_group_indexer
     ],
 )
 def test_create_group_indexer(initial_states, assort_by, expected):
-    calculated = create_group_indexer(initial_states, assort_by)
+    calculated = create_group_indexer(initial_states, assort_by, is_recurrent=False)
     calculated = [arr.tolist() for arr in calculated]
 
     assert calculated == expected
+
+
+def test_create_group_indexer_recurrent():
+    df = pd.DataFrame()
+    df["some_id"] = pd.Series([1, -1, 2, 2, 1]).astype("category")
+    calculated = create_group_indexer(df, ["some_id"], True)
+    calculated = [arr.tolist() for arr in calculated]
+    assert calculated == [[0, 4], [2, 3]]
 
 
 @pytest.mark.parametrize("seed", range(10))
@@ -173,7 +181,9 @@ def setup_households_w_one_infection():
         ),
     )
 
-    indexers = {"households": create_group_indexer(states, ["households"])}
+    indexers = {
+        "households": create_group_indexer(states, ["households"], is_recurrent=False)
+    }
 
     group_probs = {}
 
@@ -341,7 +351,11 @@ def test_calculate_infections_only_non_recurrent(
         data=1.0,
         index=pd.MultiIndex.from_tuples([("infection_prob", "non_rec", "non_rec")]),
     )
-    indexers = {"non_rec": create_group_indexer(states, ["group_codes_non_rec"])}
+    indexers = {
+        "non_rec": create_group_indexer(
+            states, ["group_codes_non_rec"], is_recurrent=False
+        )
+    }
     group_probs = {"non_rec": np.array([[0.8, 1], [0.2, 1]])}
 
     with monkeypatch.context() as m:

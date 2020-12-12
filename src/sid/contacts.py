@@ -304,8 +304,8 @@ def _calculate_infections_by_contacts_numba(
             # he is infected by some j is only checked, when the main loop arrives at j.
             # This allows us to skip completely if i is not infectious or has no
             # contacts under contact model cm.
-            if infectious[i] and contacts[i, cm] > 0:
-                group_i = group_codes[i, cm]
+            group_i = group_codes[i, cm]
+            if group_i >= 0 and infectious[i] and contacts[i, cm] > 0:
                 others = indexers_list[cm][group_i]
                 # extract infection probability into a variable for faster access
                 prob = infection_probs[cm]
@@ -464,7 +464,7 @@ def _get_index_refining_search(u, cdf):
 
 
 def create_group_indexer(
-    states: pd.DataFrame, assort_by: Dict[str, List[str]]
+    states: pd.DataFrame, assort_by: Dict[str, List[str]], is_recurrent
 ) -> nb.typed.List:
     """Create the group indexer.
 
@@ -492,13 +492,15 @@ def create_group_indexer(
     states = states.reset_index()
     if assort_by:
         groups = states.groupby(assort_by).groups
-        _, group_codes_values = factorize_assortative_variables(states, assort_by)
+        _, group_codes_values = factorize_assortative_variables(
+            states, assort_by, is_recurrent
+        )
 
         indexer = NumbaList()
         for group in group_codes_values:
             # the keys of groups are not tuples if there was just one assort_by variable
             # but the group_codes_values are.
-            group = group[0] if len(group) == 1 else group
+            group = group[0] if isinstance(group, tuple) and len(group) == 1 else group
             indexer.append(groups[group].to_numpy(dtype=DTYPE_INDEX))
 
     else:

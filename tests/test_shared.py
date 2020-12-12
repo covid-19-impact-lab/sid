@@ -23,7 +23,9 @@ from sid.shared import factorize_assortative_variables
     ],
 )
 def test_factorize_assortative_variables(initial_states, assort_by, expected):
-    _, group_code_values = factorize_assortative_variables(initial_states, assort_by)
+    _, group_code_values = factorize_assortative_variables(
+        initial_states, assort_by, False
+    )
 
     assert set(group_code_values) == set(expected)
 
