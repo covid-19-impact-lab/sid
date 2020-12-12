@@ -220,7 +220,9 @@ def test_scale_and_spread_initial_infections(
     initial_states, params, initial_conditions, seed, expectation, expected
 ):
     with expectation:
-        initial_states = _process_initial_states(initial_states, {"a": []})
+        initial_states = _process_initial_states(
+            initial_states, {"a": []}, {"a": {"is_recurrent": False}}
+        )
         initial_states = draw_course_of_disease(initial_states, params, 0)
 
         result = sample_initial_distribution_of_infections_and_immunity(
