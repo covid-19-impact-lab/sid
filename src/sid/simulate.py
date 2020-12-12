@@ -29,11 +29,9 @@ from sid.initial_conditions import (
     sample_initial_distribution_of_infections_and_immunity,
 )
 from sid.matching_probabilities import create_group_transition_probs
-from sid.parse_model import (
-    parse_duration,
-    parse_share_known_cases,
-    parse_initial_conditions,
-)
+from sid.parse_model import parse_duration
+from sid.parse_model import parse_initial_conditions
+from sid.parse_model import parse_share_known_cases
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
 from sid.testing_allocation import allocate_tests
@@ -42,10 +40,11 @@ from sid.testing_demand import calculate_demand_for_tests
 from sid.testing_processing import process_tests
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
+from sid.validation import validate_initial_conditions
 from sid.validation import validate_initial_states
 from sid.validation import validate_models
 from sid.validation import validate_params
-from sid.validation import validate_prepared_initial_states, validate_initial_conditions
+from sid.validation import validate_prepared_initial_states
 from tqdm import tqdm
 
 
@@ -67,7 +66,7 @@ def get_simulate_func(
     saved_columns: Optional[Dict[str, Union[bool, str, List[str]]]] = None,
     optional_state_columns=None,
     initial_conditions: Optional[Dict[str, Any]] = None,
-    share_known_cases: Optional[float, pd.Series] = None,
+    share_known_cases: Optional[Union[float, pd.Series]] = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -152,10 +151,10 @@ def get_simulate_func(
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
               number of cases.
-        share_known_cases (Optional[float, pd.Series]): Share of known cases to all
-            cases. The argument is a float or a series with :class:`pd.DatetimeIndex`
-            which covers the whole simulation period and yields the ratio of known
-            infections to all infections.
+        share_known_cases (Optional[Union[float, pd.Series]]): Share of known cases to
+            all cases. The argument is a float or a series with
+            :class:`pd.DatetimeIndex` which covers the whole simulation period and
+            yields the ratio of known infections to all infections.
 
             This feature can be used instead of testing models which are hard to
             calibrate to data.

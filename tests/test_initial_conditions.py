@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from sid.config import INITIAL_CONDITIONS
-from sid.parse_model import parse_initial_conditions
 from sid.initial_conditions import _scale_up_initial_infections
 from sid.initial_conditions import _scale_up_initial_infections_numba
 from sid.initial_conditions import _spread_out_initial_infections
@@ -14,31 +13,68 @@ from sid.initial_conditions import (
 )
 from sid.initial_conditions import sample_initial_immunity
 from sid.initial_conditions import sample_initial_infections
+from sid.parse_model import parse_initial_conditions
 from sid.pathogenesis import draw_course_of_disease
 from sid.simulate import _process_initial_states
+from sid.validation import validate_initial_conditions
 
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    ("initial_conditions", "expected"),
+    ("initial_conditions", "start_date_simulation", "expectation", "expected"),
     [
         (
             None,
+            pd.Timestamp("2020-01-02"),
+            does_not_raise(),
             {**INITIAL_CONDITIONS},
         ),
         (
             {"assort_by": ["region"]},
+            pd.Timestamp("2020-01-02"),
+            does_not_raise(),
             {**INITIAL_CONDITIONS, "assort_by": ["region"]},
         ),
         (
             {"assort_by": "region"},
+            pd.Timestamp("2020-01-02"),
+            does_not_raise(),
             {**INITIAL_CONDITIONS, "assort_by": ["region"]},
+        ),
+        (
+            {"growth_rate": 0},
+            pd.Timestamp("2020-01-02"),
+            pytest.raises(ValueError, match="'growth_rate' must be greater than or"),
+            None,
+        ),
+        (
+            {"burn_in_periods": 0},
+            pd.Timestamp("2020-01-02"),
+            pytest.raises(ValueError, match="'burn_in_periods' must be greater or"),
+            None,
+        ),
+        (
+            {"burn_in_periods": 2.0},
+            pd.Timestamp("2020-01-02"),
+            pytest.raises(ValueError, match="'burn_in_periods' must be an integer"),
+            None,
+        ),
+        (
+            {"initial_infections": None},
+            pd.Timestamp("2020-01-02"),
+            pytest.raises(ValueError, match="'initial_infections' must be a"),
+            None,
         ),
     ],
 )
-def test_parse_initial_conditions(initial_conditions, expected):
-    result = parse_initial_conditions(initial_conditions)
-    assert result == expected
+def test_parse_initial_conditions(
+    initial_conditions, start_date_simulation, expectation, expected
+):
+    with expectation:
+        result = parse_initial_conditions(initial_conditions, start_date_simulation)
+        validate_initial_conditions(result)
+        expected["burn_in_periods"] = pd.DatetimeIndex([pd.Timestamp("2020-01-01")])
+        assert result == expected
 
 
 @pytest.mark.unit
@@ -110,7 +146,7 @@ def test_scale_up_initial_infections_numba():
 def test_spread_out_initial_infections():
     infections = sample_initial_infections(0.2, 100_000)
 
-    spread_infections = _spread_out_initial_infections(infections, 4, 2, 0)
+    spread_infections = _spread_out_initial_infections(infections, np.arange(4), 2, 0)
 
     infections_per_day = spread_infections.sum()
     shares_per_day = infections_per_day / infections_per_day.sum()
@@ -121,7 +157,7 @@ def test_spread_out_initial_infections():
 def test_spread_out_initial_infections_no_growth():
     infections = sample_initial_infections(0.2, 100_000)
 
-    spread_infections = _spread_out_initial_infections(infections, 4, 1, 0)
+    spread_infections = _spread_out_initial_infections(infections, np.arange(4), 1, 0)
 
     infections_per_day = spread_infections.sum()
     shares_per_day = infections_per_day / infections_per_day.sum()
@@ -157,18 +193,6 @@ def test_create_initial_infections(
     "initial_conditions, seed, expectation, expected",
     [
         (
-            {"initial_infections": None},
-            itertools.count(),
-            pytest.raises(ValueError, match="'initial_infections' must"),
-            None,
-        ),
-        (
-            {"initial_infections": 1},
-            itertools.count(-1),
-            pytest.raises(ValueError, match="Seed"),
-            None,
-        ),
-        (
             {"initial_infections": 0.9999999},
             itertools.count(),
             does_not_raise(),
@@ -187,27 +211,22 @@ def test_create_initial_infections(
             pd.Series([True] * 15),
         ),
         (
-            {"growth_rate": 0},
+            {
+                "initial_infections": pd.DataFrame(
+                    {0: [True] * 8 + [False] * 7, 1: [False] * 8 + [True] * 7}
+                )
+            },
             itertools.count(),
-            pytest.raises(ValueError, match="'growth_rate' must be greater than or"),
-            None,
-        ),
-        (
-            {"burn_in_periods": 0},
-            itertools.count(),
-            pytest.raises(ValueError, match="'burn_in_periods' must be an integer"),
-            None,
-        ),
-        (
-            {"burn_in_periods": 2.0},
-            itertools.count(),
-            pytest.raises(ValueError, match="'burn_in_periods' must be an integer"),
-            None,
+            pytest.raises(ValueError, match="Expected 'burn_in_periods'"),
+            pd.Series([True] * 15),
         ),
         (
             {
                 "initial_infections": pd.DataFrame(
-                    {0: [True] * 8 + [False] * 7, 1: [False] * 8 + [True] * 7}
+                    {
+                        "2019-12-30": [True] * 8 + [False] * 7,
+                        "2019-12-31": [False] * 8 + [True] * 7,
+                    }
                 )
             },
             itertools.count(),
@@ -222,9 +241,15 @@ def test_scale_and_spread_initial_infections(
     with expectation:
         initial_states = _process_initial_states(initial_states, {"a": []})
         initial_states = draw_course_of_disease(initial_states, params, 0)
+        initial_conditions = parse_initial_conditions(
+            initial_conditions, pd.Timestamp("2020-01-01")
+        )
+        share_known_cases = pd.Series(
+            index=initial_conditions["burn_in_periods"], data=0
+        )
 
         result = sample_initial_distribution_of_infections_and_immunity(
-            initial_states, params, initial_conditions, seed
+            initial_states, params, initial_conditions, share_known_cases, seed
         )
         assert result["ever_infected"].equals(expected)
 

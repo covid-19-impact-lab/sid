@@ -1,8 +1,11 @@
-from typing import Dict, Any
+import copy
+from collections.abc import Iterable
+from typing import Any
+from typing import Dict
 
+import numpy as np
 import pandas as pd
 from sid.config import INITIAL_CONDITIONS
-from collections.abc import Iterable
 
 
 def parse_duration(duration=None):
@@ -34,10 +37,12 @@ def parse_duration(duration=None):
     return internal_duration
 
 
-def parse_share_known_cases(share_known_cases, duration, initial_conditions):
+def parse_share_known_cases(share_known_cases, duration, burn_in_periods):
     """Parse the share of known cases."""
+    extended_index = np.append(burn_in_periods, duration["dates"])
+
     if isinstance(share_known_cases, (float, int)):
-        share_known_cases = pd.Series(index=duration["dates"], data=share_known_cases)
+        share_known_cases = pd.Series(index=extended_index, data=share_known_cases)
 
     elif isinstance(share_known_cases, pd.Series):
         if not duration.isin(share_known_cases.index).all():
@@ -45,9 +50,12 @@ def parse_share_known_cases(share_known_cases, duration, initial_conditions):
                 "'share_known_cases' must be given for each date of the simulation "
                 "period."
             )
+        # Extend series with burn-in periods and if shares for burn-in periods do not
+        # exist, backfill NaNs.
+        share_known_cases = share_known_cases.reindex(extended_index).backfill()
 
     elif share_known_cases is None:
-        share_known_cases = pd.Series(index=duration["dates"], data=0)
+        share_known_cases = pd.Series(index=extended_index, data=0)
 
     else:
         raise ValueError(
@@ -62,7 +70,11 @@ def parse_initial_conditions(
     ic: Dict[str, Any], start_date_simulation: pd.Timestamp
 ) -> Dict[str, Any]:
     """Parse the initial conditions."""
-    ic = INITIAL_CONDITIONS if ic is None else {**INITIAL_CONDITIONS, **ic}
+    ic = (
+        copy.deepcopy(INITIAL_CONDITIONS)
+        if ic is None
+        else {**INITIAL_CONDITIONS, **ic}
+    )
 
     if isinstance(ic["assort_by"], str):
         ic["assort_by"] = [ic["assort_by"]]
@@ -81,13 +93,15 @@ def parse_initial_conditions(
             ic["burn_in_periods"] = ic["initial_infections"].columns.sort_values()
 
     if isinstance(ic["burn_in_periods"], int):
+        if ic["burn_in_periods"] == 0:
+            raise ValueError("'burn_in_periods' must be greater or equal than 1.")
         start = start_date_simulation - pd.Timedelta(ic["burn_in_periods"], unit="d")
-        ic["burn_in_periods"] = pd.date_range(start, start_date_simulation)
+        ic["burn_in_periods"] = pd.date_range(start, start_date_simulation)[:-1]
 
     elif isinstance(ic["burn_in_periods"], Iterable):
         n_burn_in_periods = len(ic["burn_in_periods"])
         start = start_date_simulation - pd.Timedelta(n_burn_in_periods, unit="d")
-        expected = pd.date_range(start, start_date_simulation)
+        expected = pd.date_range(start, start_date_simulation)[:-1]
         if not (ic["burn_in_periods"] == expected).all():
             raise ValueError(
                 f"Expected 'burn_in_periods' {expected}, but got "

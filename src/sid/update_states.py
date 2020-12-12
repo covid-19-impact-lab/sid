@@ -5,9 +5,9 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+from sid.config import IS_ACTIVE_CASE
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.countdowns import COUNTDOWNS
-from sid.config import IS_ACTIVE_CASE
 
 
 def update_states(
@@ -116,7 +116,31 @@ def update_states(
     if n_has_additionally_infected is not None:
         states["n_has_infected"] += n_has_additionally_infected
 
-    # Perform steps if testing is enabled.
+    if share_known_cases is not None:
+        # Get all active cases.
+        is_active_case = states.eval(IS_ACTIVE_CASE)
+        n_active_cases = is_active_case.sum()
+
+        # Identify active and known cases. We treat individuals whose test is processed
+        # as known cases, to not assign to many tests.
+        is_potentially_known_case = (is_active_case & states["knows_immune"]) | (
+            states["cd_received_test_result_true"] > 0
+        )
+        n_additional_known_and_active_cases = int(
+            n_active_cases * share_known_cases - is_potentially_known_case.sum()
+        )
+
+        if n_additional_known_and_active_cases > 0:
+            ilocs = np.arange(len(states))[is_active_case & ~is_potentially_known_case]
+            sampled_ilocs = np.random.choice(
+                ilocs, size=n_additional_known_and_active_cases, replace=False
+            )
+        else:
+            sampled_ilocs = slice(0)
+
+        to_be_processed_test = pd.Series(index=states.index, data=False)
+        to_be_processed_test.iloc[sampled_ilocs] = True
+
     if to_be_processed_test is not None:
         # Remove information on pending tests for tests which are processed.
         states.loc[to_be_processed_test, "pending_test_date"] = pd.NaT
@@ -148,9 +172,6 @@ def update_states(
         # Everyone looses ``received_test_result == True`` because it is passed to the
         # more specific knows attributes.
         states.loc[states.received_test_result, "received_test_result"] = False
-
-    if share_known_cases is not None:
-        valid_infections = states.eval(IS_ACTIVE_CASE)
 
     return states
 
