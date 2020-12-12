@@ -11,7 +11,7 @@ from sid.shared import factorize_assortative_variables
 from sid.shared import validate_return_is_series_or_ndarray
 
 
-def calculate_contacts(contact_models, contact_policies, states, params, date):
+def calculate_contacts(contact_models, contact_policies, states, params, date, seed):
     """Calculate number of contacts of different types.
 
     Args:
@@ -20,6 +20,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
         states (pandas.DataFrame): See :ref:`states`.
         params (pandas.DataFrame): See :ref:`params`.
         date (pandas.Timestamp): The current date.
+        seed (itertools.count)
 
     Returns:
         contacts (numpy.ndarray): DataFrame with one column for each contact model.
@@ -30,7 +31,9 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
     for i, (model_name, model) in enumerate(contact_models.items()):
         loc = model.get("loc", params.index)
         func = model["model"]
-        model_specific_contacts = func(states, params.loc[loc])
+        model_specific_contacts = func(
+            states=states, params=params.loc[loc], seed=next(seed)
+        )
         model_specific_contacts = validate_return_is_series_or_ndarray(
             model_specific_contacts, when=f"Contact model {model_name}"
         )
@@ -45,7 +48,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
                         model_specific_contacts = policy["policy"](
                             states=states,
                             contacts=model_specific_contacts,
-                            params=params,
+                            seed=next(seed),
                         )
 
         if not model["is_recurrent"]:
