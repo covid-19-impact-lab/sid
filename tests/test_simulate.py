@@ -17,7 +17,7 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
         contact_models=CONTACT_MODELS,
         saved_columns={"other": ["channel_infected_by_contact"]},
         path=tmp_path,
-        seed=1,
+        seed=144,
     )
 
     result = simulate(params)

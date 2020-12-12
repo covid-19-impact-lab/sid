@@ -321,6 +321,7 @@ def _simulate(
             states=states,
             params=params,
             date=date,
+            seed=seed,
         )
 
         (

@@ -115,6 +115,10 @@ def validate_models(
     for cm_name, cm in contact_models.items():
         if not isinstance(cm, dict):
             raise ValueError(f"Each contact model must be a dictionary: {cm_name}.")
+        if cm["is_recurrent"] and "assort_by" not in cm:
+            raise ValueError(
+                f"{cm_name} is a recurrent contact model without an assort_by."
+            )
 
     if not isinstance(contact_policies, dict):
         raise ValueError("policies must be a dictionary.")
