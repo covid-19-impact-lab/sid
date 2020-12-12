@@ -17,11 +17,10 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
     simulate = get_simulate_func(
         params,
         initial_states,
-        initial_infections,
         CONTACT_MODELS,
         saved_columns={"other": ["channel_infected_by_contact"]},
         path=tmp_path,
-        seed=0,
+        seed=1,
     )
 
     df = simulate(params)

@@ -23,13 +23,13 @@ def draw_course_of_disease(states, params, seed):
         states (pandas.DataFrame): The initial states.
         params (pandas.DataFrame): DataFrame with parameters that influence the number
             of contacts, contagiousness and dangerousness of the disease, ... .
-        seed (itertools.count): Seed counter to control randomness.
+        seed (int): Seed counter to control randomness.
 
     Returns:
         states (pandas.DataFrame): The initial states extended with countdown lengths.
 
     """
-    np.random.seed(next(seed))
+    np.random.seed(seed)
 
     for cd in COUNTDOWNS:
         states[f"{cd}_draws"] = _draw_countdowns(states, params.loc[cd])
