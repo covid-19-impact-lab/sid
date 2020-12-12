@@ -1,10 +1,10 @@
-from sid.msm import get_diag_weighting_matrix
-from sid.msm import get_flat_moments
 import logging
 
 from sid.colors import get_colors
 from sid.initial_conditions import sample_initial_immunity
 from sid.initial_conditions import sample_initial_infections
+from sid.msm import get_diag_weighting_matrix
+from sid.msm import get_flat_moments
 from sid.msm import get_msm_func
 from sid.parallel import get_parallel_msm_func
 from sid.shared import get_date

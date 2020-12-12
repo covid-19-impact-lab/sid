@@ -20,7 +20,6 @@ from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import OPTIONAL_STATE_COLUMNS
 from sid.config import SAVED_COLUMNS
-from sid.contacts import boolean_choice
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
@@ -228,7 +227,6 @@ def get_simulate_func(
         columns_to_keep=cols_to_keep,
         indexers=indexers,
         optional_state_columns=optional_state_columns,
-        initial_conditions=initial_conditions,
     )
     return sim_func
 
@@ -249,7 +247,6 @@ def _simulate(
     columns_to_keep,
     indexers,
     optional_state_columns,
-    initial_conditions,
 ):
     """Simulate the spread of an infectious disease.
 
