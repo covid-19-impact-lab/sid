@@ -447,6 +447,8 @@ def _create_output_directory(path: Union[str, Path, None]) -> Path:
         shutil.rmtree(output_directory)
 
     output_directory.mkdir(parents=True, exist_ok=True)
+    output_directory.joinpath("last_states").mkdir(parents=True, exist_ok=True)
+    output_directory.joinpath("time_series").mkdir(parents=True, exist_ok=True)
 
     return output_directory
 
@@ -622,7 +624,10 @@ def _process_initial_states(states, assort_bys):
 
 def _dump_periodic_states(states, columns_to_keep, output_directory, date):
     states = states[columns_to_keep]
-    states.to_parquet(output_directory / f"{date.date()}.parquet", engine="fastparquet")
+    states.to_parquet(
+        output_directory / "time_series" / f"{date.date()}.parquet",
+        engine="fastparquet",
+    )
 
 
 def _prepare_simulation_result(output_directory, columns_to_keep, last_states):
@@ -647,9 +652,9 @@ def _prepare_simulation_result(output_directory, columns_to_keep, last_states):
         for column in last_states.select_dtypes("category").columns
     }
 
-    last_states.to_parquet(output_directory / "last_states.parquet")
+    last_states.to_parquet(output_directory / "last_states" / "last_states.parquet")
     last_states = dd.read_parquet(
-        output_directory / "last_states.parquet",
+        output_directory / "last_states" / "last_states.parquet",
         categories=categoricals,
         engine="fastparquet",
     )
@@ -659,7 +664,9 @@ def _prepare_simulation_result(output_directory, columns_to_keep, last_states):
     }
 
     time_series = dd.read_parquet(
-        output_directory, categories=reduced_categoricals, engine="fastparquet"
+        output_directory / "time_series",
+        categories=reduced_categoricals,
+        engine="fastparquet",
     )
 
     return {"time_series": time_series, "last_states": last_states}
