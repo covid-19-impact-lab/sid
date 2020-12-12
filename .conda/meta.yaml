@@ -33,6 +33,7 @@ requirements:
     - pytest-regressions
     - python-snappy
     - seaborn
+    - tqdm
 
 test:
   requires:
@@ -49,5 +50,5 @@ test:
 
 about:
   home: https://github.com/covid-19-impact-lab/sid
-  license: None
+  license: MIT
   summary: Simulate the spread of COVID-19 with different policies.

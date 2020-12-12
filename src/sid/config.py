@@ -18,6 +18,7 @@ BOOLEAN_STATE_COLUMNS = [
     "demands_test",
     "allocated_test",
     "to_be_processed_test",
+    "newly_infected",
     "newly_deceased",
     "new_known_case",
 ]
@@ -53,12 +54,20 @@ SAVED_COLUMNS = {
     "countdown_draws": False,
     "group_codes": False,
     "other": ["n_has_infected", "newly_infected", "new_known_case"],
+    "channels": False,
 }
 
 
-OPTIONAL_STATE_COLUMNS = {
-    "contacts": False,
-    "reason_for_infection": False,
+OPTIONAL_STATE_COLUMNS = {"contacts": False, "channels": False}
+
+
+INITIAL_CONDITIONS = {
+    "assort_by": None,
+    "burn_in_periods": 1,
+    "growth_rate": 1,
+    "known_cases_multiplier": 1,
+    "initial_infections": 0.01,
+    "initial_immunity": None,
 }
 
 

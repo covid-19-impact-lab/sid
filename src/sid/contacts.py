@@ -1,3 +1,6 @@
+from typing import Dict
+from typing import List
+
 import numba as nb
 import numpy as np
 import pandas as pd
@@ -6,11 +9,12 @@ from sid.config import DTYPE_INDEX
 from sid.config import DTYPE_INFECTED
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_N_CONTACTS
+from sid.shared import boolean_choice
 from sid.shared import factorize_assortative_variables
 from sid.shared import validate_return_is_series_or_ndarray
 
 
-def calculate_contacts(contact_models, contact_policies, states, params, date):
+def calculate_contacts(contact_models, contact_policies, states, params, date, seed):
     """Calculate number of contacts of different types.
 
     Args:
@@ -19,6 +23,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
         states (pandas.DataFrame): See :ref:`states`.
         params (pandas.DataFrame): See :ref:`params`.
         date (pandas.Timestamp): The current date.
+        seed (itertools.count)
 
     Returns:
         contacts (numpy.ndarray): DataFrame with one column for each contact model.
@@ -29,7 +34,9 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
     for i, (model_name, model) in enumerate(contact_models.items()):
         loc = model.get("loc", params.index)
         func = model["model"]
-        model_specific_contacts = func(states, params.loc[loc])
+        model_specific_contacts = func(
+            states=states, params=params.loc[loc], seed=next(seed)
+        )
         model_specific_contacts = validate_return_is_series_or_ndarray(
             model_specific_contacts, when=f"Contact model {model_name}"
         )
@@ -44,7 +51,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
                         model_specific_contacts = policy["policy"](
                             states=states,
                             contacts=model_specific_contacts,
-                            params=params,
+                            seed=next(seed),
                         )
 
         if not model["is_recurrent"]:
@@ -61,7 +68,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
 
 
 def calculate_infections_by_contacts(
-    states, contacts, params, indexers, group_cdfs, seed
+    states, contacts, params, indexers, group_cdfs, code_to_contact_model, seed
 ):
     """Calculate infections from contacts.
 
@@ -125,6 +132,7 @@ def calculate_infections_by_contacts(
         infection_counter,
         immune,
         missed,
+        was_infected_by,
     ) = _calculate_infections_by_contacts_numba(
         reduced_contacts,
         infectious,
@@ -149,7 +157,12 @@ def calculate_infections_by_contacts(
     )
     missed_contacts.loc[:, is_recurrent] = 0
 
-    return infected, n_has_additionally_infected, missed_contacts
+    categories = {-1: "not_infected_by_contact", **code_to_contact_model}
+    was_infected_by = pd.Series(
+        pd.Categorical(was_infected_by, categories=list(categories)), index=states.index
+    ).cat.rename_categories(new_categories=categories)
+
+    return infected, n_has_additionally_infected, missed_contacts, was_infected_by
 
 
 @nb.njit
@@ -281,6 +294,7 @@ def _calculate_infections_by_contacts_numba(
     infected = np.zeros(len(contacts), dtype=DTYPE_INFECTED)
     infection_counter = np.zeros(len(contacts), dtype=DTYPE_INFECTION_COUNTER)
     groups_list = [np.arange(len(gp)) for gp in group_cdfs]
+    was_infected_by = np.full(len(contacts), -1, dtype=np.int16)
 
     # Loop over all individual-contact_model combinations
     for k in range(len(loop_order)):
@@ -304,6 +318,7 @@ def _calculate_infections_by_contacts_numba(
                             infection_counter[i] += 1
                             infected[j] = 1
                             immune[j] = True
+                            was_infected_by[j] = cm
 
         else:
             # get the probabilities for meeting another group which depend on the
@@ -334,15 +349,17 @@ def _calculate_infections_by_contacts_numba(
                         infection_counter[i] += 1
                         infected[j] = 1
                         immune[j] = True
+                        was_infected_by[j] = cm
 
                     elif infectious[j] and not immune[i]:
                         infection_counter[j] += 1
                         infected[i] = 1
                         immune[i] = True
+                        was_infected_by[i] = cm
 
     missed = contacts
 
-    return infected, infection_counter, immune, missed
+    return infected, infection_counter, immune, missed, was_infected_by
 
 
 @nb.njit
@@ -446,31 +463,9 @@ def _get_index_refining_search(u, cdf):
     return i
 
 
-@nb.njit
-def boolean_choice(truth_prob):
-    """Return True with probability truth_prob.
-
-    Note: This function is also used in sid-estimation.
-
-    Args:
-        truth_prob (float): Must be between 0 and 1.
-
-    Returns:
-        bool
-
-    Example:
-        >>> boolean_choice(1)
-        True
-
-        >>> boolean_choice(0)
-        False
-
-    """
-    u = np.random.uniform(0, 1)
-    return u <= truth_prob
-
-
-def create_group_indexer(states, assort_by):
+def create_group_indexer(
+    states: pd.DataFrame, assort_by: Dict[str, List[str]]
+) -> nb.typed.List:
     """Create the group indexer.
 
     The indexer is a list where the positions correspond to the group number defined by
@@ -488,7 +483,7 @@ def create_group_indexer(states, assort_by):
 
     Args:
         states (pandas.DataFrame): See :ref:`states`
-        assort_by (list): List of variables that influence matching probabilities.
+        assort_by (List[str]): List of variables that influence matching probabilities.
 
     Returns:
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.

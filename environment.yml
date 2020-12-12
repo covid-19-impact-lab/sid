@@ -28,11 +28,11 @@ dependencies:
   - pytest
   - pytest-regressions
   - pytest-xdist
+  - python-snappy
   - scipy
   - seaborn
   - snakeviz
-  - pydata-sphinx-theme
-  - python-snappy
+  - tqdm
 
   - sphinx
   - sphinx-copybutton

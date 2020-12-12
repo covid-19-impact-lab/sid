@@ -13,13 +13,17 @@ sid
     :target: https://sid-dev.readthedocs.io/en/latest
 
 .. image:: https://codecov.io/gh/covid-19-impact-lab/sid/branch/master/graph/badge.svg
-  :target: https://codecov.io/gh/covid-19-impact-lab/sid
+    :target: https://codecov.io/gh/covid-19-impact-lab/sid
 
-.. image:: https://img.shields.io/badge/License-none-yellow.svg
-    :target: https://opensource.org/licenses/none
+.. image:: https://img.shields.io/badge/License-MIT-yellow.svg
+    :target: https://opensource.org/licenses/MIT
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
+
+.. image:: https://results.pre-commit.ci/badge/github/covid-19-impact-lab/sid/main.svg
+    :target: https://results.pre-commit.ci/latest/github/covid-19-impact-lab/sid/main
+    :alt: pre-commit.ci status
 
 .. end-badges
 
