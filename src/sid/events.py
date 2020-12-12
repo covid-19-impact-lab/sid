@@ -30,8 +30,9 @@ def calculate_infections_by_events(states, params, events):
         channel_infected_by_event.loc[s & channel_infected_by_event.eq(-1)] = i
 
     codes_to_event = {-1: "not_infected_by_event", **dict(enumerate(events))}
-    channel_infected_by_event = channel_infected_by_event.astype(
-        "category"
+    channel_infected_by_event = pd.Series(
+        pd.Categorical(channel_infected_by_event, categories=list(codes_to_event)),
+        index=states.index,
     ).cat.rename_categories(codes_to_event)
 
     return infected_by_event, channel_infected_by_event

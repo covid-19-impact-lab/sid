@@ -126,13 +126,13 @@ def update_states(
         # For everyone who received a test result, the countdown for the test processing
         # has expired. If you have a positive test result (received_test_result &
         # immune) you will leave the state of knowing until your immunity expires.
-        knows_immune = states.received_test_result & states.immune
-        states.loc[knows_immune, "cd_knows_immune_false"] = states.loc[
-            knows_immune, "cd_immune_false"
+        states["new_known_case"] = states.received_test_result & states.immune
+        states.loc[states["new_known_case"], "cd_knows_immune_false"] = states.loc[
+            states["new_known_case"], "cd_immune_false"
         ]
-        states.loc[knows_immune, "knows_immune"] = True
+        states.loc[states["new_known_case"], "knows_immune"] = True
 
-        knows_infectious = knows_immune & states.infectious
+        knows_infectious = states["new_known_case"] & states["infectious"]
         states.loc[knows_infectious, "cd_knows_infectious_false"] = states.loc[
             knows_infectious, "cd_infectious_false"
         ]

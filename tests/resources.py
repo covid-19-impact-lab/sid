@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def meet_two(states, params):  # noqa: U100
+def meet_two(states, params, seed):  # noqa: U100
     return pd.Series(index=states.index, data=2)
 
 

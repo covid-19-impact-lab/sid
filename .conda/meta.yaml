@@ -30,6 +30,7 @@ requirements:
     - pandas >=1
     - python-snappy
     - seaborn
+    - tqdm
 
 test:
   requires:

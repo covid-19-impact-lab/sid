@@ -1,3 +1,6 @@
+from typing import Dict
+from typing import List
+
 import numba as nb
 import numpy as np
 import pandas as pd
@@ -11,7 +14,7 @@ from sid.shared import factorize_assortative_variables
 from sid.shared import validate_return_is_series_or_ndarray
 
 
-def calculate_contacts(contact_models, contact_policies, states, params, date):
+def calculate_contacts(contact_models, contact_policies, states, params, date, seed):
     """Calculate number of contacts of different types.
 
     Args:
@@ -20,6 +23,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
         states (pandas.DataFrame): See :ref:`states`.
         params (pandas.DataFrame): See :ref:`params`.
         date (pandas.Timestamp): The current date.
+        seed (itertools.count)
 
     Returns:
         contacts (numpy.ndarray): DataFrame with one column for each contact model.
@@ -30,7 +34,9 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
     for i, (model_name, model) in enumerate(contact_models.items()):
         loc = model.get("loc", params.index)
         func = model["model"]
-        model_specific_contacts = func(states, params.loc[loc])
+        model_specific_contacts = func(
+            states=states, params=params.loc[loc], seed=next(seed)
+        )
         model_specific_contacts = validate_return_is_series_or_ndarray(
             model_specific_contacts, when=f"Contact model {model_name}"
         )
@@ -45,7 +51,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date):
                         model_specific_contacts = policy["policy"](
                             states=states,
                             contacts=model_specific_contacts,
-                            params=params,
+                            seed=next(seed),
                         )
 
         if not model["is_recurrent"]:
@@ -151,9 +157,10 @@ def calculate_infections_by_contacts(
     )
     missed_contacts.loc[:, is_recurrent] = 0
 
-    was_infected_by = pd.Series(was_infected_by, index=states.index).astype("category")
     categories = {-1: "not_infected_by_contact", **code_to_contact_model}
-    was_infected_by.cat.rename_categories(new_categories=categories, inplace=True)
+    was_infected_by = pd.Series(
+        pd.Categorical(was_infected_by, categories=list(categories)), index=states.index
+    ).cat.rename_categories(new_categories=categories)
 
     return infected, n_has_additionally_infected, missed_contacts, was_infected_by
 
@@ -297,8 +304,8 @@ def _calculate_infections_by_contacts_numba(
             # he is infected by some j is only checked, when the main loop arrives at j.
             # This allows us to skip completely if i is not infectious or has no
             # contacts under contact model cm.
-            if infectious[i] and contacts[i, cm] > 0:
-                group_i = group_codes[i, cm]
+            group_i = group_codes[i, cm]
+            if group_i >= 0 and infectious[i] and contacts[i, cm] > 0:
                 others = indexers_list[cm][group_i]
                 # extract infection probability into a variable for faster access
                 prob = infection_probs[cm]
@@ -456,7 +463,9 @@ def _get_index_refining_search(u, cdf):
     return i
 
 
-def create_group_indexer(states, assort_by):
+def create_group_indexer(
+    states: pd.DataFrame, assort_by: Dict[str, List[str]], is_recurrent
+) -> nb.typed.List:
     """Create the group indexer.
 
     The indexer is a list where the positions correspond to the group number defined by
@@ -474,7 +483,7 @@ def create_group_indexer(states, assort_by):
 
     Args:
         states (pandas.DataFrame): See :ref:`states`
-        assort_by (list): List of variables that influence matching probabilities.
+        assort_by (List[str]): List of variables that influence matching probabilities.
 
     Returns:
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
@@ -483,13 +492,15 @@ def create_group_indexer(states, assort_by):
     states = states.reset_index()
     if assort_by:
         groups = states.groupby(assort_by).groups
-        _, group_codes_values = factorize_assortative_variables(states, assort_by)
+        _, group_codes_values = factorize_assortative_variables(
+            states, assort_by, is_recurrent
+        )
 
         indexer = NumbaList()
         for group in group_codes_values:
             # the keys of groups are not tuples if there was just one assort_by variable
             # but the group_codes_values are.
-            group = group[0] if len(group) == 1 else group
+            group = group[0] if isinstance(group, tuple) and len(group) == 1 else group
             indexer.append(groups[group].to_numpy(dtype=DTYPE_INDEX))
 
     else:
