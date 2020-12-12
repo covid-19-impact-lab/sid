@@ -214,7 +214,9 @@ def get_simulate_func(
         validate_prepared_initial_states(initial_states, duration)
     else:
         validate_initial_states(initial_states)
-        initial_states = _process_initial_states(initial_states, assort_bys)
+        initial_states = _process_initial_states(
+            initial_states, assort_bys, contact_models
+        )
         initial_states = draw_course_of_disease(
             initial_states, params, next(startup_seed)
         )
@@ -222,7 +224,9 @@ def get_simulate_func(
             initial_states, params, initial_conditions, share_known_cases, startup_seed
         )
 
-    indexers = _prepare_assortative_matching_indexers(initial_states, assort_bys)
+    indexers = _prepare_assortative_matching_indexers(
+        initial_states, assort_bys, contact_models
+    )
 
     cols_to_keep = _process_saved_columns(
         saved_columns, user_state_columns, contact_models, optional_state_columns
@@ -541,7 +545,7 @@ def _process_assort_bys(contact_models: Dict[str, Any]) -> Dict[str, List[str]]:
 
 
 def _prepare_assortative_matching_indexers(
-    states: pd.DataFrame, assort_bys: Dict[str, List[str]]
+    states: pd.DataFrame, assort_bys: Dict[str, List[str]], contact_models
 ) -> Dict[str, nb.typed.List]:
     """Create indexers and first stage probabilities for assortative matching.
 
@@ -557,7 +561,10 @@ def _prepare_assortative_matching_indexers(
     """
     indexers = {}
     for model_name, assort_by in assort_bys.items():
-        indexers[model_name] = create_group_indexer(states, assort_by)
+        is_recurrent = contact_models[model_name]["is_recurrent"]
+        indexers[model_name] = create_group_indexer(
+            states, assort_by, is_recurrent=is_recurrent
+        )
 
     return indexers
 
@@ -602,7 +609,7 @@ def _add_defaults_to_policy_dict(pol_dict, duration):
     return default
 
 
-def _process_initial_states(states, assort_bys):
+def _process_initial_states(states, assort_bys, contact_models):
     """Process the initial states given by the user.
 
     Args:
@@ -643,8 +650,11 @@ def _process_initial_states(states, assort_bys):
     states["pending_test_date"] = pd.NaT
 
     for model_name, assort_by in assort_bys.items():
+        is_recurrent = contact_models[model_name]["is_recurrent"]
         states[f"group_codes_{model_name}"], _ = factorize_assortative_variables(
-            states, assort_by
+            states,
+            assort_by,
+            is_recurrent=is_recurrent,
         )
 
     return states
