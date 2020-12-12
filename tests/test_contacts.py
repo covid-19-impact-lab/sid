@@ -31,6 +31,14 @@ def test_create_group_indexer(initial_states, assort_by, expected):
     assert calculated == expected
 
 
+def test_create_group_indexer_recurrent():
+    df = pd.DataFrame()
+    df["some_id"] = pd.Series([1, -1, 2, 2, 1]).astype("category")
+    calculated = create_group_indexer(df, ["some_id"], True)
+    calculated = [arr.tolist() for arr in calculated]
+    assert calculated == [[0, 4], [2, 3]]
+
+
 @pytest.mark.parametrize("seed", range(10))
 def test_calculate_infections_numba_with_single_group(num_regression, seed):
     """If you need to regenerate the test data, use ``pytest --force-regen``."""
