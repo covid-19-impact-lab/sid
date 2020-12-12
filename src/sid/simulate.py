@@ -244,6 +244,7 @@ def get_simulate_func(
         columns_to_keep=cols_to_keep,
         indexers=indexers,
         optional_state_columns=optional_state_columns,
+        share_known_cases=share_known_cases,
     )
     return sim_func
 
@@ -264,6 +265,7 @@ def _simulate(
     columns_to_keep,
     indexers,
     optional_state_columns,
+    share_known_cases,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -300,6 +302,13 @@ def _simulate(
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
             will not be saved. The sole category is currently "contacts".
+        share_known_cases (pd.Series): Share of known cases to all cases. The argument
+            is a float or a series with :class:`pd.DatetimeIndex` which covers the whole
+            simulation period and yields the ratio of known infections to all
+            infections.
+
+            This feature can be used instead of testing models which are hard to
+            calibrate to data.
 
     Returns:
         result (dict): The simulation result which includes the following keys:
@@ -398,6 +407,7 @@ def _simulate(
             channel_infected_by_contact=channel_infected_by_contact,
             channel_infected_by_event=channel_infected_by_event,
             channel_demands_test=channel_demands_test,
+            share_known_cases=share_known_cases[date],
         )
 
         _dump_periodic_states(states, columns_to_keep, path, date)

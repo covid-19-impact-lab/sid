@@ -45,7 +45,7 @@ def parse_share_known_cases(share_known_cases, duration, burn_in_periods):
         share_known_cases = pd.Series(index=extended_index, data=share_known_cases)
 
     elif isinstance(share_known_cases, pd.Series):
-        if not duration.isin(share_known_cases.index).all():
+        if not duration["dates"].isin(share_known_cases.index).all():
             raise ValueError(
                 "'share_known_cases' must be given for each date of the simulation "
                 "period."
