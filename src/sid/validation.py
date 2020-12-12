@@ -1,6 +1,7 @@
 """This module contains routines to validate inputs to functions."""
 import warnings
-from typing import Dict, Any
+from typing import Any
+from typing import Dict
 
 import numpy as np
 import pandas as pd

@@ -29,11 +29,9 @@ from sid.initial_conditions import (
     sample_initial_distribution_of_infections_and_immunity,
 )
 from sid.matching_probabilities import create_group_transition_probs
-from sid.parse_model import (
-    parse_duration,
-    parse_share_known_cases,
-    parse_initial_conditions,
-)
+from sid.parse_model import parse_duration
+from sid.parse_model import parse_initial_conditions
+from sid.parse_model import parse_share_known_cases
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
 from sid.testing_allocation import allocate_tests
@@ -42,10 +40,11 @@ from sid.testing_demand import calculate_demand_for_tests
 from sid.testing_processing import process_tests
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
+from sid.validation import validate_initial_conditions
 from sid.validation import validate_initial_states
 from sid.validation import validate_models
 from sid.validation import validate_params
-from sid.validation import validate_prepared_initial_states, validate_initial_conditions
+from sid.validation import validate_prepared_initial_states
 from tqdm import tqdm
 
 

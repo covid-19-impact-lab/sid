@@ -1,8 +1,9 @@
-from typing import Dict, Any
+from collections.abc import Iterable
+from typing import Any
+from typing import Dict
 
 import pandas as pd
 from sid.config import INITIAL_CONDITIONS
-from collections.abc import Iterable
 
 
 def parse_duration(duration=None):

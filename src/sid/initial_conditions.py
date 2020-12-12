@@ -8,8 +8,9 @@ import itertools
 import math
 from typing import Any
 from typing import Dict
+from typing import List
 from typing import Optional
-from typing import Union, List
+from typing import Union
 
 import numba as nb
 import numpy as np

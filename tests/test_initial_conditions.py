@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from sid.config import INITIAL_CONDITIONS
-from sid.parse_model import parse_initial_conditions
 from sid.initial_conditions import _scale_up_initial_infections
 from sid.initial_conditions import _scale_up_initial_infections_numba
 from sid.initial_conditions import _spread_out_initial_infections
@@ -14,6 +13,7 @@ from sid.initial_conditions import (
 )
 from sid.initial_conditions import sample_initial_immunity
 from sid.initial_conditions import sample_initial_infections
+from sid.parse_model import parse_initial_conditions
 from sid.pathogenesis import draw_course_of_disease
 from sid.simulate import _process_initial_states
 

@@ -5,9 +5,9 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+from sid.config import IS_ACTIVE_CASE
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.countdowns import COUNTDOWNS
-from sid.config import IS_ACTIVE_CASE
 
 
 def update_states(
