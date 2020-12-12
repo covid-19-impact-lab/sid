@@ -32,6 +32,7 @@ requirements:
     - pytest-regressions
     - python-snappy
     - seaborn
+    - tqdm
 
 test:
   requires:

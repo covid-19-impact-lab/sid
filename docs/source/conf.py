@@ -62,6 +62,7 @@ autodoc_mock_imports = [
     "numba",
     "numpy",
     "pandas",
+    "tqdm",
 ]
 
 extlinks = {
@@ -73,6 +74,7 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
     "python": ("https://docs.python.org/3.8", None),
+    "dask": ("https://docs.dask.org/en/latest", None),
 }
 
 # Configuration for autoapi.

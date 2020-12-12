@@ -11,3 +11,4 @@ simple model and show you how to use sid to simulate your own model.
    how_to_specify_policies
    how_to_test
    how_to_reduce_memory_consumption
+   how_to_resume_a_simulation
