@@ -173,7 +173,7 @@ def _compute_new_tests_with_share_known_cases(
     The share of known cases is based on newly infected individuals.
 
     """
-    n_new_known_cases = int(states["newly_infected"] * share_known_cases)
+    n_new_known_cases = int(states["newly_infected"].sum() * share_known_cases)
 
     if n_new_known_cases > 0:
         ilocs = np.arange(len(states))[states["newly_infected"]]

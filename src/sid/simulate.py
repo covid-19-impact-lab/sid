@@ -419,7 +419,7 @@ def _simulate(
             n_has_additionally_infected=n_has_additionally_infected,
             indexers=indexers,
             contacts=contacts,
-            to_be_processed_test=to_be_processed_tests,
+            to_be_processed_tests=to_be_processed_tests,
             channel_infected_by_contact=channel_infected_by_contact,
             channel_infected_by_event=channel_infected_by_event,
             channel_demands_test=channel_demands_test,
