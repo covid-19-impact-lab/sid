@@ -411,6 +411,7 @@ def _simulate(
             channel_infected_by_contact=channel_infected_by_contact,
             channel_infected_by_event=channel_infected_by_event,
             channel_demands_test=channel_demands_test,
+            share_known_cases=share_known_cases[date],
         )
 
         _dump_periodic_states(states, columns_to_keep, path, date)

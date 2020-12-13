@@ -37,7 +37,12 @@ def parse_duration(duration):
 
 
 def parse_share_known_cases(share_known_cases, duration, burn_in_periods):
-    """Parse the share of known cases."""
+    """Parse the share of known cases.
+
+    In case ``share_known_cases is None``, the multiplier is set to 0 which means no
+    cases among all cases are known and receive a test.
+
+    """
     extended_index = np.append(burn_in_periods, duration["dates"])
 
     if isinstance(share_known_cases, (float, int)):
