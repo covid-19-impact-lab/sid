@@ -23,7 +23,7 @@ def test_calculate_demand_for_tests(initial_states, params, ask_for_tests):
         testing_demand_models,
         params,
         pd.Timestamp("2020-01-01"),
-        {"channels": True},
+        ["channel_demands_test"],
         seed,
     )
 
