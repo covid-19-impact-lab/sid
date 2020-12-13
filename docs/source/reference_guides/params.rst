@@ -21,7 +21,7 @@ accessible via
 
 .. code-block:: python
 
-    params = sid.get_epidemiological_parameters()
+    params = sid.load_epidemiological_parameters()
 
 
 Currently, we have the following categories:

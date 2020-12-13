@@ -1,26 +1,24 @@
+import warnings
+
 import numba as nb
 import numpy as np
 import pandas as pd
 from sid.config import DTYPE_GROUP_CODE
 from sid.config import INDEX_NAMES
 from sid.config import ROOT_DIR
-from sid.time import sid_period_to_timestamp
 
 
-def get_epidemiological_parameters():
-    """Get epidemiological_parameters."""
+def load_epidemiological_parameters():
+    """Load epidemiological_parameters."""
     return pd.read_csv(ROOT_DIR / "covid_epi_params.csv", index_col=INDEX_NAMES)
 
 
-def get_date(states):
-    """Get date from states."""
-    if "date" in states.columns:
-        out = states["date"].iloc[0]
-    elif "period" in states.columns:
-        out = sid_period_to_timestamp(states["period"].iloc[0])
-    else:
-        raise ValueError("'states' does not contain 'date' or 'period'.")
-    return out
+def get_epidemiological_parameters():
+    warnings.warn(
+        "This function will soon be deprecated. Use load_epidemiological_parameters "
+        "instead."
+    )
+    return load_epidemiological_parameters()
 
 
 def factorize_assortative_variables(states, assort_by, is_recurrent):
@@ -34,21 +32,20 @@ def factorize_assortative_variables(states, assort_by, is_recurrent):
 
     Args:
         states (pandas.DataFrame): The user-defined initial states.
-        assort_by (list, optional): List of variable names. Contacts are assortative by
-            these variables.
-        is_recurrent (bool)
+        assort_by (List[str]): List of variable names. Contacts are assortative by these
+            variables.
+        is_recurrent (bool):
 
     Returns:
         (tuple): Tuple containing
 
-        - group_codes (numpy.ndarray): Array containing the code for each states.
-        - group_codes_values (numpy.ndarray): One-dimensional array where positions
-          correspond the values of assortative variables to form the group.
+        - group_codes (:class:`numpy.ndarray`): Array containing the code for each
+          states.
+        - group_codes_values (:class:`numpy.ndarray`): One-dimensional array where
+          positions correspond the values of assortative variables to form the group.
 
     """
     if is_recurrent:
-        assert isinstance(assort_by, list)
-        assert len(assort_by) == 1
         assort_by_series = states[assort_by[0]].replace({-1: pd.NA})
         group_codes, group_codes_values = pd.factorize(assort_by_series)
     elif assort_by:
@@ -62,61 +59,6 @@ def factorize_assortative_variables(states, assort_by, is_recurrent):
         group_codes_values = [(0,)]
 
     return group_codes, group_codes_values
-
-
-def calculate_r_effective(df, window_length=7):
-    """Calculate the effective reproduction number.
-
-    More information can be found here: https://bit.ly/2VZOR5a.
-
-    Args:
-        df (pandas.DataFrame): states DataFrame for which to calculate R_e, usually
-            the states of one day.
-        window_length (int): how many days to use to identify the previously infectious
-            people. The lower, the more changes in behavior can be seen, but the smaller
-            the number of people on which to calculate R_e.
-
-    Returns:
-        r_effective (float): mean number of people infected by someone whose infectious
-            spell ended in the last *window_length* days.
-
-    """
-    prev_infected = df[df["cd_infectious_false"].between(-window_length, 0)]
-    # the infection counter is only reset to zero once a person becomes infected again
-    # so abstracting from very fast reinfections its mean among those that
-    # ceased to be infectious in the last window_length is R_e.
-    r_effective = prev_infected["n_has_infected"].mean()
-    return r_effective
-
-
-def calculate_r_zero(df, window_length=7):
-    """Calculate the basic replication number R_0.
-
-    This is done by dividing the effective reproduction number by the share of
-    susceptible people in the DataFrame. Using R_e and the share of the susceptible
-    people from the very last period of the time means that heterogeneous matching and
-    changes in the rate of immunity are neglected.
-
-    More explanation can be found here: https://bit.ly/2VZOR5a.
-
-    Args:
-        df (pandas.DataFrame): states DataFrame for which to calculate R_0, usually the
-            states of one period.
-        window_length (int): how many days to use to identify the previously infectious
-            people. The lower, the more changes in behavior can be seen, but the smaller
-            the number of people on which to calculate R_0.
-
-    Returns:
-        r_zero (float): mean number of people that would have been infected by someone
-            whose infectious spell ended in the last *window_length* days if everyone
-            had been susceptible, neglecting heterogeneous matching and changes in the
-            rate of immunity.
-
-    """
-    r_effective = calculate_r_effective(df=df, window_length=window_length)
-    pct_susceptible = 1 - df["immune"].mean()
-    r_zero = r_effective / pct_susceptible
-    return r_zero
 
 
 def random_choice(choices, probabilities=None, decimals=5):
@@ -186,36 +128,6 @@ def random_choice(choices, probabilities=None, decimals=5):
         out = out[0]
 
     return out
-
-
-def validate_return_is_series_or_ndarray(x, index=None, when=None):
-    if isinstance(x, (pd.Series, np.ndarray)):
-        return pd.Series(data=x, index=index)
-    else:
-        raise ValueError(f"'{when}' must always return a pd.Series or a np.ndarray.")
-
-
-def date_is_within_start_and_end_date(date, start, end):
-    """Indicate whether date lies within the start and end dates.
-
-    ``None`` is interpreted as an open boundary.
-
-    Examples:
-        >>> date_is_within_start_and_end_date("2020-01-02", "2020-01-01", "2020-01-03")
-        True
-        >>> date_is_within_start_and_end_date("2020-01-01", "2020-01-02", "2020-01-03")
-        False
-        >>> date_is_within_start_and_end_date("2020-01-01", None, "2020-01-03")
-        True
-
-    """
-    is_within = True
-    if start is not None and pd.Timestamp(start) > pd.Timestamp(date):
-        is_within = False
-    if end is not None and pd.Timestamp(end) < pd.Timestamp(date):
-        is_within = False
-
-    return is_within
 
 
 @nb.njit

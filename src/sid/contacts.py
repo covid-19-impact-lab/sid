@@ -11,7 +11,7 @@ from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_N_CONTACTS
 from sid.shared import boolean_choice
 from sid.shared import factorize_assortative_variables
-from sid.shared import validate_return_is_series_or_ndarray
+from sid.validation import validate_return_is_series_or_ndarray
 
 
 def calculate_contacts(contact_models, contact_policies, states, params, date, seed):
@@ -42,9 +42,9 @@ def calculate_contacts(contact_models, contact_policies, states, params, date, s
         )
         for policy in contact_policies.values():
             if policy["affected_contact_model"] == model_name:
-                policy_start = pd.Timestamp(policy["start"])
-                policy_end = pd.Timestamp(policy["end"])
-                if policy_start <= date <= policy_end and policy["is_active"](states):
+                if (policy["start"] <= date <= policy["end"]) and policy["is_active"](
+                    states
+                ):
                     if isinstance(policy["policy"], (float, int)):
                         model_specific_contacts *= policy["policy"]
                     else:
@@ -62,7 +62,7 @@ def calculate_contacts(contact_models, contact_policies, states, params, date, s
         contacts[:, i] = model_specific_contacts
 
         # Dead people and ICU patients don't have contacts.
-        contacts[states["needs_icu"] | states["dead"], :] = 0
+        contacts[states["needs_icu"] | states["dead"]] = 0
 
     return contacts
 
@@ -91,12 +91,12 @@ def calculate_infections_by_contacts(
     Returns:
         (tuple): Tuple containing
 
-            - infected (pandas.Series): Boolean Series that is True for newly infected
-              people.
-            - n_has_additionally_infected (pandas.Series): A series with counts of
-              people an individual has infected in this period by contact.
-            - missed_contacts (pandas.DataFrame): Counts of missed contacts for each
-              contact model.
+        - infected (pandas.Series): Boolean Series that is True for newly infected
+          people.
+        - n_has_additionally_infected (pandas.Series): A series with counts of people an
+          individual has infected in this period by contact.
+        - missed_contacts (pandas.DataFrame): Counts of missed contacts for each contact
+          model.
 
     """
     is_recurrent = np.array([k not in group_cdfs for k in indexers])
@@ -171,16 +171,18 @@ def _get_shuffled_loop_entries(n_states, n_contact_models, seed, n_model_orders=
 
     We save the loop entries of the following loop in shuffled order:
 
-    for i in range(n_states):
-        for j in range(n_contact_models):
-            pass
+    .. code-block:: python
 
-    The loop entries are stored in an array with n_states * n_contact_model rows
+        for i in range(n_states):
+            for j in range(n_contact_models):
+                pass
+
+    The loop entries are stored in an array with ``n_states * n_contact_model`` rows
     and two columns. The first column contains the i, the second the j elements.
 
     Achieving complete randomness would require us to first store all loop entries
     in an array and then shuffle it. However, this would be very slow. Instead
-    we loop over states in random order and cycle through previously
+    we loop over states in random order and cycle through previously.
 
     """
     np.random.seed(seed)
@@ -233,8 +235,7 @@ def _reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, seed):
             if not is_recurrent[j] and contacts[i, j] != 0:
                 success = 0
                 for _ in range(contacts[i, j]):
-                    u = np.random.uniform(0, 1)
-                    if u <= probs[j]:
+                    if boolean_choice(probs[j]):
                         success += 1
                 reduced_contacts[i, j] = success
     return reduced_contacts
@@ -520,10 +521,10 @@ def _sum_preserving_round(arr):
     deviations are reduced by 1.
 
     Args:
-        arr (numpy.ndarray): 1d numpy array.
+        arr (numpy.ndarray): A one-dimensional array whose values should be rounded.
 
     Returns:
-        numpy.ndarray
+        arr (numpy.ndarray): Array with sum preserved rounded values.
 
     Example:
         >>> arr = np.full(10, 5.2)

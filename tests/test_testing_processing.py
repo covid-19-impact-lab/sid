@@ -46,10 +46,12 @@ def test_processing_w_multiple_models(initial_states, params):
 
         return out
 
+    start = pd.Timestamp("2020-01-01")
+    end = pd.Timestamp("2020-01-04")
     testing_processing_models = {
-        "iteration_1": {"model": processing_model},
-        "iteration_2": {"model": processing_model},
-        "iteration_3": {"model": processing_model},
+        "iteration_1": {"model": processing_model, "start": start, "end": end},
+        "iteration_2": {"model": processing_model, "start": start, "end": end},
+        "iteration_3": {"model": processing_model, "start": start, "end": end},
     }
     params.loc[("testing", "processing", "rel_available_capacity"), "value"] = (
         len(initial_states) / RELATIVE_POPULATION_PARAMETER
@@ -57,7 +59,7 @@ def test_processing_w_multiple_models(initial_states, params):
     initial_states["pending_test"] = True
 
     processed_tests = process_tests(
-        initial_states, testing_processing_models, params, "2020-01-01"
+        initial_states, testing_processing_models, params, pd.Timestamp("2020-01-01")
     )
 
     assert isinstance(processed_tests, pd.Series)
@@ -72,7 +74,11 @@ def test_issue_warning_if_processed_tests_exceed_available_tests(
     initial_states, params, excess, expectation
 ):
     testing_processing_models = {
-        "all": {"model": lambda *x: pd.Series(data=True, index=initial_states.index)}
+        "all": {
+            "model": lambda *x: pd.Series(data=True, index=initial_states.index),
+            "start": pd.Timestamp("2020-01-01"),
+            "end": pd.Timestamp("2020-01-02"),
+        }
     }
     initial_states["pending_test"] = True
 
@@ -84,7 +90,10 @@ def test_issue_warning_if_processed_tests_exceed_available_tests(
 
     with expectation:
         to_be_processed_tests = process_tests(
-            initial_states, testing_processing_models, params, "2020-01-01"
+            initial_states,
+            testing_processing_models,
+            params,
+            pd.Timestamp("2020-01-01"),
         )
 
     assert to_be_processed_tests.all()
@@ -103,7 +112,13 @@ def test_issue_warning_if_processed_tests_exceed_available_tests(
 def test_raise_error_if_processed_tests_have_invalid_return(
     initial_states, params, return_, expectation
 ):
-    testing_processing_models = {"all": {"model": lambda *x: return_}}
+    testing_processing_models = {
+        "all": {
+            "model": lambda *x: return_,
+            "start": pd.Timestamp("2020-01-01"),
+            "end": pd.Timestamp("2020-01-02"),
+        },
+    }
     params.loc[("testing", "processing", "rel_available_capacity"), "value"] = (
         len(initial_states) / RELATIVE_POPULATION_PARAMETER
     )
@@ -111,6 +126,9 @@ def test_raise_error_if_processed_tests_have_invalid_return(
 
     with expectation:
         to_be_processed_tests = process_tests(
-            initial_states, testing_processing_models, params, "2020-01-01"
+            initial_states,
+            testing_processing_models,
+            params,
+            pd.Timestamp("2020-01-01"),
         )
         assert to_be_processed_tests.all()

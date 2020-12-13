@@ -4,7 +4,7 @@ from pandas.testing import assert_series_equal
 from sid.config import DTYPE_DRAW_COURSE_OF_DISEASE
 from sid.pathogenesis import _draw_countdowns
 from sid.pathogenesis import draw_course_of_disease
-from sid.shared import get_epidemiological_parameters
+from sid.shared import load_epidemiological_parameters
 
 
 def test_draw_countdowns_single_row(params):
@@ -74,7 +74,7 @@ def test_draw_countdowns_with_covid_params():
         "80-100",
     ]
     states = pd.DataFrame({"age_group": age_groups * 10})
-    params = get_epidemiological_parameters()
+    params = load_epidemiological_parameters()
     res = draw_course_of_disease(states, params, 0)
     to_die = res[res["cd_dead_true_draws"] > 0]
     assert (to_die["cd_needs_icu_false_draws"] == -1).all()
