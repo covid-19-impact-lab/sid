@@ -16,9 +16,9 @@ def update_states(
     newly_infected_contacts: pd.Series,
     newly_infected_events: pd.Series,
     params: pd.DataFrame,
+    share_known_cases: Optional[float],
+    to_be_processed_tests: Optional[pd.Series],
     seed: itertools.count,
-    share_known_cases: Optional[float] = None,
-    to_be_processed_test: Optional[pd.Series] = None,
 ):
     """Update the states with new infections and advance it by one period.
 
@@ -31,9 +31,9 @@ def update_states(
         newly_infected_events (pandas.Series): Boolean series indicating individuals
             infected by events. There can be an overlap with infections by contacts.
         params (pandas.DataFrame): See :ref:`params`.
-        seed (itertools.count): Seed counter to control randomness.
         share_known_cases (Optional[float]): Share of known cases.
-        to_be_processed_test (pandas.Series): Tests which are going to be processed.
+        to_be_processed_tests (pandas.Series): Tests which are going to be processed.
+        seed (itertools.count): Seed counter to control randomness.
 
     Returns: states (pandas.DataFrame): Updated states with reduced countdown lengths,
         newly started countdowns, and killed people over the ICU limit.
@@ -51,12 +51,12 @@ def update_states(
     states["newly_deceased"] = states.eval(IS_NEWLY_DECEASED)
 
     if share_known_cases is not None:
-        to_be_processed_test = _compute_new_tests_with_share_known_cases(
+        to_be_processed_tests = _compute_new_tests_with_share_known_cases(
             states, share_known_cases
         )
 
-    if to_be_processed_test is not None:
-        states = _update_info_on_new_tests(states, to_be_processed_test)
+    if to_be_processed_tests is not None:
+        states = _update_info_on_new_tests(states, to_be_processed_tests)
 
     return states
 
@@ -146,14 +146,14 @@ def _compute_new_tests_with_share_known_cases(
 
 
 def _update_info_on_new_tests(
-    states: pd.DataFrame, to_be_processed_test: pd.Series
+    states: pd.DataFrame, to_be_processed_tests: pd.Series
 ) -> pd.DataFrame:
     # Remove information on pending tests for tests which are processed.
-    states.loc[to_be_processed_test, "pending_test_date"] = pd.NaT
+    states.loc[to_be_processed_tests, "pending_test_date"] = pd.NaT
 
     # Start the countdown for processed tests.
-    states.loc[to_be_processed_test, "cd_received_test_result_true"] = states.loc[
-        to_be_processed_test, "cd_received_test_result_true_draws"
+    states.loc[to_be_processed_tests, "cd_received_test_result_true"] = states.loc[
+        to_be_processed_tests, "cd_received_test_result_true_draws"
     ]
 
     # For everyone who received a test result, the countdown for the test processing

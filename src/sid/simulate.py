@@ -397,9 +397,9 @@ def _simulate(
             newly_infected_contacts=newly_infected_contacts,
             newly_infected_events=newly_infected_events,
             params=params,
-            seed=seed,
             share_known_cases=share_known_cases[date],
-            to_be_processed_test=to_be_processed_tests,
+            to_be_processed_tests=to_be_processed_tests,
+            seed=seed,
         )
 
         states = _add_additional_information_to_states(
@@ -737,8 +737,22 @@ def _prepare_simulation_result(output_directory, columns_to_keep, last_states):
 
 
 def _process_saved_columns(
-    saved_columns, initial_state_columns, contact_models
+    saved_columns: Union[None, Dict[str, Union[bool, str, List[str]]]],
+    initial_state_columns: List[str],
+    contact_models: Dict[str, Dict[str, Any]],
 ) -> List[str]:
+    """Process saved columns.
+
+    This functions combines the user-defined ``saved_columns`` with the default and
+    produces a list of columns names which should be kept in the periodic states.
+
+    The list is also used to check whether additional information should be computed and
+    then stored in the periodic states.
+
+    Returns:
+        keep (List[str]): A list of columns names which should be kept in the states.
+
+    """
     saved_columns = (
         SAVED_COLUMNS if saved_columns is None else {**SAVED_COLUMNS, **saved_columns}
     )
@@ -801,16 +815,18 @@ def _are_states_prepared(states: pd.DataFrame) -> bool:
 def _add_additional_information_to_states(
     states: pd.DataFrame,
     columns_to_keep: List[str],
-    n_has_additionally_infected: Optional[pd.Series] = None,
-    indexers: Optional[Dict[int, np.ndarray]] = None,
-    contacts: Optional[np.ndarray] = None,
-    channel_infected_by_contact: Optional[pd.Series] = None,
-    channel_infected_by_event: Optional[pd.Series] = None,
-    channel_demands_test: Optional[pd.Series] = None,
+    n_has_additionally_infected: Optional[pd.Series],
+    indexers: Optional[Dict[int, np.ndarray]],
+    contacts: Optional[np.ndarray],
+    channel_infected_by_contact: Optional[pd.Series],
+    channel_infected_by_event: Optional[pd.Series],
+    channel_demands_test: Optional[pd.Series],
 ):
     """Add additional but optional information to states.
 
     Args:
+        states (pandas.DataFrame): The states of one period.
+        columns_to_keep (List[str]): A list of columns names which should be kept.
         n_has_additionally_infected (Optional[pandas.Series]): Additionally infected
             persons by this individual.
         indexers (dict): Dictionary with contact models as keys in the same order as the
