@@ -70,6 +70,8 @@ INITIAL_CONDITIONS = {
     "initial_immunity": None,
 }
 
+POLICIES = {"is_active": lambda states: True}  # noqa: U100
+
 
 SID_TIME_START = pd.Timestamp("2019-01-01")
 

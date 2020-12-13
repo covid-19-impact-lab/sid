@@ -5,10 +5,10 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
+from sid import get_date
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import INDEX_NAMES
 from sid.countdowns import COUNTDOWNS
-from sid.shared import get_date
 
 
 def validate_params(params: pd.DataFrame) -> None:
@@ -82,6 +82,9 @@ def validate_params(params: pd.DataFrame) -> None:
 def validate_initial_states(initial_states):
     if not isinstance(initial_states, pd.DataFrame):
         raise ValueError("initial_states must be a DataFrame.")
+
+    if np.any(initial_states.isna()):
+        raise ValueError("'initial_states' are not allowed to contain NaNs.")
 
 
 def validate_prepared_initial_states(states, duration):
@@ -194,3 +197,10 @@ def validate_initial_conditions(initial_conditions: Dict[str, Any]) -> None:
 
     if not initial_conditions["growth_rate"] >= 1:
         raise ValueError("'growth_rate' must be greater than or equal to 1.")
+
+
+def validate_return_is_series_or_ndarray(x, index=None, when=None):
+    if isinstance(x, (pd.Series, np.ndarray)):
+        return pd.Series(data=x, index=index)
+    else:
+        raise ValueError(f"'{when}' must always return a pd.Series or a np.ndarray.")

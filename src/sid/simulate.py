@@ -19,6 +19,7 @@ from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import OPTIONAL_STATE_COLUMNS
+from sid.config import POLICIES
 from sid.config import SAVED_COLUMNS
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
@@ -52,15 +53,15 @@ logger = logging.getLogger("sid")
 
 
 def get_simulate_func(
-    params,
-    initial_states,
-    contact_models,
-    duration=None,
-    events=None,
-    contact_policies=None,
-    testing_demand_models=None,
-    testing_allocation_models=None,
-    testing_processing_models=None,
+    params: pd.DataFrame,
+    initial_states: pd.DataFrame,
+    contact_models: Dict[str, Any],
+    duration: Dict[str, Any],
+    events: Optional[Dict[str, Any]] = None,
+    contact_policies: Optional[Dict[str, Any]] = None,
+    testing_demand_models: Optional[Dict[str, Any]] = None,
+    testing_allocation_models: Optional[Dict[str, Any]] = None,
+    testing_processing_models: Optional[Dict[str, Any]] = None,
     seed: Optional[int] = None,
     path: Union[str, Path, None] = None,
     saved_columns: Optional[Dict[str, Union[bool, str, List[str]]]] = None,
@@ -79,19 +80,22 @@ def get_simulate_func(
             of contacts, contagiousness and dangerousness of the disease, ... .
         initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the column
             "date" because it is used internally.
-        contact_models (dict): Dictionary of dictionaries where each dictionary
-            describes a channel by which contacts can be formed. See
+        contact_models (Dict[str, Any]): Dictionary of dictionaries where each
+            dictionary describes a channel by which contacts can be formed. See
             :ref:`contact_models`.
-        duration (dict or None): Duration is a dictionary containing kwargs for
+        duration (Dict[str, Any]): Duration is a dictionary containing kwargs for
             :func:`pandas.date_range`.
-        events (dict or None): Dictionary of events which cause infections.
-        contact_policies (dict): Dict of dicts with contact. See :ref:`policies`.
-        testing_demand_models (dict): Dict of dicts with demand models for tests. See
-            :ref:`testing_demand_models` for more information.
-        testing_allocation_models (dict): Dict of dicts with allocation models for
-            tests. See :ref:`testing_allocation_models` for more information.
-        testing_processing_models (dict): Dict of dicts with processing models for
-            tests. See :ref:`testing_processing_models` for more information.
+        events (Optional[Dict[str, Any]]): Dictionary of events which cause infections.
+        contact_policies (Optional[Dict[str, Any]]): Dict of dicts with contact. See
+            :ref:`policies`.
+        testing_demand_models (Optional[Dict[str, Any]]): Dict of dicts with demand
+            models for tests. See :ref:`testing_demand_models` for more information.
+        testing_allocation_models (Optional[Dict[str, Any]]): Dict of dicts with
+            allocation models for tests. See :ref:`testing_allocation_models` for more
+            information.
+        testing_processing_models (Optional[Dict[str, Any]]): Dict of dicts with
+            processing models for tests. See :ref:`testing_processing_models` for more
+            information.
         seed (Optional[int]): The seed is used as the starting point for two seed
             sequences where one is used to set up the simulation function and the other
             seed sequence is used within the simulation and reset every parameter
@@ -193,10 +197,18 @@ def get_simulate_func(
     contact_models = _sort_contact_models(contact_models)
     assort_bys = _process_assort_bys(contact_models)
     duration = parse_duration(duration)
-    contact_policies = {
-        key: _add_defaults_to_policy_dict(val, duration)
-        for key, val in contact_policies.items()
-    }
+
+    contact_policies = _add_default_duration_to_models(contact_policies, duration)
+    contact_policies = _add_defaults_to_policy_dict(contact_policies)
+    testing_demand_models = _add_default_duration_to_models(
+        testing_demand_models, duration
+    )
+    testing_allocation_models = _add_default_duration_to_models(
+        testing_allocation_models, duration
+    )
+    testing_processing_models = _add_default_duration_to_models(
+        testing_processing_models, duration
+    )
 
     initial_conditions = parse_initial_conditions(initial_conditions, duration["start"])
     validate_initial_conditions(initial_conditions)
@@ -306,9 +318,9 @@ def _simulate(
             by default, but some of them are costly to add and thus only added when
             needed. Columns that are not in the state but specified in ``saved_columns``
             will not be saved. The sole category is currently "contacts".
-        share_known_cases (pd.Series): Share of known cases to all cases. The argument
-            is a float or a series with :class:`pd.DatetimeIndex` which covers the whole
-            simulation period and yields the ratio of known infections to all
+        share_known_cases (pandas.Series): Share of known cases to all cases. The
+            argument is a float or a series with :class:`pd.DatetimeIndex` which covers
+            the whole simulation period and yields the ratio of known infections to all
             infections.
 
             This feature can be used instead of testing models which are hard to
@@ -317,9 +329,9 @@ def _simulate(
     Returns:
         result (dict): The simulation result which includes the following keys:
 
-        - ``time_series`` (:class:`dask.dataframe`): The DataFrame contains the states
+        - **time_series** (:class:`dask.dataframe`): The DataFrame contains the states
           of each period (see :ref:`states`).
-        - ``last_states`` (:class:`dask.dataframe`): The states of the last simulated
+        - **last_states** (:class:`dask.dataframe`): The states of the last simulated
           period to resume the simulation.
 
     """
@@ -432,15 +444,18 @@ def _generate_seeds(seed: Optional[int]):
 
     If the seed is ``None``, only the start-up seed is sampled and the seed for
     simulation is set to ``None``. This seed will be sampled in :func:`_simulate` and
-    can be influenced by setting ``np.random.seed(seed) right before the call.
+    can be influenced by setting ``np.random.seed(seed)`` right before the call.
 
     Args:
         seed (Optional[int]): The seed provided by the user.
 
     Returns:
-        startup_seed (itertools.count): The seed sequence for the startup.
-        simulation_seed (int): The starting point for the seed sequence in the
-            simulation.
+        out (tuple): A tuple containing
+
+        - **startup_seed** (:class:`itertools.count`): The seed sequence for the
+          startup.
+        - **simulation_seed** (:class:`int`): The starting point for the seed sequence
+          in the simulation.
 
     """
     internal_seed = np.random.randint(0, 1_000_000) if seed is None else seed
@@ -462,7 +477,7 @@ def _create_output_directory(path: Union[str, Path, None]) -> Path:
     an non-empty directory, it is removed and newly created.
 
     Args:
-        path (pathlib.Path or None): Path to the output directory.
+        path (Union[str, Path, None]): Path to the output directory.
 
     Returns:
         output_directory (pathlib.Path): Path to the created output directory.
@@ -478,9 +493,12 @@ def _create_output_directory(path: Union[str, Path, None]) -> Path:
     elif output_directory.exists():
         shutil.rmtree(output_directory)
 
-    output_directory.mkdir(parents=True, exist_ok=True)
-    output_directory.joinpath("last_states").mkdir(parents=True, exist_ok=True)
-    output_directory.joinpath("time_series").mkdir(parents=True, exist_ok=True)
+    for directory in [
+        output_directory,
+        output_directory / "last_states",
+        output_directory / "time_series",
+    ]:
+        directory.mkdir(parents=True, exist_ok=True)
 
     return output_directory
 
@@ -492,10 +510,10 @@ def _sort_contact_models(contact_models: Dict[str, Any]) -> Dict[str, Any]:
     the models are sorted alphabetically.
 
     Args:
-        contact_models (dict): see :ref:`contact_models`
+        contact_models (Dict[str, Any]): See :ref:`contact_models`
 
     Returns:
-        dict: sorted copy of contact_models.
+        Dict[str, Any]: Sorted copy of contact_models.
 
     """
     sorted_ = sorted(
@@ -550,7 +568,7 @@ def _prepare_assortative_matching_indexers(
     """Create indexers and first stage probabilities for assortative matching.
 
     Args:
-        states (pd.DataFrame): see :ref:`states`.
+        states (pandas.DataFrame): see :ref:`states`.
         assort_bys (Dict[str, List[str]]): Keys are names of contact models, values are
             lists with the assort_by variables of the model.
 
@@ -597,16 +615,23 @@ def _prepare_assortative_matching_probabilities(
     return first_probs
 
 
-def _add_defaults_to_policy_dict(pol_dict, duration):
-    """Add defaults to a policy dictionary."""
-    default = {
-        "start": duration["start"],
-        "end": duration["end"],
-        "is_active": lambda states: True,
-    }
-    default.update(pol_dict)
+def _add_default_duration_to_models(dictionaries, duration):
+    for name, model in dictionaries.items():
+        dictionaries[name] = {
+            "start": duration["start"],
+            "end": duration["end"],
+            **model,
+        }
 
-    return default
+    return dictionaries
+
+
+def _add_defaults_to_policy_dict(policies):
+    """Add defaults to a policy dictionary."""
+    for name, model in policies.items():
+        policies[name] = {**POLICIES, **model}
+
+    return policies
 
 
 def _process_initial_states(states, assort_bys, contact_models):
@@ -621,9 +646,6 @@ def _process_initial_states(states, assort_bys, contact_models):
         states (pandas.DataFrame): Processed states.
 
     """
-    if np.any(states.isna()):
-        raise ValueError("'initial_states' are not allowed to contain NaNs.")
-
     # Check if all assort_by columns are categoricals. This is important to save memory.
     assort_by_variables = list(
         set(it.chain.from_iterable(a_b for a_b in assort_bys.values()))
@@ -771,15 +793,12 @@ def _combine_column_lists(user_entries, all_entries):
 
 
 def _process_optional_state_columns(opt_state_cols):
-    res = (
-        OPTIONAL_STATE_COLUMNS
-        if opt_state_cols is None
-        else {**OPTIONAL_STATE_COLUMNS, **opt_state_cols}
-    )
+    opt_state_cols = {} if opt_state_cols is None else opt_state_cols
+    res = {**OPTIONAL_STATE_COLUMNS, **opt_state_cols}
     return res
 
 
-def _are_states_prepared(states):
+def _are_states_prepared(states: pd.DataFrame) -> bool:
     """Are states prepared.
 
     If the states include information on the period or date, we assume that the states

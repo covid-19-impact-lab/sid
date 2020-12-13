@@ -179,7 +179,7 @@ def sample_initial_distribution_of_infections_and_immunity(
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
               number of cases.
-        share_known_cases (pd.Series): Share of known cases to all
+        share_known_cases (pandas.Series): Share of known cases to all
             cases. The argument is a float or a series with :class:`pd.DatetimeIndex`
             which covers the whole simulation period and yields the ratio of known
             infections to all infections.

@@ -1,4 +1,3 @@
-import copy
 from collections.abc import Iterable
 from typing import Any
 from typing import Dict
@@ -70,11 +69,7 @@ def parse_initial_conditions(
     ic: Dict[str, Any], start_date_simulation: pd.Timestamp
 ) -> Dict[str, Any]:
     """Parse the initial conditions."""
-    ic = (
-        copy.deepcopy(INITIAL_CONDITIONS)
-        if ic is None
-        else {**INITIAL_CONDITIONS, **ic}
-    )
+    ic = {**INITIAL_CONDITIONS} if ic is None else {**INITIAL_CONDITIONS, **ic}
 
     if isinstance(ic["assort_by"], str):
         ic["assort_by"] = [ic["assort_by"]]
@@ -105,7 +100,9 @@ def parse_initial_conditions(
         if not (ic["burn_in_periods"] == expected).all():
             raise ValueError(
                 f"Expected 'burn_in_periods' {expected}, but got "
-                f"{ic['burn_in_periods']} instead."
+                f"{ic['burn_in_periods']} instead. This might happen because the "
+                "pd.Dataframe passed as 'initial_infections' does not have dates as "
+                "strings or pd.Timestamps for column names."
             )
     else:
         raise ValueError(
