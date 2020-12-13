@@ -2,7 +2,6 @@ import warnings
 
 import pandas as pd
 from sid.config import RELATIVE_POPULATION_PARAMETER
-from sid.time import is_date_between_start_and_end
 from sid.validation import validate_return_is_series_or_ndarray
 
 
@@ -31,7 +30,7 @@ def process_tests(states, testing_processing_models, params, date):
         loc = model.get("loc", params.index)
         func = model["model"]
 
-        if is_date_between_start_and_end(date, model["start"], model["end"]):
+        if model["start"] <= date <= model["end"]:
             to_be_processed_tests = func(
                 all_to_be_processed_tests.sum(), states, params.loc[loc]
             )

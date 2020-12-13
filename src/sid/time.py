@@ -34,29 +34,6 @@ sid_period_to_timestamp = partial(period_to_timestamp, relative_to=SID_TIME_STAR
 timestamp_to_sid_period = partial(timestamp_to_period, relative_to=SID_TIME_START)
 
 
-def is_date_between_start_and_end(date, start, end):
-    """Indicate whether date lies within the start and end dates.
-
-    ``None`` is interpreted as an open boundary.
-
-    Examples:
-        >>> is_date_between_start_and_end("2020-01-02", "2020-01-01", "2020-01-03")
-        True
-        >>> is_date_between_start_and_end("2020-01-01", "2020-01-02", "2020-01-03")
-        False
-        >>> is_date_between_start_and_end("2020-01-01", None, "2020-01-03")
-        True
-
-    """
-    is_within = True
-    if start is not None and pd.Timestamp(start) > pd.Timestamp(date):
-        is_within = False
-    if end is not None and pd.Timestamp(end) < pd.Timestamp(date):
-        is_within = False
-
-    return is_within
-
-
 def get_date(states):
     """Get date from states."""
     if "date" in states.columns:

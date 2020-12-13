@@ -11,7 +11,6 @@ from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_N_CONTACTS
 from sid.shared import boolean_choice
 from sid.shared import factorize_assortative_variables
-from sid.time import is_date_between_start_and_end
 from sid.validation import validate_return_is_series_or_ndarray
 
 
@@ -43,9 +42,9 @@ def calculate_contacts(contact_models, contact_policies, states, params, date, s
         )
         for policy in contact_policies.values():
             if policy["affected_contact_model"] == model_name:
-                if is_date_between_start_and_end(
-                    date, policy["start"], policy["end"]
-                ) and policy["is_active"](states):
+                if (policy["start"] <= date <= policy["end"]) and policy["is_active"](
+                    states
+                ):
                     if isinstance(policy["policy"], (float, int)):
                         model_specific_contacts *= policy["policy"]
                     else:

@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 from sid.shared import boolean_choices
 from sid.shared import random_choice
-from sid.time import is_date_between_start_and_end
 
 
 def calculate_demand_for_tests(
@@ -79,7 +78,7 @@ def _calculate_demand_probabilities(states, testing_demand_models, params, date)
         loc = model.get("loc", params.index)
         func = model["model"]
 
-        if is_date_between_start_and_end(date, model["start"], model["end"]):
+        if model["start"] <= date <= model["end"]:
             probabilities = func(states, params.loc[loc])
         else:
             probabilities = 0

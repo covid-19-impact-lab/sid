@@ -7,7 +7,7 @@ import pandas as pd
 from sid.config import INITIAL_CONDITIONS
 
 
-def parse_duration(duration=None):
+def parse_duration(duration):
     """Parse the user-defined duration.
 
     Args:

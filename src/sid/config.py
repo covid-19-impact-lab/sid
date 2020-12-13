@@ -77,3 +77,6 @@ SID_TIME_START = pd.Timestamp("2019-01-01")
 
 
 IS_ACTIVE_CASE = "infectious | symptomatic"
+KNOWS_INFECTIOUS = "knows_immune & infectious"
+RECEIVES_POSITIVE_TEST = "received_test_result & immune"
+IS_NEWLY_DECEASED = "cd_dead_true == 0"

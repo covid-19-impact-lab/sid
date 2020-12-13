@@ -5,10 +5,10 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
-from sid import get_date
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import INDEX_NAMES
 from sid.countdowns import COUNTDOWNS
+from sid.time import get_date
 
 
 def validate_params(params: pd.DataFrame) -> None:

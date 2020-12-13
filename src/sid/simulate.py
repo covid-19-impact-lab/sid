@@ -56,7 +56,7 @@ def get_simulate_func(
     params: pd.DataFrame,
     initial_states: pd.DataFrame,
     contact_models: Dict[str, Any],
-    duration: Dict[str, Any],
+    duration: Dict[str, Any] = None,
     events: Optional[Dict[str, Any]] = None,
     contact_policies: Optional[Dict[str, Any]] = None,
     testing_demand_models: Optional[Dict[str, Any]] = None,
@@ -615,12 +615,29 @@ def _prepare_assortative_matching_probabilities(
     return first_probs
 
 
-def _add_default_duration_to_models(dictionaries, duration):
+def _add_default_duration_to_models(
+    dictionaries: Dict[str, Dict[str, Any]], duration: Dict[str, Any]
+) -> Dict[str, Dict[str, Any]]:
+    """Add default durations to models."""
     for name, model in dictionaries.items():
+        start = pd.Timestamp(model.get("start", duration["start"]))
+        end = pd.Timestamp(model.get("end", duration["end"]))
+
+        m = "The {} date of model '{}' could not be converted to a valid pd.Timestamp."
+        if pd.isna(start):
+            raise ValueError(m.format("start", name))
+        if pd.isna(end):
+            raise ValueError(m.format("end", name))
+
+        if end < start:
+            raise ValueError(
+                f"The end date of model '{name}' is before the start date."
+            )
+
         dictionaries[name] = {
-            "start": duration["start"],
-            "end": duration["end"],
             **model,
+            "start": start,
+            "end": end,
         }
 
     return dictionaries

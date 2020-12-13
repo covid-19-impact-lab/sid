@@ -41,10 +41,12 @@ def test_allocation_w_multiple_models(initial_states, params):
 
         return out
 
+    start = pd.Timestamp("2020-01-01")
+    end = pd.Timestamp("2020-01-04")
     testing_allocation_models = {
-        "iteration_1": {"model": allocation_model},
-        "iteration_2": {"model": allocation_model},
-        "iteration_3": {"model": allocation_model},
+        "iteration_1": {"model": allocation_model, "start": start, "end": end},
+        "iteration_2": {"model": allocation_model, "start": start, "end": end},
+        "iteration_3": {"model": allocation_model, "start": start, "end": end},
     }
     demands_test = pd.Series(index=initial_states.index, data=True)
     params.loc[("testing", "allocation", "rel_available_tests"), "value"] = (
@@ -52,7 +54,11 @@ def test_allocation_w_multiple_models(initial_states, params):
     )
 
     allocated_tests = allocate_tests(
-        initial_states, testing_allocation_models, demands_test, params, "2020-01-01"
+        initial_states,
+        testing_allocation_models,
+        demands_test,
+        params,
+        pd.Timestamp("2020-01-01"),
     )
 
     assert isinstance(allocated_tests, pd.Series)
@@ -67,7 +73,11 @@ def test_issue_warning_if_allocated_tests_exceed_available_tests(
     initial_states, params, excess, expectation
 ):
     testing_allocation_models = {
-        "all": {"model": lambda *x: pd.Series(data=True, index=initial_states.index)}
+        "all": {
+            "model": lambda *x: pd.Series(data=True, index=initial_states.index),
+            "start": pd.Timestamp("2020-01-01"),
+            "end": pd.Timestamp("2020-01-02"),
+        }
     }
     demands_test = pd.Series(index=initial_states.index, data=True)
     params.loc[("testing", "allocation", "rel_available_tests"), "value"] = (
@@ -82,7 +92,7 @@ def test_issue_warning_if_allocated_tests_exceed_available_tests(
             testing_allocation_models,
             demands_test,
             params,
-            "2020-01-01",
+            pd.Timestamp("2020-01-01"),
         )
 
     assert allocated_tests.all()
@@ -101,7 +111,13 @@ def test_issue_warning_if_allocated_tests_exceed_available_tests(
 def test_raise_error_if_allocated_tests_have_invalid_return(
     initial_states, params, return_, expectation
 ):
-    testing_allocation_models = {"all": {"model": lambda *x: return_}}
+    testing_allocation_models = {
+        "all": {
+            "model": lambda *x: return_,
+            "start": pd.Timestamp("2020-01-01"),
+            "end": pd.Timestamp("2020-01-02"),
+        }
+    }
     demands_test = pd.Series(index=initial_states.index, data=True)
     params.loc[("testing", "allocation", "rel_available_tests"), "value"] = (
         len(initial_states) / RELATIVE_POPULATION_PARAMETER
@@ -113,6 +129,6 @@ def test_raise_error_if_allocated_tests_have_invalid_return(
             testing_allocation_models,
             demands_test,
             params,
-            "2020-01-01",
+            pd.Timestamp("2020-01-01"),
         )
         assert allocated_tests.all()
