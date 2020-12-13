@@ -194,9 +194,7 @@ def sample_initial_distribution_of_infections_and_immunity(
     """
     initial_infections = initial_conditions["initial_infections"]
     if isinstance(initial_infections, (int, float, pd.Series)):
-        if isinstance(initial_infections, pd.Series):
-            pass
-        elif isinstance(initial_infections, (float, int)):
+        if isinstance(initial_infections, (float, int)):
             initial_infections = sample_initial_infections(
                 initial_infections, index=states.index, seed=next(seed)
             )

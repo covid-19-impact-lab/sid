@@ -23,11 +23,11 @@ def update_states(
     n_has_additionally_infected: Optional[pd.Series] = None,
     indexers: Optional[Dict[int, np.ndarray]] = None,
     contacts: Optional[np.ndarray] = None,
-    to_be_processed_test: Optional[pd.Series] = None,
+    to_be_processed_tests: Optional[pd.Series] = None,
     channel_infected_by_contact: Optional[pd.Series] = None,
     channel_infected_by_event: Optional[pd.Series] = None,
     channel_demands_test: Optional[pd.Series] = None,
-    share_known_cases: Optional[float] = None,
+    share_known_cases: Optional[float] = 0,
 ):
     """Update the states with new infections and advance it by one period.
 
@@ -52,7 +52,7 @@ def update_states(
         indexers (dict): Dictionary with contact models as keys in the same order as the
             contacts matrix.
         contacts (numpy.ndarray): Matrix with number of contacts for each contact model.
-        to_be_processed_test (pandas.Series): Tests which are going to be processed.
+        to_be_processed_tests (pandas.Series): Tests which are going to be processed.
         channel_infected_by_contact (pandas.Series): A categorical series containing the
             information which contact model lead to the infection.
         channel_infected_by_event (pandas.Series): A categorical series containing the
@@ -77,13 +77,13 @@ def update_states(
     # important: this has to be called after _kill_people_over_icu_limit!
     states["newly_deceased"] = states.eval(IS_NEWLY_DECEASED)
 
-    if share_known_cases is not None:
-        to_be_processed_test = _compute_new_tests_with_share_known_cases(
+    if share_known_cases != 0:
+        to_be_processed_tests = _compute_new_tests_with_share_known_cases(
             states, share_known_cases
         )
 
-    if to_be_processed_test is not None:
-        states = _update_info_on_new_tests(states, to_be_processed_test)
+    if to_be_processed_tests is not None:
+        states = _update_info_on_new_tests(states, to_be_processed_tests)
 
     # Add additional information.
     if optional_state_columns["contacts"]:
@@ -196,14 +196,14 @@ def _compute_new_tests_with_share_known_cases(
 
 
 def _update_info_on_new_tests(
-    states: pd.DataFrame, to_be_processed_test: pd.Series
+    states: pd.DataFrame, to_be_processed_tests: pd.Series
 ) -> pd.DataFrame:
     # Remove information on pending tests for tests which are processed.
-    states.loc[to_be_processed_test, "pending_test_date"] = pd.NaT
+    states.loc[to_be_processed_tests, "pending_test_date"] = pd.NaT
 
     # Start the countdown for processed tests.
-    states.loc[to_be_processed_test, "cd_received_test_result_true"] = states.loc[
-        to_be_processed_test, "cd_received_test_result_true_draws"
+    states.loc[to_be_processed_tests, "cd_received_test_result_true"] = states.loc[
+        to_be_processed_tests, "cd_received_test_result_true_draws"
     ]
 
     # For everyone who received a test result, the countdown for the test processing
