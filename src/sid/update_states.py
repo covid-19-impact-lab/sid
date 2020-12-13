@@ -5,7 +5,6 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from sid.config import IS_ACTIVE_CASE
 from sid.config import IS_NEWLY_DECEASED
 from sid.config import KNOWS_INFECTIOUS
 from sid.config import RECEIVES_POSITIVE_TEST
