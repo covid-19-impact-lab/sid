@@ -226,7 +226,6 @@ def sample_initial_distribution_of_infections_and_immunity(
             share_known_cases=share_known_cases[burn_in_date],
             to_be_processed_tests=None,
             seed=seed,
-            share_known_cases=share_known_cases[burn_in_date],
         )
 
     initial_immunity = sample_initial_immunity(
