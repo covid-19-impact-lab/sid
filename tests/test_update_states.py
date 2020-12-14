@@ -5,7 +5,8 @@ from hypothesis import given
 from hypothesis import strategies as st
 from sid.config import INDEX_NAMES
 from sid.update_states import _compute_new_tests_with_share_known_cases
-from sid.update_states import _kill_people_over_icu_limit, _update_info_on_new_tests
+from sid.update_states import _kill_people_over_icu_limit
+from sid.update_states import _update_info_on_new_tests
 
 
 @pytest.mark.unit
@@ -76,40 +77,43 @@ def test_update_info_on_new_tests():
     negative test result.
 
     """
-    states = pd.DataFrame({
-        "pending_test_date": pd.to_datetime([None, "2020-01-01", None, None]),
-        "cd_received_test_result_true": [-1, -1, 0, 0],
-        "cd_received_test_result_true_draws": [3, 3, 3, 3],
-        "received_test_result": [False, False, True, True],
-        "new_known_case": False,
-        "immune": [False, False, True, False],
-        "knows_immune": False,
-        "cd_knows_immune_false": -1,
-        "cd_immune_false": [-1, -1, 100, -1],
-        "infectious": [False, False, True, False],
-        "knows_infectious": False,
-        "cd_knows_infectious_false": -1,
-        "cd_infectious_false": [-1, -1, 5, -1],
-
-    })
+    states = pd.DataFrame(
+        {
+            "pending_test_date": pd.to_datetime([None, "2020-01-01", None, None]),
+            "cd_received_test_result_true": [-1, -1, 0, 0],
+            "cd_received_test_result_true_draws": [3, 3, 3, 3],
+            "received_test_result": [False, False, True, True],
+            "new_known_case": False,
+            "immune": [False, False, True, False],
+            "knows_immune": False,
+            "cd_knows_immune_false": -1,
+            "cd_immune_false": [-1, -1, 100, -1],
+            "infectious": [False, False, True, False],
+            "knows_infectious": False,
+            "cd_knows_infectious_false": -1,
+            "cd_infectious_false": [-1, -1, 5, -1],
+        }
+    )
     to_be_processed_tests = pd.Series([False, True, False, False])
 
     result = _update_info_on_new_tests(states, to_be_processed_tests)
 
-    expected = pd.DataFrame({
-        "pending_test_date": pd.to_datetime([None, None, None, None]),
-        "cd_received_test_result_true": [-1, 3, 0, 0],
-        "cd_received_test_result_true_draws": [3, 3, 3, 3],
-        "received_test_result": [False, False, False, False],
-        "new_known_case": [False, False, True, False],
-        "immune": [False, False, True, False],
-        "knows_immune": [False, False, True, False],
-        "cd_knows_immune_false": [-1, -1, 100, -1],
-        "cd_immune_false": [-1, -1, 100, -1],
-        "infectious": [False, False, True, False],
-        "knows_infectious": [False, False, True, False],
-        "cd_knows_infectious_false": [-1, -1, 5, -1],
-        "cd_infectious_false": [-1, -1, 5, -1],
-    })
+    expected = pd.DataFrame(
+        {
+            "pending_test_date": pd.to_datetime([None, None, None, None]),
+            "cd_received_test_result_true": [-1, 3, 0, 0],
+            "cd_received_test_result_true_draws": [3, 3, 3, 3],
+            "received_test_result": [False, False, False, False],
+            "new_known_case": [False, False, True, False],
+            "immune": [False, False, True, False],
+            "knows_immune": [False, False, True, False],
+            "cd_knows_immune_false": [-1, -1, 100, -1],
+            "cd_immune_false": [-1, -1, 100, -1],
+            "infectious": [False, False, True, False],
+            "knows_infectious": [False, False, True, False],
+            "cd_knows_infectious_false": [-1, -1, 5, -1],
+            "cd_infectious_false": [-1, -1, 5, -1],
+        }
+    )
 
     assert result.equals(expected)
