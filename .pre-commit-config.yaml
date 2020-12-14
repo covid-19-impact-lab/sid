@@ -48,7 +48,7 @@ repos:
             Pygments,
         ]
 - repo: https://github.com/nbQA-dev/nbQA
-  rev: 0.5.0
+  rev: 0.5.5
   hooks:
     -   id: nbqa-black
     -   id: nbqa-pyupgrade
@@ -63,7 +63,7 @@ repos:
     -   id: interrogate
         args: [-v, --fail-under=40, src, tests]
 -   repo: https://github.com/codespell-project/codespell
-    rev: v1.17.1
+    rev: v2.0.0
     hooks:
     -   id: codespell
         exclude: \.ipynb
