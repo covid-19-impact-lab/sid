@@ -256,6 +256,7 @@ def test_scale_and_spread_initial_infections(
         assert result["ever_infected"].equals(expected)
 
 
+@pytest.mark.unit
 @pytest.mark.parametrize(
     "immunity, infected_or_immune, expectation, expected",
     [

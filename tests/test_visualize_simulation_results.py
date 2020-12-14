@@ -11,6 +11,7 @@ from sid.visualize_simulation_results import visualize_simulation_results
 KEEP_VARS = ["immune", "n_has_infected", "cd_infectious_false"]
 
 
+@pytest.mark.unit
 def test_nice_str():
     s = "hello_world"
     res = _nice_str(s)
@@ -18,12 +19,14 @@ def test_nice_str():
     assert res == expected
 
 
+@pytest.mark.unit
 def test_nice_str_no_change():
     s = "Bye World"
     res = _nice_str(s)
     assert res == s
 
 
+@pytest.mark.unit
 def test_create_folders(tmp_path):
     bg_vars = ["age_group", "gender", "sector", "region"]
     expected = [tmp_path / "general"] + [tmp_path / x for x in bg_vars]

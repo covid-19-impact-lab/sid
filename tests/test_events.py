@@ -1,6 +1,7 @@
 import functools
 
 import pandas as pd
+import pytest
 from sid.events import calculate_infections_by_events
 
 
@@ -11,6 +12,7 @@ def event_infect_n(states, params, i):  # noqa: U100
     return s
 
 
+@pytest.mark.integration
 def test_no_events_combined_with_infections_by_contact(initial_states, params):
     infections_by_events, was_infected_by_event = calculate_infections_by_events(
         initial_states, params, {}
@@ -20,6 +22,7 @@ def test_no_events_combined_with_infections_by_contact(initial_states, params):
     assert was_infected_by_event.eq("not_infected_by_event").all()
 
 
+@pytest.mark.integration
 def test_calculate_infections_by_events(initial_states, params):
     events = {
         "infect_first": {"model": functools.partial(event_infect_n, i=0)},

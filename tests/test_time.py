@@ -82,6 +82,7 @@ def test_timestamp_to_sid_period(timestamp, expected):
         assert (result == expected).all()
 
 
+@pytest.mark.end_to_end
 def test_replace_date_with_period_in_simulation(params, initial_states, tmp_path):
     """Scenario described in "How to reduce memory usage" for replacing date."""
     simulate = get_simulate_func(
