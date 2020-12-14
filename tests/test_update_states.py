@@ -25,8 +25,14 @@ def test_kill_people_over_icu_limit_not_binding():
 
 
 @pytest.mark.unit
-def test_kill_people_over_icu_limit_binding():
-    states = pd.DataFrame({"needs_icu": [False] * 4 + [True] * 6, "cd_dead_true": -1})
+@pytest.mark.parametrize("n_dead", range(6))
+def test_kill_people_over_icu_limit_binding(n_dead):
+    states = pd.DataFrame(
+        {
+            "needs_icu": [False] * (5 - n_dead) + [True] * (5 + n_dead),
+            "cd_dead_true": -1,
+        }
+    )
     params = pd.DataFrame(
         {
             "category": ["health_system"],
@@ -37,7 +43,8 @@ def test_kill_people_over_icu_limit_binding():
     ).set_index(INDEX_NAMES)
 
     result = _kill_people_over_icu_limit(states, params, 0)
-    assert (result["cd_dead_true"].value_counts() == [9, 1]).all()
+    expected = [10 - n_dead, n_dead] if n_dead != 0 else [10]
+    assert (result["cd_dead_true"].value_counts() == expected).all()
 
 
 @pytest.mark.unit
