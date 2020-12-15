@@ -125,7 +125,6 @@ def _msm(
     empirical_moments = copy.deepcopy(empirical_moments)
 
     df = simulate(params)
-    df = df.compute()
 
     simulated_moments = {name: func(df) for name, func in calc_moments.items()}
 
