@@ -125,7 +125,6 @@ def _msm(
     empirical_moments = copy.deepcopy(empirical_moments)
 
     df = simulate(params)
-    df = df.compute()
 
     simulated_moments = {name: func(df) for name, func in calc_moments.items()}
 
@@ -241,11 +240,11 @@ def _harmonize_input(data):
     elif isinstance(data, dict):
         pass
 
-    elif isinstance(data, list):
+    elif isinstance(data, (tuple, list)):
         data = {i: data_ for i, data_ in enumerate(data)}
 
     else:
-        raise TypeError(
+        raise ValueError(
             "Function only accepts lists, dictionaries, functions, Series and "
             "DataFrames as inputs."
         )
