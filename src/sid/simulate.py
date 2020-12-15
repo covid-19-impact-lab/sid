@@ -55,7 +55,7 @@ def get_simulate_func(
     params: pd.DataFrame,
     initial_states: pd.DataFrame,
     contact_models: Dict[str, Any],
-    duration: Dict[str, Any] = None,
+    duration: Optional[Dict[str, Any]] = None,
     events: Optional[Dict[str, Any]] = None,
     contact_policies: Optional[Dict[str, Any]] = None,
     testing_demand_models: Optional[Dict[str, Any]] = None,
@@ -74,15 +74,20 @@ def get_simulate_func(
     when the resulting function is called.
 
     Args:
-        params (pandas.DataFrame): DataFrame with parameters that influence the number
-            of contacts, contagiousness and dangerousness of the disease, ... .
-        initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the column
-            "date" because it is used internally.
-        contact_models (Dict[str, Any]): Dictionary of dictionaries where each
-            dictionary describes a channel by which contacts can be formed. See
-            :ref:`contact_models`.
-        duration (Dict[str, Any]): Duration is a dictionary containing kwargs for
-            :func:`pandas.date_range`.
+        params (pandas.DataFrame): ``params`` is a DataFrame with a three-level index
+            which contains parameters for various aspects of the model. For example,
+            infection probabilities of contact models, multiplier effects of policies,
+            determinants of the course of the disease. More information can be found in
+            :ref:`params`.
+        initial_states (pandas.DataFrame): The initial states are a DataFrame which
+            contains individuals and their characteristics. More information can be
+            found in :ref:`states`.
+        contact_models (Dict[str, Any]): A dictionary of dictionaries where each
+            dictionary describes a channel by which contacts can be formed. More
+            information can be found in :ref:`contact_models`.
+        duration (Optional[Dict[str, Any]]): A dictionary which contains keys and values
+            suited to be passed to :func:`pandas.date_range`. Only the first three
+            arguments, ``"start"``, ``"end"``, and ``"periods"``, are allowed.
         events (Optional[Dict[str, Any]]): Dictionary of events which cause infections.
         contact_policies (Optional[Dict[str, Any]]): Dict of dicts with contact. See
             :ref:`policies`.
