@@ -22,7 +22,7 @@ the ``states`` DataFrame), will be modified while the policy is active. The ``po
 entry is either a float or a function. If it is a float, the contacts are simply
 multiplied with the this number. For non-recurrent contact models we will round the
 results for you to have the wanted reduction on average. If it is a function, it should
-take the ``states``, ``contacts`` and ``params`` as inputs and return a modified
+take the ``states``, ``contacts`` and ``seed`` as inputs and return a modified
 ``contacts`` Series.
 
 To specify when the policy is active, you have three options:

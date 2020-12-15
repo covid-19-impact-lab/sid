@@ -48,16 +48,17 @@ parameterization. This key is optional.
 ``"model"``
 ^^^^^^^^^^^
 
-A function that takes states and params as arguments and returns a Series that has the
-same index as states. The values of the Series are the numbers of contacts for each
-person. An example is:
+A function that takes ``states``, ``params`` and a ``seed`` as arguments and returns
+a Series that has the same index as states.
+The values of the Series are the numbers of contacts for each person.
+An example is:
 
 .. code-block:: python
 
     from sid import get_date
 
 
-    def meet_two_people(states, params):
+    def meet_two_people(states, params, seed):
         # date = get_date(states)  # Get date from states for conditional contacts.
 
         return pd.Series(index=states.index, data=2)

@@ -4,38 +4,42 @@ import pytest
 from pandas.api.types import is_categorical_dtype
 from resources import CONTACT_MODELS
 from sid.config import INDEX_NAMES
-from sid.simulate import _prepare_params
 from sid.simulate import _process_assort_bys
 from sid.simulate import _process_initial_states
 from sid.simulate import get_simulate_func
+from sid.validation import validate_params
 
 
-def test_simple_run(params, initial_states, tmp_path):
-    initial_infections = pd.Series(index=initial_states.index, data=False)
-    initial_infections.iloc[0] = True
-
+def test_simulate_a_simple_model(params, initial_states, tmp_path):
     simulate = get_simulate_func(
-        params,
-        initial_states,
-        initial_infections,
-        CONTACT_MODELS,
+        params=params,
+        initial_states=initial_states,
+        contact_models=CONTACT_MODELS,
+        saved_columns={"other": ["channel_infected_by_contact"]},
         path=tmp_path,
+        seed=144,
     )
 
-    df = simulate(params)
+    result = simulate(params)
 
-    df = df.compute()
+    time_series = result["time_series"].compute()
+    last_states = result["last_states"].compute()
 
-    assert isinstance(df, pd.DataFrame)
+    for df in [time_series, last_states]:
+        assert isinstance(df, pd.DataFrame)
+        assert set(df["channel_infected_by_contact"].cat.categories) == {
+            "not_infected_by_contact",
+            "standard",
+        }
 
 
 def test_check_assort_by_are_categoricals(initial_states):
     assort_bys = _process_assort_bys(CONTACT_MODELS)
 
-    _ = _process_initial_states(initial_states, assort_bys)
+    _ = _process_initial_states(initial_states, assort_bys, CONTACT_MODELS)
 
     initial_states = initial_states.astype(str)
-    processed = _process_initial_states(initial_states, assort_bys)
+    processed = _process_initial_states(initial_states, assort_bys, CONTACT_MODELS)
     for var in ["age_group", "region"]:
         assert is_categorical_dtype(processed[var].dtype)
 
@@ -47,14 +51,14 @@ def test_prepare_params(params):
     params = params.copy().append(s)
 
     with pytest.raises(ValueError, match="No NaNs allowed in the params index."):
-        _prepare_params(params)
+        validate_params(params)
 
 
 @pytest.mark.unit
 @pytest.mark.parametrize("input_", [pd.Series(dtype="object"), (), 1, [], {}, set()])
 def test_prepare_params_with_wrong_inputs(input_):
     with pytest.raises(ValueError, match="params must be a DataFrame."):
-        _prepare_params(input_)
+        validate_params(input_)
 
 
 @pytest.mark.unit
@@ -62,7 +66,7 @@ def test_prepare_params_not_three_dimensional_multi_index(params):
     params = params.copy().reset_index(drop=True)
 
     with pytest.raises(ValueError, match="params must have the index levels"):
-        _prepare_params(params)
+        validate_params(params)
 
 
 @pytest.mark.unit
@@ -70,7 +74,7 @@ def test_prepare_params_no_duplicates_in_index(params):
     params = params.copy().append(params)
 
     with pytest.raises(ValueError, match="No duplicates in the params index allowed."):
-        _prepare_params(params)
+        validate_params(params)
 
 
 @pytest.mark.unit
@@ -79,4 +83,4 @@ def test_prepare_params_value_with_nan(params):
     params["value"].iloc[0] = np.nan
 
     with pytest.raises(ValueError, match="The 'value' column of params must not"):
-        _prepare_params(params)
+        validate_params(params)

@@ -62,6 +62,7 @@ autodoc_mock_imports = [
     "numba",
     "numpy",
     "pandas",
+    "tqdm",
 ]
 
 extlinks = {
@@ -73,9 +74,10 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
     "python": ("https://docs.python.org/3.8", None),
+    "dask": ("https://docs.dask.org/en/latest", None),
 }
 
-# Configuration for autoapi
+# Configuration for autoapi.
 autoapi_type = "python"
 autoapi_dirs = ["../../src"]
 autoapi_keep_files = False
@@ -84,6 +86,10 @@ autoapi_add_toctree_entry = False
 # Remove prefixed $ for bash, >>> for Python prompts, and In [1]: for IPython prompts.
 copybutton_prompt_text = r"\$ |>>> |In \[\d\]: "
 copybutton_prompt_is_regexp = True
+
+
+# Configuration for nbsphinx.
+nbsphinx_execute = "never"
 
 
 # -- Options for HTML output -------------------------------------------------

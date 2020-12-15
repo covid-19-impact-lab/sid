@@ -9,9 +9,10 @@ cd_symptoms_false,all,6,1,,
 cd_needs_icu_true,all,10,1,,
 cd_dead_true,all,2,1,,
 cd_needs_icu_false,all,20,1,,
-health_system,icu_limit_relative,icu_limit_relative,0.0005,,
+health_system,icu_limit_relative,icu_limit_relative,50,,
 infection_prob,standard,standard,0.05,,
-cd_received_test_result_true,all,2,1
-cd_knows_immune_false,all,-1,1
-cd_knows_infectious_false,all,-1,1
-cd_ever_infected,all,-1,1
+cd_received_test_result_true,all,2,1,,
+cd_knows_immune_false,all,-1,1,,
+cd_knows_infectious_false,all,-1,1,,
+cd_ever_infected,all,-1,1,,
+known_cases_multiplier,known_cases_multiplier,known_cases_multiplier,1.1,,

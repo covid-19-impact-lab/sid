@@ -21,7 +21,9 @@ def create_group_transition_probs(states, assort_by, params, model_name):
             j or lower.
 
     """
-    _, group_codes_values = factorize_assortative_variables(states, assort_by)
+    _, group_codes_values = factorize_assortative_variables(
+        states, assort_by, is_recurrent=False
+    )
 
     if not assort_by:
         probs = np.ones((len(group_codes_values), len(group_codes_values)))

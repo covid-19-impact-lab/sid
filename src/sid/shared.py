@@ -1,19 +1,29 @@
+import numba as nb
 import numpy as np
 import pandas as pd
 from sid.config import DTYPE_GROUP_CODE
 from sid.config import INDEX_NAMES
 from sid.config import ROOT_DIR
+from sid.time import sid_period_to_timestamp
 
 
 def get_epidemiological_parameters():
+    """Get epidemiological_parameters."""
     return pd.read_csv(ROOT_DIR / "covid_epi_params.csv", index_col=INDEX_NAMES)
 
 
 def get_date(states):
-    return states.date.iloc[0]
+    """Get date from states."""
+    if "date" in states.columns:
+        out = states["date"].iloc[0]
+    elif "period" in states.columns:
+        out = sid_period_to_timestamp(states["period"].iloc[0])
+    else:
+        raise ValueError("'states' does not contain 'date' or 'period'.")
+    return out
 
 
-def factorize_assortative_variables(states, assort_by):
+def factorize_assortative_variables(states, assort_by, is_recurrent):
     """Factorize assortative variables.
 
     This function forms unique values by combining the different values of assortative
@@ -26,6 +36,7 @@ def factorize_assortative_variables(states, assort_by):
         states (pandas.DataFrame): The user-defined initial states.
         assort_by (list, optional): List of variable names. Contacts are assortative by
             these variables.
+        is_recurrent (bool)
 
     Returns:
         (tuple): Tuple containing
@@ -35,13 +46,17 @@ def factorize_assortative_variables(states, assort_by):
           correspond the values of assortative variables to form the group.
 
     """
-    if assort_by:
+    if is_recurrent:
+        assert isinstance(assort_by, list)
+        assert len(assort_by) == 1
+        assort_by_series = states[assort_by[0]].replace({-1: pd.NA})
+        group_codes, group_codes_values = pd.factorize(assort_by_series)
+    elif assort_by:
         assort_by_series = [states[col].to_numpy() for col in assort_by]
         group_codes, group_codes_values = pd.factorize(
             pd._libs.lib.fast_zip(assort_by_series), sort=True
         )
         group_codes = group_codes.astype(DTYPE_GROUP_CODE)
-
     else:
         group_codes = np.zeros(len(states), dtype=np.uint8)
         group_codes_values = [(0,)]
@@ -201,3 +216,42 @@ def date_is_within_start_and_end_date(date, start, end):
         is_within = False
 
     return is_within
+
+
+@nb.njit
+def boolean_choice(truth_probability):
+    """Sample boolean value with probability given for ``True``.
+
+    Args:
+        truth_probability (float): Must be between 0 and 1.
+
+    Returns:
+        bool: Boolean array.
+
+    Example:
+        >>> boolean_choice(1)
+        True
+        >>> boolean_choice(0)
+        False
+
+    """
+    u = np.random.uniform(0, 1)
+    return u <= truth_probability
+
+
+def boolean_choices(truth_probabilities):
+    """Sample boolean value with probabilities given for ``True``.
+
+    Args:
+        truth_probabilities (float): Must be between 0 and 1.
+
+    Returns:
+        bool: Boolean array.
+
+    Example:
+        >>> boolean_choice(np.array([1, 0]))
+        array([ True, False])
+
+    """
+    u = np.random.uniform(0, 1, size=len(truth_probabilities))
+    return u <= truth_probabilities

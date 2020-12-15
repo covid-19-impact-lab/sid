@@ -25,10 +25,18 @@ from sid.contacts import create_group_indexer
     ],
 )
 def test_create_group_indexer(initial_states, assort_by, expected):
-    calculated = create_group_indexer(initial_states, assort_by)
+    calculated = create_group_indexer(initial_states, assort_by, is_recurrent=False)
     calculated = [arr.tolist() for arr in calculated]
 
     assert calculated == expected
+
+
+def test_create_group_indexer_recurrent():
+    df = pd.DataFrame()
+    df["some_id"] = pd.Series([1, -1, 2, 2, 1]).astype("category")
+    calculated = create_group_indexer(df, ["some_id"], True)
+    calculated = [arr.tolist() for arr in calculated]
+    assert calculated == [[0, 4], [2, 3]]
 
 
 @pytest.mark.parametrize("seed", range(10))
@@ -51,6 +59,7 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
         infection_counter,
         immune,
         missed,
+        was_infected_by,
     ) = _calculate_infections_by_contacts_numba(
         contacts,
         infectious,
@@ -172,7 +181,9 @@ def setup_households_w_one_infection():
         ),
     )
 
-    indexers = {"households": create_group_indexer(states, ["households"])}
+    indexers = {
+        "households": create_group_indexer(states, ["households"], is_recurrent=False)
+    }
 
     group_probs = {}
 
@@ -188,12 +199,14 @@ def test_calculate_infections_only_recurrent_all_participate(
         calc_infected,
         calc_n_has_additionally_infected,
         calc_missed_contacts,
+        was_infected_by,
     ) = calculate_infections_by_contacts(
         states=states,
         contacts=contacts,
         params=params,
         indexers=indexers,
         group_cdfs=group_probs,
+        code_to_contact_model={0: "the_model"},
         seed=itertools.count(),
     )
 
@@ -221,12 +234,14 @@ def test_calculate_infections_only_recurrent_sick_skips(
         calc_infected,
         calc_n_has_additionally_infected,
         calc_missed_contacts,
+        was_infected_by,
     ) = calculate_infections_by_contacts(
         states=states,
         contacts=contacts,
         params=params,
         indexers=indexers,
         group_cdfs=group_probs,
+        code_to_contact_model={0: "the_model"},
         seed=itertools.count(),
     )
 
@@ -251,12 +266,14 @@ def test_calculate_infections_only_recurrent_one_skips(
         calc_infected,
         calc_n_has_additionally_infected,
         calc_missed_contacts,
+        was_infected_by,
     ) = calculate_infections_by_contacts(
         states=states,
         contacts=contacts,
         params=params,
         indexers=indexers,
         group_cdfs=group_probs,
+        code_to_contact_model={0: "the_model"},
         seed=itertools.count(),
     )
 
@@ -279,12 +296,14 @@ def test_calculate_infections_only_recurrent_one_immune(
         calc_infected,
         calc_n_has_additionally_infected,
         calc_missed_contacts,
+        was_infected_by,
     ) = calculate_infections_by_contacts(
         states=states,
         contacts=contacts,
         params=params,
         indexers=indexers,
         group_cdfs=group_probs,
+        code_to_contact_model={0: "the_model"},
         seed=itertools.count(),
     )
 
@@ -332,7 +351,11 @@ def test_calculate_infections_only_non_recurrent(
         data=1.0,
         index=pd.MultiIndex.from_tuples([("infection_prob", "non_rec", "non_rec")]),
     )
-    indexers = {"non_rec": create_group_indexer(states, ["group_codes_non_rec"])}
+    indexers = {
+        "non_rec": create_group_indexer(
+            states, ["group_codes_non_rec"], is_recurrent=False
+        )
+    }
     group_probs = {"non_rec": np.array([[0.8, 1], [0.2, 1]])}
 
     with monkeypatch.context() as m:
@@ -341,12 +364,14 @@ def test_calculate_infections_only_non_recurrent(
             calc_infected,
             calc_n_has_additionally_infected,
             calc_missed_contacts,
+            was_infected_by,
         ) = calculate_infections_by_contacts(
             states=states,
             contacts=contacts,
             params=params,
             indexers=indexers,
             group_cdfs=group_probs,
+            code_to_contact_model={0: "the_model"},
             seed=itertools.count(),
         )
 
@@ -363,6 +388,11 @@ def test_calculate_infections_only_non_recurrent(
 # =====================================================================================
 
 
+def shut_down_model(states, contacts, seed):  # noqa: U100
+    """Set all contacts to zero independent of incoming contacts."""
+    return pd.Series(0, index=states.index)
+
+
 @pytest.fixture()
 def states_all_alive(initial_states):
     states = initial_states[:8].copy()
@@ -373,10 +403,10 @@ def states_all_alive(initial_states):
 
 @pytest.fixture()
 def contact_models():
-    def meet_one(states, params):
+    def meet_one(states, params, seed):
         return pd.Series(1, index=states.index)
 
-    def first_half_meet(states, params):
+    def first_half_meet(states, params, seed):
         n_contacts = pd.Series(0, index=states.index)
         first_half = round(len(states) / 2)
         n_contacts[:first_half] = 1
@@ -410,6 +440,7 @@ def test_calculate_contacts_no_policy(states_all_alive, contact_models):
         states=states_all_alive,
         params=params,
         date=date,
+        seed=itertools.count(),
     )
     np.testing.assert_array_equal(expected, res)
 
@@ -421,7 +452,7 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
             "start": "2020-08-01",
             "end": "2020-08-30",
             "is_active": lambda x: True,
-            "policy": 0,
+            "policy": shut_down_model,
         },
     }
     date = pd.Timestamp("2020-09-29")
@@ -435,6 +466,7 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
         states=states_all_alive,
         params=params,
         date=date,
+        seed=itertools.count(),
     )
     np.testing.assert_array_equal(expected, res)
 
@@ -446,7 +478,7 @@ def test_calculate_contacts_policy_active(states_all_alive, contact_models):
             "start": "2020-09-01",
             "end": "2020-09-30",
             "is_active": lambda states: True,
-            "policy": 0,
+            "policy": shut_down_model,
         },
     }
     date = pd.Timestamp("2020-09-29")
@@ -458,6 +490,7 @@ def test_calculate_contacts_policy_active(states_all_alive, contact_models):
         states=states_all_alive,
         params=params,
         date=date,
+        seed=itertools.count(),
     )
     np.testing.assert_array_equal(expected, res)
 
@@ -471,7 +504,7 @@ def test_calculate_contacts_policy_inactive_through_function(
             "start": "2020-09-01",
             "end": "2020-09-30",
             "is_active": lambda states: False,
-            "policy": 0,
+            "policy": shut_down_model,
         },
     }
     date = pd.Timestamp("2020-09-29")
@@ -485,12 +518,13 @@ def test_calculate_contacts_policy_inactive_through_function(
         states=states_all_alive,
         params=params,
         date=date,
+        seed=itertools.count(),
     )
     np.testing.assert_array_equal(expected, res)
 
 
 def test_calculate_contacts_policy_active_policy_func(states_all_alive, contact_models):
-    def reduce_to_1st_quarter(states, contacts, params):
+    def reduce_to_1st_quarter(states, contacts, seed):
         contacts = contacts.copy()
         contacts[: int(len(contacts) / 4)] = 0
         return contacts
@@ -514,6 +548,7 @@ def test_calculate_contacts_policy_active_policy_func(states_all_alive, contact_
         states=states_all_alive,
         params=params,
         date=date,
+        seed=itertools.count(),
     )
     np.testing.assert_array_equal(expected, res)
 
@@ -549,6 +584,7 @@ def test_calculate_contacts_with_dead(states_with_dead, contact_models):
         states=states_with_dead,
         params=params,
         date=date,
+        seed=itertools.count(),
     )
     np.testing.assert_array_equal(expected, res)
 
