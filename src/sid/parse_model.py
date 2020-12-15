@@ -1,7 +1,9 @@
+import warnings
 from collections.abc import Iterable
 from typing import Any
-from typing import Dict, Union
-import warnings
+from typing import Dict
+from typing import Union
+
 import numpy as np
 import pandas as pd
 from sid.config import INITIAL_CONDITIONS
@@ -49,12 +51,16 @@ def parse_share_known_cases(share_known_cases, duration, burn_in_periods):
     """Parse the share of known cases.
 
     In case ``share_known_cases is None``, the multiplier is set to 0 which means no
-    cases among all cases are known and receive a test.
+    cases among all cases are known and no individual receives a test.
 
     """
     extended_index = np.append(burn_in_periods, duration["dates"])
 
-    if isinstance(share_known_cases, (float, int)):
+    if isinstance(share_known_cases, (float, pd.Series)):
+        if not np.all((0 <= share_known_cases) & (share_known_cases <= 1)):
+            raise ValueError("'share_known_cases' must be between 0 and 1.")
+
+    if isinstance(share_known_cases, float):
         share_known_cases = pd.Series(index=extended_index, data=share_known_cases)
 
     elif isinstance(share_known_cases, pd.Series):
@@ -72,8 +78,8 @@ def parse_share_known_cases(share_known_cases, duration, burn_in_periods):
 
     else:
         raise ValueError(
-            f"'share_known_cases' is {type(share_known_cases)}, but must be int, float "
-            "or pd.Series."
+            f"'share_known_cases' is {type(share_known_cases)}, but must be a float, a"
+            "pd.Series, or None."
         )
 
     return share_known_cases
