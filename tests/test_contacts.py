@@ -449,8 +449,8 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
     contact_policies = {
         "noone_meets": {
             "affected_contact_model": "first_half_meet",
-            "start": "2020-08-01",
-            "end": "2020-08-30",
+            "start": pd.Timestamp("2020-08-01"),
+            "end": pd.Timestamp("2020-08-30"),
             "is_active": lambda x: True,
             "policy": shut_down_model,
         },
@@ -475,8 +475,8 @@ def test_calculate_contacts_policy_active(states_all_alive, contact_models):
     contact_policies = {
         "noone_meets": {
             "affected_contact_model": "first_half_meet",
-            "start": "2020-09-01",
-            "end": "2020-09-30",
+            "start": pd.Timestamp("2020-09-01"),
+            "end": pd.Timestamp("2020-09-30"),
             "is_active": lambda states: True,
             "policy": shut_down_model,
         },
@@ -501,8 +501,8 @@ def test_calculate_contacts_policy_inactive_through_function(
     contact_policies = {
         "noone_meets": {
             "affected_contact_model": "first_half_meet",
-            "start": "2020-09-01",
-            "end": "2020-09-30",
+            "start": pd.Timestamp("2020-09-01"),
+            "end": pd.Timestamp("2020-09-30"),
             "is_active": lambda states: False,
             "policy": shut_down_model,
         },
@@ -532,8 +532,8 @@ def test_calculate_contacts_policy_active_policy_func(states_all_alive, contact_
     contact_policies = {
         "noone_meets": {
             "affected_contact_model": "first_half_meet",
-            "start": "2020-09-01",
-            "end": "2020-09-30",
+            "start": pd.Timestamp("2020-09-01"),
+            "end": pd.Timestamp("2020-09-30"),
             "policy": reduce_to_1st_quarter,
             "is_active": lambda states: True,
         },

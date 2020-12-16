@@ -10,7 +10,7 @@ which is also accessible via
 
 .. code-block:: python
 
-    params = sid.get_epidemiological_parameters()
+    params = sid.load_epidemiological_parameters()
 
 
 Health System

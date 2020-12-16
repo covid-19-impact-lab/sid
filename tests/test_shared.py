@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
-from sid.shared import calculate_r_effective
-from sid.shared import calculate_r_zero
 from sid.shared import factorize_assortative_variables
+from sid.statistics import calculate_r_effective
+from sid.statistics import calculate_r_zero
 
 
 @pytest.mark.parametrize(

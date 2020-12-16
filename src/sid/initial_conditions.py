@@ -8,13 +8,13 @@ import itertools
 import math
 from typing import Any
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Union
 
 import numba as nb
 import numpy as np
 import pandas as pd
-from sid.config import INITIAL_CONDITIONS
 from sid.contacts import boolean_choice
 from sid.update_states import update_states
 
@@ -123,7 +123,8 @@ def sample_initial_immunity(
 def sample_initial_distribution_of_infections_and_immunity(
     states: pd.DataFrame,
     params: pd.DataFrame,
-    initial_conditions: Union[Dict[str, Any], None],
+    initial_conditions: Dict[str, Any],
+    share_known_cases: pd.Series,
     seed: itertools.count,
 ):
     """Sample the initial distribution of infections and immunity.
@@ -141,7 +142,7 @@ def sample_initial_distribution_of_infections_and_immunity(
     Args:
         states (pandas.DataFrame): The states.
         params (pandas.DataFrame): The parameters.
-        initial_conditions (Option[Dict]): The initial conditions allow you to govern
+        initial_conditions (Dict[str, Any]): The initial conditions allow you to govern
             the distribution of infections and immunity and the heterogeneity of courses
             of disease at the start of the simulation. Use ``None`` to assume no
             heterogeneous courses of diseases and 1% infections. Otherwise,
@@ -151,7 +152,7 @@ def sample_initial_distribution_of_infections_and_immunity(
               is preserved between the groups formed by ``assort_by`` variables. By
               default, no group is formed and infections spread across the whole
               population.
-            - ``burn_in_period`` (int): The number of periods over which infections are
+            - ``burn_in_periods`` (int): The number of periods over which infections are
               distributed and can progress. The default is one period.
             - ``growth_rate`` (float): The growth rate specifies the increase of
               infections from one burn-in period to the next. For example, two indicates
@@ -178,20 +179,22 @@ def sample_initial_distribution_of_infections_and_immunity(
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
               number of cases.
+        share_known_cases (pandas.Series): Share of known cases to all
+            cases. The argument is a float or a series with :class:`pd.DatetimeIndex`
+            which covers the whole simulation period and yields the ratio of known
+            infections to all infections.
+
+            This feature can be used instead of testing models which are hard to
+            calibrate to data.
         seed (itertools.count): The seed counter.
 
     Returns:
         states (pandas.DataFrame): The states with sampled infections and immunity.
 
     """
-    initial_conditions = _parse_initial_conditions(initial_conditions)
-    _validate_initial_conditions(initial_conditions)
-
     initial_infections = initial_conditions["initial_infections"]
-    if not isinstance(initial_infections, pd.DataFrame):
-        if isinstance(initial_infections, pd.Series):
-            pass
-        elif isinstance(initial_infections, (float, int)):
+    if isinstance(initial_infections, (int, float, pd.Series)):
+        if isinstance(initial_infections, (float, int)):
             initial_infections = sample_initial_infections(
                 initial_infections, index=states.index, seed=next(seed)
             )
@@ -214,13 +217,14 @@ def sample_initial_distribution_of_infections_and_immunity(
     else:
         spread_out_infections = initial_conditions["initial_infections"]
 
-    for _, infections in spread_out_infections.sort_index(axis=1).items():
+    for burn_in_date in initial_conditions["burn_in_periods"]:
         states = update_states(
             states=states,
-            newly_infected_contacts=infections,
-            newly_infected_events=infections,
+            newly_infected_contacts=spread_out_infections[burn_in_date],
+            newly_infected_events=spread_out_infections[burn_in_date],
             params=params,
             seed=seed,
+            share_known_cases=share_known_cases[burn_in_date],
         )
 
     initial_immunity = sample_initial_immunity(
@@ -229,16 +233,6 @@ def sample_initial_distribution_of_infections_and_immunity(
     states = _integrate_immune_individuals(states, initial_immunity)
 
     return states
-
-
-def _parse_initial_conditions(ic: Dict[str, Any]) -> Dict[str, Any]:
-    """Parse the initial conditions."""
-    ic = INITIAL_CONDITIONS if ic is None else {**INITIAL_CONDITIONS, **ic}
-
-    if isinstance(ic["assort_by"], str):
-        ic["assort_by"] = [ic["assort_by"]]
-
-    return ic
 
 
 def _scale_up_initial_infections(
@@ -319,13 +313,16 @@ def _scale_up_initial_infections_numba(initial_infections, probabilities, seed):
 
 
 def _spread_out_initial_infections(
-    scaled_infections: pd.Series, burn_in_periods: int, growth_rate: float, seed: int
+    scaled_infections: pd.Series,
+    burn_in_periods: List[pd.Timestamp],
+    growth_rate: float,
+    seed: int,
 ) -> pd.DataFrame:
     """Spread out initial infections over several periods, given a growth rate.
 
     Args:
         scaled_infections (pandas.Series): The scaled infections.
-        burn_in_periods (int): Number of burn-in periods.
+        burn_in_periods (List[pd.Timestamp]): Number of burn-in periods.
         growth_rate (float): The growth rate of infections from one burn-in period to
             the next.
         seed (itertools.count): The seed counter.
@@ -337,56 +334,33 @@ def _spread_out_initial_infections(
     """
     np.random.seed(seed)
 
-    if burn_in_periods > 1:
+    n_burn_in_periods = len(burn_in_periods)
+
+    if n_burn_in_periods > 1:
         scaled_infections = scaled_infections.to_numpy()
         if growth_rate == 1:
-            shares = np.array([1] + [0] * (burn_in_periods - 1))
+            shares = np.array([1] + [0] * (n_burn_in_periods - 1))
         else:
-            shares = -np.diff(1 / growth_rate ** np.arange(burn_in_periods + 1))[::-1]
+            shares = -np.diff(1 / growth_rate ** np.arange(n_burn_in_periods + 1))[::-1]
             shares = shares / shares.sum()
         hypothetical_infection_day = np.random.choice(
-            burn_in_periods, p=shares, replace=True, size=len(scaled_infections)
+            n_burn_in_periods, p=shares, replace=True, size=len(scaled_infections)
         )
     else:
         hypothetical_infection_day = np.zeros(len(scaled_infections))
 
     spread_infections = pd.concat(
         [
-            pd.Series((hypothetical_infection_day == period) & scaled_infections)
-            for period in range(burn_in_periods)
+            pd.Series(
+                data=(hypothetical_infection_day == period) & scaled_infections,
+                name=burn_in_periods[period],
+            )
+            for period in range(n_burn_in_periods)
         ],
         axis=1,
     )
 
     return spread_infections
-
-
-def _validate_initial_conditions(initial_conditions: Dict[str, Any]) -> None:
-    """Validate the initial conditions.
-
-    Args:
-        initial_condition (Dict[str, Any]): The initial conditions.
-
-    """
-    initial_infections = initial_conditions["initial_infections"]
-    if not (
-        isinstance(initial_infections, (pd.DataFrame, pd.Series))
-        or (isinstance(initial_infections, int) and initial_infections >= 0)
-        or (isinstance(initial_infections, float) and 0 <= initial_infections <= 1)
-    ):
-        raise ValueError(
-            "'initial_infections' must be a pd.DataFrame, pd.Series, int or float "
-            "between 0 and 1."
-        )
-
-    if not initial_conditions["growth_rate"] >= 1:
-        raise ValueError("'growth_rate' must be greater than or equal to 1.")
-
-    burn_in_periods = initial_conditions["burn_in_periods"]
-    if not (isinstance(burn_in_periods, int) and burn_in_periods >= 1):
-        raise ValueError(
-            "'burn_in_periods' must be an integer which is greater than or equal to 1."
-        )
 
 
 def _integrate_immune_individuals(

@@ -1,6 +1,7 @@
 import itertools
 
 import numpy as np
+import pandas as pd
 import pytest
 from sid.testing_demand import calculate_demand_for_tests
 
@@ -9,7 +10,11 @@ from sid.testing_demand import calculate_demand_for_tests
 @pytest.mark.parametrize("ask_for_tests", [True, False])
 def test_calculate_demand_for_tests(initial_states, params, ask_for_tests):
     testing_demand_models = {
-        "dummy_model": {"model": lambda *x: np.full(len(initial_states), ask_for_tests)}
+        "dummy_model": {
+            "model": lambda *x: np.full(len(initial_states), ask_for_tests),
+            "start": pd.Timestamp("2020-01-01"),
+            "end": pd.Timestamp("2020-01-02"),
+        }
     }
     seed = itertools.count(0)
 
@@ -17,7 +22,7 @@ def test_calculate_demand_for_tests(initial_states, params, ask_for_tests):
         initial_states,
         testing_demand_models,
         params,
-        "2020-01-01",
+        pd.Timestamp("2020-01-01"),
         {"channels": True},
         seed,
     )

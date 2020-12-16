@@ -32,3 +32,14 @@ def timestamp_to_period(timestamp, relative_to):
 
 sid_period_to_timestamp = partial(period_to_timestamp, relative_to=SID_TIME_START)
 timestamp_to_sid_period = partial(timestamp_to_period, relative_to=SID_TIME_START)
+
+
+def get_date(states):
+    """Get date from states."""
+    if "date" in states.columns:
+        out = states["date"].iloc[0]
+    elif "period" in states.columns:
+        out = sid_period_to_timestamp(states["period"].iloc[0])
+    else:
+        raise ValueError("'states' does not contain 'date' or 'period'.")
+    return out

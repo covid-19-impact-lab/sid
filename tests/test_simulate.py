@@ -1,9 +1,12 @@
+from contextlib import ExitStack as does_not_raise  # noqa: N813
+
 import numpy as np
 import pandas as pd
 import pytest
 from pandas.api.types import is_categorical_dtype
 from resources import CONTACT_MODELS
 from sid.config import INDEX_NAMES
+from sid.simulate import _add_default_duration_to_models
 from sid.simulate import _process_assort_bys
 from sid.simulate import _process_initial_states
 from sid.simulate import get_simulate_func
@@ -84,3 +87,44 @@ def test_prepare_params_value_with_nan(params):
 
     with pytest.raises(ValueError, match="The 'value' column of params must not"):
         validate_params(params)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "dicts, duration, expectation, expected",
+    [
+        (
+            {"a": {}},
+            {"start": "2020-01-01", "end": "2020-01-02"},
+            does_not_raise(),
+            {
+                "a": {
+                    "start": pd.Timestamp("2020-01-01"),
+                    "end": pd.Timestamp("2020-01-02"),
+                }
+            },
+        ),
+        (
+            {"a": {"start": None}},
+            {"start": "2020-01-01", "end": "2020-01-02"},
+            pytest.raises(ValueError, match="The start date"),
+            None,
+        ),
+        (
+            {"a": {"end": None}},
+            {"start": "2020-01-01", "end": "2020-01-02"},
+            pytest.raises(ValueError, match="The end date"),
+            None,
+        ),
+        (
+            {"a": {"end": "2019-12-31"}},
+            {"start": "2020-01-01", "end": "2020-01-02"},
+            pytest.raises(ValueError, match="The end date of model"),
+            None,
+        ),
+    ],
+)
+def test_add_default_duration_to_models(dicts, duration, expectation, expected):
+    with expectation:
+        result = _add_default_duration_to_models(dicts, duration)
+        assert result == expected

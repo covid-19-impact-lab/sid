@@ -2,8 +2,7 @@ import warnings
 
 import pandas as pd
 from sid.config import RELATIVE_POPULATION_PARAMETER
-from sid.shared import date_is_within_start_and_end_date
-from sid.shared import validate_return_is_series_or_ndarray
+from sid.validation import validate_return_is_series_or_ndarray
 
 
 def allocate_tests(states, testing_allocation_models, demands_test, params, date):
@@ -33,9 +32,7 @@ def allocate_tests(states, testing_allocation_models, demands_test, params, date
         loc = model.get("loc", params.index)
         func = model["model"]
 
-        if date_is_within_start_and_end_date(
-            date, model.get("start"), model.get("end")
-        ):
+        if model["start"] <= date <= model["end"]:
             allocated_tests = func(
                 all_allocated_tests.sum(), current_demands_test, states, params.loc[loc]
             )

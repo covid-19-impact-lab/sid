@@ -5,6 +5,9 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+from sid.config import IS_NEWLY_DECEASED
+from sid.config import KNOWS_INFECTIOUS
+from sid.config import RECEIVES_POSITIVE_TEST
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.countdowns import COUNTDOWNS
 
@@ -19,10 +22,11 @@ def update_states(
     n_has_additionally_infected: Optional[pd.Series] = None,
     indexers: Optional[Dict[int, np.ndarray]] = None,
     contacts: Optional[np.ndarray] = None,
-    to_be_processed_test: Optional[pd.Series] = None,
+    to_be_processed_tests: Optional[pd.Series] = None,
     channel_infected_by_contact: Optional[pd.Series] = None,
     channel_infected_by_event: Optional[pd.Series] = None,
     channel_demands_test: Optional[pd.Series] = None,
+    share_known_cases: Optional[float] = 0,
 ):
     """Update the states with new infections and advance it by one period.
 
@@ -47,11 +51,12 @@ def update_states(
         indexers (dict): Dictionary with contact models as keys in the same order as the
             contacts matrix.
         contacts (numpy.ndarray): Matrix with number of contacts for each contact model.
-        to_be_processed_test (pandas.Series): Tests which are going to be processed.
+        to_be_processed_tests (pandas.Series): Tests which are going to be processed.
         channel_infected_by_contact (pandas.Series): A categorical series containing the
             information which contact model lead to the infection.
         channel_infected_by_event (pandas.Series): A categorical series containing the
             information which event model lead to the infection.
+        share_known_cases (Optional[float]): Share of known cases.
 
     Returns: states (pandas.DataFrame): Updated states with reduced countdown lengths,
         newly started countdowns, and killed people over the ICU limit.
@@ -60,6 +65,52 @@ def update_states(
     if optional_state_columns is None:
         optional_state_columns = {"reason_for_infection": False, "contacts": False}
 
+    states = _update_countdowns(states)
+
+    states = _update_info_on_newly_infected(
+        states, newly_infected_contacts, newly_infected_events
+    )
+
+    states = _kill_people_over_icu_limit(states, params, next(seed))
+
+    # important: this has to be called after _kill_people_over_icu_limit!
+    states["newly_deceased"] = states.eval(IS_NEWLY_DECEASED)
+
+    if share_known_cases != 0:
+        to_be_processed_tests = _compute_new_tests_with_share_known_cases(
+            states, share_known_cases
+        )
+
+    if to_be_processed_tests is not None:
+        states = _update_info_on_new_tests(states, to_be_processed_tests)
+
+    # Add additional information.
+    if optional_state_columns["contacts"]:
+        if isinstance(optional_state_columns, list):
+            cols_to_add = optional_state_columns["contacts"]
+        else:
+            cols_to_add = [f"n_contacts_{model}" for model in indexers]
+        if indexers is not None and contacts is not None:
+            for i, contact_model in enumerate(indexers):
+                if f"n_contacts_{contact_model}" in cols_to_add:
+                    states[f"n_contacts_{contact_model}"] = contacts[:, i]
+
+    if channel_infected_by_contact is not None:
+        states["channel_infected_by_contact"] = channel_infected_by_contact
+
+    if channel_infected_by_event is not None:
+        states["channel_infected_by_event"] = channel_infected_by_event
+
+    if channel_demands_test is not None and optional_state_columns["channels"]:
+        states["channel_demands_test"] = channel_demands_test
+
+    if n_has_additionally_infected is not None:
+        states["n_has_infected"] += n_has_additionally_infected
+
+    return states
+
+
+def _update_countdowns(states):
     # Reduce all existing countdowns by 1.
     for countdown in COUNTDOWNS:
         states[countdown] -= 1
@@ -73,78 +124,23 @@ def update_states(
         for new_countdown in info.get("starts", []):
             states.loc[locs, new_countdown] = states.loc[locs, f"{new_countdown}_draws"]
 
-    states["newly_infected"] = newly_infected_contacts | newly_infected_events
-    states["immune"] = states["immune"] | states["newly_infected"]
+    return states
 
-    if channel_infected_by_contact is not None:
-        states["channel_infected_by_contact"] = channel_infected_by_contact
 
-    if channel_infected_by_event is not None:
-        states["channel_infected_by_event"] = channel_infected_by_event
-
+def _update_info_on_newly_infected(
+    states, newly_infected_contacts, newly_infected_events
+):
     # Update states with new infections and add corresponding countdowns.
-    locs = states.query("newly_infected").index
+    states["newly_infected"] = newly_infected_contacts | newly_infected_events
+
+    locs = states["newly_infected"]
+    states.loc[states["newly_infected"], "immune"] = True
     states.loc[locs, "ever_infected"] = True
     states.loc[locs, "cd_ever_infected"] = 0
     states.loc[locs, "cd_immune_false"] = states.loc[locs, "cd_immune_false_draws"]
     states.loc[locs, "cd_infectious_true"] = states.loc[
         locs, "cd_infectious_true_draws"
     ]
-
-    states = _kill_people_over_icu_limit(states, params, next(seed))
-
-    # important: this has to be called after _kill_people_over_icu_limit!
-    states["newly_deceased"] = states["cd_dead_true"] == 0
-
-    # Add additional information.
-    if optional_state_columns["contacts"]:
-        if isinstance(optional_state_columns, list):
-            cols_to_add = optional_state_columns["contacts"]
-        else:
-            cols_to_add = [f"n_contacts_{model}" for model in indexers]
-        if indexers is not None and contacts is not None:
-            for i, contact_model in enumerate(indexers):
-                if f"n_contacts_{contact_model}" in cols_to_add:
-                    states[f"n_contacts_{contact_model}"] = contacts[:, i]
-
-    if channel_demands_test is not None and optional_state_columns["channels"]:
-        states["channel_demands_test"] = channel_demands_test
-
-    if n_has_additionally_infected is not None:
-        states["n_has_infected"] += n_has_additionally_infected
-
-    # Perform steps if testing is enabled.
-    if to_be_processed_test is not None:
-        # Remove information on pending tests for tests which are processed.
-        states.loc[to_be_processed_test, "pending_test_date"] = pd.NaT
-
-        # Start the countdown for processed tests.
-        states.loc[to_be_processed_test, "cd_received_test_result_true"] = states.loc[
-            to_be_processed_test, "cd_received_test_result_true_draws"
-        ]
-
-        # For everyone who received a test result, the countdown for the test processing
-        # has expired. If you have a positive test result (received_test_result &
-        # immune) you will leave the state of knowing until your immunity expires.
-        states["new_known_case"] = states.received_test_result & states.immune
-        states.loc[states["new_known_case"], "cd_knows_immune_false"] = states.loc[
-            states["new_known_case"], "cd_immune_false"
-        ]
-        states.loc[states["new_known_case"], "knows_immune"] = True
-
-        knows_infectious = states["new_known_case"] & states["infectious"]
-        states.loc[knows_infectious, "cd_knows_infectious_false"] = states.loc[
-            knows_infectious, "cd_infectious_false"
-        ]
-        states.loc[knows_infectious, "knows_infectious"] = True
-
-        states["new_known_case"] = (
-            states["cd_received_test_result_true"] == 0
-        ) & states["immune"]
-
-        # Everyone looses ``received_test_result == True`` because it is passed to the
-        # more specific knows attributes.
-        states.loc[states.received_test_result, "received_test_result"] = False
 
     return states
 
@@ -164,5 +160,60 @@ def _kill_people_over_icu_limit(states, params, seed):
         for to_change, new_val in COUNTDOWNS["cd_dead_true"]["changes"].items():
             states.loc[to_kill, to_change] = new_val
         states.loc[to_kill, "cd_dead_true"] = 0
+
+    return states
+
+
+def _compute_new_tests_with_share_known_cases(
+    states: pd.DataFrame, share_known_cases: float
+) -> pd.Series:
+    """Compute the new tests based on the share of known cases.
+
+    The share of known cases is based on newly infected individuals.
+
+    """
+    n_new_known_cases = int(states["newly_infected"].sum() * share_known_cases)
+
+    if n_new_known_cases > 0:
+        ilocs = np.arange(len(states))[states["newly_infected"]]
+        sampled_ilocs = np.random.choice(ilocs, size=n_new_known_cases, replace=False)
+    else:
+        sampled_ilocs = slice(0)
+
+    new_tests = pd.Series(index=states.index, data=False)
+    new_tests.iloc[sampled_ilocs] = True
+
+    return new_tests
+
+
+def _update_info_on_new_tests(
+    states: pd.DataFrame, to_be_processed_tests: pd.Series
+) -> pd.DataFrame:
+    # Remove information on pending tests for tests which are processed.
+    states.loc[to_be_processed_tests, "pending_test_date"] = pd.NaT
+
+    # Start the countdown for processed tests.
+    states.loc[to_be_processed_tests, "cd_received_test_result_true"] = states.loc[
+        to_be_processed_tests, "cd_received_test_result_true_draws"
+    ]
+
+    # For everyone who received a test result, the countdown for the test processing
+    # has expired. If you have a positive test result (received_test_result &
+    # immune) you will leave the state of knowing until your immunity expires.
+    states["new_known_case"] = states.eval(RECEIVES_POSITIVE_TEST)
+    states.loc[states["new_known_case"], "knows_immune"] = True
+    states.loc[states["new_known_case"], "cd_knows_immune_false"] = states.loc[
+        states["new_known_case"], "cd_immune_false"
+    ]
+
+    knows_infectious = states.eval(KNOWS_INFECTIOUS)
+    states.loc[knows_infectious, "knows_infectious"] = True
+    states.loc[knows_infectious, "cd_knows_infectious_false"] = states.loc[
+        knows_infectious, "cd_infectious_false"
+    ]
+
+    # Everyone looses ``received_test_result == True`` because it is passed to the
+    # more specific knows attributes.
+    states.loc[states.received_test_result, "received_test_result"] = False
 
     return states
