@@ -15,6 +15,7 @@ dependencies:
 
   - black
   - bokeh
+  - coverage=5.3.0
   - dask
   - fastparquet
   - jupyterlab
