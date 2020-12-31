@@ -13,6 +13,7 @@ dependencies:
   - conda-build
   - conda-verify
 
+  - black
   - bokeh
   - dask
   - fastparquet
@@ -25,6 +26,7 @@ dependencies:
   - pdbpp
   - pre-commit
   - pytest
+  - pytest-cov
   - pytest-regressions
   - pytest-xdist
   - python-snappy
@@ -32,15 +34,8 @@ dependencies:
   - seaborn
   - snakeviz
   - tqdm
+  - virtualenv=20.0.33
 
   - sphinx
   - sphinx-copybutton
   - sphinx-autoapi
-
-  # Jupyter Lab Formatter
-  - black
-  - jupyterlab_code_formatter
-  - nodejs
-
-  - pip:
-    - blackcellmagic
