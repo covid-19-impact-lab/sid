@@ -27,6 +27,7 @@ dependencies:
   - pre-commit
   - pytest
   - pytest-cov
+  - coverage=5.3
   - pytest-regressions
   - pytest-xdist
   - python-snappy
