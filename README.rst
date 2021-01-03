@@ -90,3 +90,8 @@ sid has been featured in some publications which are listed here:
   Politikmaßnahmen zur Eindämmung der zweiten Covid-19-Welle
   <https://www.ifo.de/DocDL/sd-2020-digital-15-dorn-etal-politikmassnahmen-covid-19-
   zweite-welle.pdf>`_. ifo Schnelldienst Digital, 1(15).
+
+- Gabler, J., Raabe, T., Röhrl, K., & Gaudecker, H. M. V. (2020). `Die Bedeutung
+  individuellen Verhaltens über den Jahreswechsel für die Weiterentwicklung der
+  Covid-19-Pandemie in Deutschland <http://ftp.iza.org/sp99.pdf>`_ (No. 99). Institute
+  of Labor Economics (IZA).
