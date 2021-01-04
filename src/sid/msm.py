@@ -125,7 +125,6 @@ def _msm(
     empirical_moments = copy.deepcopy(empirical_moments)
 
     df = simulate(params)
-    df = df.compute()
 
     simulated_moments = {name: func(df) for name, func in calc_moments.items()}
 
@@ -141,7 +140,8 @@ def _msm(
     flat_empirical_moments = _flatten_index(empirical_moments)
     flat_simulated_moments = _flatten_index(simulated_moments)
 
-    moment_errors = flat_empirical_moments - flat_simulated_moments
+    # Order is important to manfred.
+    moment_errors = flat_simulated_moments - flat_empirical_moments
 
     # Return moment errors as indexed DataFrame or calculate weighted square product of
     # moment errors depending on return_scalar.

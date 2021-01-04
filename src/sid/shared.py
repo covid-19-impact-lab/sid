@@ -48,6 +48,7 @@ def factorize_assortative_variables(states, assort_by, is_recurrent):
     if is_recurrent:
         assort_by_series = states[assort_by[0]].astype(int).replace({-1: pd.NA})
         group_codes, group_codes_values = pd.factorize(assort_by_series)
+        group_codes = group_codes.astype(DTYPE_GROUP_CODE)
     elif assort_by:
         assort_by_series = [states[col].to_numpy() for col in assort_by]
         group_codes, group_codes_values = pd.factorize(
