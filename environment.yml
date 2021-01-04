@@ -5,7 +5,7 @@ channels:
   - janosg
 
 dependencies:
-  - python <3.9
+  - python >=3.6,<3.9
   - pip
 
   - anaconda-client
@@ -16,12 +16,12 @@ dependencies:
   - bokeh
   - dask
   - estimagic
-  - fastparquet
+  - fastparquet <0.5
   - jupyterlab
   - nbsphinx
-  - numba>=0.48
+  - numba >=0.48
   - numpy
-  - pandas>=1
+  - pandas >=1
   - panel
   - pdbpp
   - pre-commit
@@ -34,7 +34,7 @@ dependencies:
   - seaborn
   - snakeviz
   - tqdm
-  - virtualenv=20.0.33
+  - virtualenv =20.0.33
 
   - sphinx
   - sphinx-copybutton

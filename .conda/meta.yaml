@@ -16,15 +16,15 @@ build:
 requirements:
   build:
     - python
+    - pip
     - setuptools
-  host:
-    - python >=3.6,<3.9
 
   run:
     - python >=3.6,<3.9
+    - setuptools
     - bokeh
     - dask
-    - fastparquet
+    - fastparquet <0.5
     - numba >=0.48
     - numpy
     - pandas >=1
@@ -33,6 +33,8 @@ requirements:
     - tqdm
 
 test:
+  imports:
+    - sid
   requires:
     - pytest
     - pytest-regressions
@@ -41,8 +43,6 @@ test:
     - tox.ini
     - src
     - tests
-  imports:
-    - sid
   commands:
     - pytest
 
@@ -50,3 +50,5 @@ about:
   home: https://github.com/covid-19-impact-lab/sid
   license: MIT
   summary: Simulate the spread of COVID-19 with different policies.
+  doc_url: https://sid-dev.readthedocs.io/
+  dev_url: https://github.com/covid-19-impact-lab/sid
