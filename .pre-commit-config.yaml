@@ -48,7 +48,7 @@ repos:
             Pygments,
         ]
 - repo: https://github.com/nbQA-dev/nbQA
-  rev: 0.5.5
+  rev: 0.5.6
   hooks:
     -   id: nbqa-black
     -   id: nbqa-pyupgrade
