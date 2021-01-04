@@ -95,7 +95,13 @@ cd_needs_icu_false,all,1,0.22
 cd_needs_icu_false,all,15,0.30
 cd_needs_icu_false,all,25,0.30
 cd_needs_icu_false,all,45,0.18
-cd_received_test_result_true,all,2,1
+cd_received_test_result_true,all,2,0.1
+cd_received_test_result_true,all,3,0.1
+cd_received_test_result_true,all,4,0.1
+cd_received_test_result_true,all,5,0.1
+cd_received_test_result_true,all,6,0.1
+cd_received_test_result_true,all,7,0.2
+cd_received_test_result_true,all,8,0.3
 cd_knows_immune_false,all,-1,1
 cd_knows_infectious_false,all,-1,1
 cd_ever_infected,all,-1,1
