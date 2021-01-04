@@ -56,6 +56,7 @@ def parse_share_known_cases(share_known_cases, duration, burn_in_periods):
             )
         # Extend series with burn-in periods and if shares for burn-in periods do not
         # exist, backfill NaNs.
+        # .backfill() is only available in pandas which is not supported by estimagic.
         share_known_cases = share_known_cases.reindex(extended_index).fillna(
             method="bfill"
         )
