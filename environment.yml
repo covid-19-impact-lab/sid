@@ -2,11 +2,10 @@ name: sid
 
 channels:
   - conda-forge
-  - defaults
-  - opensourceeconomics
+  - janosg
 
 dependencies:
-  - python
+  - python >=3.6,<3.9
   - pip
 
   - anaconda-client
@@ -16,12 +15,13 @@ dependencies:
   - black
   - bokeh
   - dask
-  - fastparquet
+  - estimagic
+  - fastparquet <0.5
   - jupyterlab
   - nbsphinx
-  - numba>=0.48
+  - numba >=0.48
   - numpy
-  - pandas>=1
+  - pandas >=1
   - panel
   - pdbpp
   - pre-commit
@@ -34,7 +34,7 @@ dependencies:
   - seaborn
   - snakeviz
   - tqdm
-  - virtualenv=20.0.33
+  - virtualenv =20.0.33
 
   - sphinx
   - sphinx-copybutton
