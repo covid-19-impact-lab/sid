@@ -82,3 +82,11 @@ publications/ dp/13899>`_ or in the four following chapters of the documentation
     how_to_guides/index
     explanations/index
     reference_guides/index
+
+
+Here are some additional resources.
+
+.. toctree::
+   :maxdepth: 1
+
+   changes

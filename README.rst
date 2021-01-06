@@ -3,11 +3,11 @@ sid
 
 .. start-badges
 
-.. .. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/version.svg
-..     :target: https://anaconda.org/covid-19-impact-lab/sid
+.. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/version.svg
+    :target: https://anaconda.org/covid-19-impact-lab/sid
 
-.. .. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/platforms.svg
-..     :target: https://anaconda.org/covid-19-impact-lab/sid
+.. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/platforms.svg
+    :target: https://anaconda.org/covid-19-impact-lab/sid
 
 .. image:: https://readthedocs.org/projects/sid-dev/badge/?version=latest
     :target: https://sid-dev.readthedocs.io/en/latest
@@ -74,3 +74,24 @@ sid will soon become available as a conda package and will be installed with
 For now, clone the repository and install the package with pip or conda.
 
 .. end-installation
+
+
+Publications
+------------
+
+sid has been featured in some publications which are listed here:
+
+- Gabler, J., Raabe, T., & Röhrl, K. (2020). `People Meet People: A Microlevel Approach
+  to Predicting the Effect of Policies on the Spread of COVID-19
+  <http://ftp.iza.org/dp13899.pdf>`_.
+
+- Dorn, F., Gabler, J., von Gaudecker, H. M., Peichl, A., Raabe, T., & Röhrl, K. (2020).
+  `Wenn Menschen (keine) Menschen treffen: Simulation der Auswirkungen von
+  Politikmaßnahmen zur Eindämmung der zweiten Covid-19-Welle
+  <https://www.ifo.de/DocDL/sd-2020-digital-15-dorn-etal-politikmassnahmen-covid-19-
+  zweite-welle.pdf>`_. ifo Schnelldienst Digital, 1(15).
+
+- Gabler, J., Raabe, T., Röhrl, K., & Gaudecker, H. M. V. (2020). `Die Bedeutung
+  individuellen Verhaltens über den Jahreswechsel für die Weiterentwicklung der
+  Covid-19-Pandemie in Deutschland <http://ftp.iza.org/sp99.pdf>`_ (No. 99). Institute
+  of Labor Economics (IZA).

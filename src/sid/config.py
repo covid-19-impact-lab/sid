@@ -35,7 +35,7 @@ DTYPE_GROUP_CODE = np.int32
 DTYPE_INDEX = np.uint32
 DTYPE_INFECTED = np.bool_
 DTYPE_INFECTION_COUNTER = np.uint16
-DTYPE_N_CONTACTS = np.uint32
+DTYPE_N_CONTACTS = np.uint16
 DTYPE_SID_PERIOD = np.int16
 
 INDEX_NAMES = ["category", "subcategory", "name"]
