@@ -58,9 +58,6 @@ SAVED_COLUMNS = {
 }
 
 
-OPTIONAL_STATE_COLUMNS = {"contacts": False, "channels": False}
-
-
 INITIAL_CONDITIONS = {
     "assort_by": None,
     "burn_in_periods": 1,
