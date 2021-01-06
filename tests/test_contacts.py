@@ -14,6 +14,7 @@ from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
 
 
+@pytest.mark.unit
 @pytest.mark.parametrize(
     ("assort_by", "expected"),
     [
@@ -31,6 +32,7 @@ def test_create_group_indexer(initial_states, assort_by, expected):
     assert calculated == expected
 
 
+@pytest.mark.unit
 def test_create_group_indexer_recurrent():
     df = pd.DataFrame()
     df["some_id"] = pd.Series([1, -1, 2, 2, 1]).astype("category")
@@ -39,6 +41,7 @@ def test_create_group_indexer_recurrent():
     assert calculated == [[0, 4], [2, 3]]
 
 
+@pytest.mark.unit
 @pytest.mark.parametrize("seed", range(10))
 def test_calculate_infections_numba_with_single_group(num_regression, seed):
     """If you need to regenerate the test data, use ``pytest --force-regen``."""
@@ -185,6 +188,7 @@ def setup_households_w_one_infection():
     return states, contacts, params, indexers, group_probs
 
 
+@pytest.mark.integration
 def test_calculate_infections_only_recurrent_all_participate(
     setup_households_w_one_infection,
 ):
@@ -218,6 +222,7 @@ def test_calculate_infections_only_recurrent_all_participate(
     assert np.all(calc_missed_contacts == 0)
 
 
+@pytest.mark.integration
 def test_calculate_infections_only_recurrent_sick_skips(
     setup_households_w_one_infection,
 ):
@@ -249,6 +254,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
     )
 
 
+@pytest.mark.integration
 def test_calculate_infections_only_recurrent_one_skips(
     setup_households_w_one_infection,
 ):
@@ -280,6 +286,7 @@ def test_calculate_infections_only_recurrent_one_skips(
     )
 
 
+@pytest.mark.integration
 def test_calculate_infections_only_recurrent_one_immune(
     setup_households_w_one_infection,
 ):
@@ -328,6 +335,7 @@ def set_deterministic_context(m):
     m.setattr("sid.contacts.choose_other_individual", fake_choose_j)
 
 
+@pytest.mark.integration
 def test_calculate_infections_only_non_recurrent(
     setup_households_w_one_infection, monkeypatch
 ):
@@ -414,6 +422,7 @@ def contact_models():
     return contact_models
 
 
+@pytest.mark.integration
 def test_calculate_contacts_no_policy(states_all_alive, contact_models):
     contact_policies = {}
     date = pd.Timestamp("2020-09-29")
@@ -434,6 +443,7 @@ def test_calculate_contacts_no_policy(states_all_alive, contact_models):
     np.testing.assert_array_equal(expected, res)
 
 
+@pytest.mark.integration
 def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
     contact_policies = {
         "noone_meets": {
@@ -460,6 +470,7 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
     np.testing.assert_array_equal(expected, res)
 
 
+@pytest.mark.integration
 def test_calculate_contacts_policy_active(states_all_alive, contact_models):
     contact_policies = {
         "noone_meets": {
@@ -484,6 +495,7 @@ def test_calculate_contacts_policy_active(states_all_alive, contact_models):
     np.testing.assert_array_equal(expected, res)
 
 
+@pytest.mark.integration
 def test_calculate_contacts_policy_inactive_through_function(
     states_all_alive, contact_models
 ):
@@ -512,6 +524,7 @@ def test_calculate_contacts_policy_inactive_through_function(
     np.testing.assert_array_equal(expected, res)
 
 
+@pytest.mark.integration
 def test_calculate_contacts_policy_active_policy_func(states_all_alive, contact_models):
     def reduce_to_1st_quarter(states, contacts, seed):
         contacts = contacts.copy()
@@ -550,6 +563,7 @@ def states_with_dead(states_all_alive):
     return states_with_dead
 
 
+@pytest.mark.integration
 def test_calculate_contacts_with_dead(states_with_dead, contact_models):
     contact_policies = {}
     date = pd.Timestamp("2020-09-29")
@@ -578,6 +592,7 @@ def test_calculate_contacts_with_dead(states_with_dead, contact_models):
     np.testing.assert_array_equal(expected, res)
 
 
+@pytest.mark.unit
 def test_reduce_contacts_with_infection_prob_one():
     choices = [0, 1, 2, 3, 4]
     weights = [0.5, 0.2, 0.1, 0.1, 0.1]
@@ -590,6 +605,7 @@ def test_reduce_contacts_with_infection_prob_one():
     assert_array_equal(reduced, contacts)
 
 
+@pytest.mark.unit
 def test_reduce_contacts_with_infection_prob_zero():
     choices = [0, 1, 2, 3, 4]
     weights = [0.5, 0.2, 0.1, 0.1, 0.1]
@@ -603,6 +619,7 @@ def test_reduce_contacts_with_infection_prob_zero():
     assert_array_equal(reduced[:, is_recurrent], contacts[:, is_recurrent])
 
 
+@pytest.mark.unit
 def test_reduce_contacts_approximately():
     choices = [0, 1, 2, 3, 4]
     weights = [0.5, 0.2, 0.1, 0.1, 0.1]

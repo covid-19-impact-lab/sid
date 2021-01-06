@@ -156,14 +156,14 @@ def _update_info_on_new_tests(
         states["new_known_case"], "cd_immune_false"
     ]
 
-    knows_infectious = states.eval(KNOWS_INFECTIOUS)
-    states.loc[knows_infectious, "knows_infectious"] = True
-    states.loc[knows_infectious, "cd_knows_infectious_false"] = states.loc[
-        knows_infectious, "cd_infectious_false"
+    new_knows_infectious = states.eval(KNOWS_INFECTIOUS) & states["new_known_case"]
+    states.loc[new_knows_infectious, "knows_infectious"] = True
+    states.loc[new_knows_infectious, "cd_knows_infectious_false"] = states.loc[
+        new_knows_infectious, "cd_infectious_false"
     ]
 
     # Everyone looses ``received_test_result == True`` because it is passed to the
     # more specific knows attributes.
-    states.loc[states.received_test_result, "received_test_result"] = False
+    states.loc[states["received_test_result"], "received_test_result"] = False
 
     return states

@@ -8,6 +8,7 @@ from sid.matching_probabilities import _join_transition_matrices
 from sid.matching_probabilities import create_group_transition_probs
 
 
+@pytest.mark.integration
 def test_join_transition_matrices():
     t1 = _create_transition_matrix_from_own_prob(0.6, ["bla", "blubb"])
     t2 = _create_transition_matrix_from_own_prob(
@@ -25,6 +26,7 @@ def test_join_transition_matrices():
     assert_frame_equal(calculated, expected)
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     ("assort_by", "expected"),
     [
@@ -62,7 +64,8 @@ def test_create_group_transition_probs(initial_states, assort_by, params, expect
     np.testing.assert_allclose(transition_matrix, expected.cumsum(axis=1))
 
 
-def test_einsum_kronecker_product():
+@pytest.mark.unit
+def test_einsum_kronecker_product_threefold():
     # Three-fold Kronecker product.
     trans_mats = [np.random.uniform(0, 1, size=(2, 2)) for _ in range(3)]
 
@@ -71,6 +74,9 @@ def test_einsum_kronecker_product():
 
     np.testing.assert_allclose(calculated, expected, rtol=1e-06)
 
+
+@pytest.mark.unit
+def test_einsum_kronecker_product_fourfold():
     # Four-fold Kronecker product.
     trans_mats = [np.random.uniform(0, 1, size=(2, 2)) for _ in range(4)]
 
