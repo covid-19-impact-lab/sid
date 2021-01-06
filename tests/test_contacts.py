@@ -54,7 +54,6 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
         indexer,
         infection_prob,
         is_recurrent,
-        loop_order,
     ) = _sample_data_for_calculate_infections_numba(n_individuals=100, seed=seed)
 
     (
@@ -73,7 +72,6 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
         infection_prob,
         seed,
         is_recurrent,
-        loop_order,
     )
 
     num_regression.check(
@@ -146,8 +144,6 @@ def _sample_data_for_calculate_infections_numba(
 
     is_recurrent = np.array([False])
 
-    loop_order = np.array(list(itertools.product(range(n_individuals), range(1))))
-
     return (
         contacts.reshape(-1, 1),
         infectious,
@@ -157,7 +153,6 @@ def _sample_data_for_calculate_infections_numba(
         indexers_list,
         infection_prob,
         is_recurrent,
-        loop_order,
     )
 
 
@@ -338,12 +333,6 @@ def set_deterministic_context(m):
         return a[1]
 
     m.setattr("sid.contacts.choose_other_individual", fake_choose_j)
-
-    @njit
-    def fix_loop_order(x, replace, size):
-        return NumbaList(range(x))
-
-    m.setattr("sid.contacts.np.random.choice", fix_loop_order)
 
 
 @pytest.mark.integration
