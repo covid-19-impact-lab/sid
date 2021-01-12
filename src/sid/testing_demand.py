@@ -144,7 +144,7 @@ def _sample_reason_for_demanding_a_test(demand_probabilities, demands_test, seed
         0    b
         1    a
         dtype: category
-        Categories (2, object): ['a', 'b']
+        Categories (2, object): [a, b]
 
     """
     np.random.seed(next(seed))
