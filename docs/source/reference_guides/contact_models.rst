@@ -30,14 +30,14 @@ One contact model is a dictionary with the following entries:
 .. _is_recurrent:
 
 ``"is_recurrent"``
-^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~
 
 Boolean flag to mark models that describe recurrent contacts such as families and school
 classes.
 
 
 ``"loc"``
-^^^^^^^^^
+~~~~~~~~~
 
 Expression to select a subset of ``params``. This is mostly relevant if pre-implemented
 contact models are used (e.g. ``linear_contact_model``) and the params can be used to
@@ -46,7 +46,7 @@ parameterization. This key is optional.
 
 
 ``"model"``
-^^^^^^^^^^^
+~~~~~~~~~~~
 
 A function that takes ``states``, ``params`` and a ``seed`` as arguments and returns
 a Series that has the same index as states.
@@ -55,11 +55,12 @@ An example is:
 
 .. code-block:: python
 
-    from sid import get_date
+    import sid
 
 
     def meet_two_people(states, params, seed):
-        # date = get_date(states)  # Get date from states for conditional contacts.
+        # Get date from states for conditional contacts.
+        # date = sid.get_date(states)
 
         return pd.Series(index=states.index, data=2)
 
@@ -84,7 +85,7 @@ on weekdays, make sick individuals stay home, etc..
 .. _assort_by:
 
 ``"assort_by"``
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~
 
 A single variable or list of variables according to which the matching is assortative.
 All ``assort_by`` variables must be categorical. Individuals who have the same value in
@@ -127,6 +128,18 @@ Alternatively, people without contacts in a recurrent contact model can have uni
 values in the assort_by variables such that their group only contains them alone.
 Example: an individual who does not go to school needs a unique value in the variable
 that indicates school classes.
+
+
+``"is_factorized"``
+~~~~~~~~~~~~~~~~~~~
+
+A boolean indicating that the single ``"assort_by"`` variable is already factorized,
+meaning missing values are encoded with -1 and all other groups have codes 0, 1, ... .
+It is set ``False`` by default.
+
+This option can be used to reduce memory consumption because it prevents that an
+internal factorized version of the ``"assort_by"`` variable is created with essentially
+the same information.
 
 
 Combining Contact Models
