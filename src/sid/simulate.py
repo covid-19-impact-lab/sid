@@ -720,11 +720,10 @@ def _process_initial_states(
     for model_name, assort_by in assort_bys.items():
         is_recurrent = contact_models[model_name]["is_recurrent"]
         group_code_name = group_codes_names[model_name]
-        states[group_code_name], _ = factorize_assortative_variables(
-            states,
-            assort_by,
-            is_recurrent=is_recurrent,
-        )
+        if group_code_name not in states.columns:
+            states[group_code_name], _ = factorize_assortative_variables(
+                states, assort_by, is_recurrent=is_recurrent
+            )
 
     return states
 
