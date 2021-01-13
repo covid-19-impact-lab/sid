@@ -36,6 +36,7 @@ test:
   imports:
     - sid
   requires:
+    - hypothesis
     - pytest
     - pytest-regressions
     - pytest-xdist

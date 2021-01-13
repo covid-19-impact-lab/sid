@@ -1,22 +1,25 @@
+import warnings
 from collections.abc import Iterable
 from typing import Any
 from typing import Dict
+from typing import Union
 
 import numpy as np
 import pandas as pd
 from sid.config import INITIAL_CONDITIONS
 
 
-def parse_duration(duration):
+def parse_duration(duration: Union[Dict[str, Any], None]) -> Dict[str, Any]:
     """Parse the user-defined duration.
 
     Args:
-        duration (dict): Duration is a dictionary containing kwargs for
-            :func:`pandas.date_range`.
+        duration (Union[Dict[str, Any], None]): A dictionary which contains keys and
+            values suited to be passed to :func:`pandas.date_range`. Only the first
+            three arguments, ``"start"``, ``"end"``, and ``"periods"``, are allowed.
 
     Returns:
-        new_duration (dict): A dictionary containing start and end dates and an iterable
-            of the same types.
+        internal_duration (Dict[str, Any]): A dictionary containing start and end dates
+            and dates for the whole period.
 
     Examples:
         >>> parse_duration({"start": "2020-03-01", "end": "2020-03-10"})
@@ -25,6 +28,14 @@ def parse_duration(duration):
     """
     if duration is None:
         duration = {"start": "2020-01-27", "periods": 10}
+    else:
+        allowed_args = ("start", "end", "periods")
+        not_allowed_args = set(duration) - set(allowed_args)
+        if not_allowed_args:
+            warnings.warn(
+                "Only 'start', 'end', and 'periods' are admissible keys for 'duration'."
+            )
+            duration = {k: v for k, v in duration.items() if k in allowed_args}
 
     iterable = pd.date_range(**duration)
 
@@ -40,12 +51,16 @@ def parse_share_known_cases(share_known_cases, duration, burn_in_periods):
     """Parse the share of known cases.
 
     In case ``share_known_cases is None``, the multiplier is set to 0 which means no
-    cases among all cases are known and receive a test.
+    cases among all cases are known and no individual receives a test.
 
     """
     extended_index = np.append(burn_in_periods, duration["dates"])
 
-    if isinstance(share_known_cases, (float, int)):
+    if isinstance(share_known_cases, (float, pd.Series)):
+        if not np.all((0 <= share_known_cases) & (share_known_cases <= 1)):
+            raise ValueError("'share_known_cases' must be between 0 and 1.")
+
+    if isinstance(share_known_cases, float):
         share_known_cases = pd.Series(index=extended_index, data=share_known_cases)
 
     elif isinstance(share_known_cases, pd.Series):
@@ -66,8 +81,8 @@ def parse_share_known_cases(share_known_cases, duration, burn_in_periods):
 
     else:
         raise ValueError(
-            f"'share_known_cases' is {type(share_known_cases)}, but must be int, float "
-            "or pd.Series."
+            f"'share_known_cases' is {type(share_known_cases)}, but must be a float, a"
+            "pd.Series, or None."
         )
 
     return share_known_cases

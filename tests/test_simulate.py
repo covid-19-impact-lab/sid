@@ -14,6 +14,7 @@ from sid.simulate import get_simulate_func
 from sid.validation import validate_params
 
 
+@pytest.mark.end_to_end
 def test_simulate_a_simple_model(params, initial_states, tmp_path):
     simulate = get_simulate_func(
         params=params,
@@ -37,6 +38,7 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
         }
 
 
+@pytest.mark.unit
 def test_check_assort_by_are_categoricals(initial_states):
     assort_bys = _process_assort_bys(CONTACT_MODELS)
     group_codes_names = _create_group_codes_names(CONTACT_MODELS, assort_bys)

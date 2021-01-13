@@ -6,7 +6,7 @@ from sid.shared import random_choice
 
 
 def calculate_demand_for_tests(
-    states, testing_demand_models, params, date, optional_state_columns, seed
+    states, testing_demand_models, params, date, columns_to_keep, seed
 ):
     """Calculate the demand for tests.
 
@@ -28,16 +28,16 @@ def calculate_demand_for_tests(
             testing.
         params (pandas.DataFrame): The parameter DataFrame.
         date (pandas.Timestamp): Current date.
-        optional_state_columns (Dict[str, Any]): Columns which are optionally created.
+        columns_to_keep (List[str]): Columns which should be kept.
         seed (itertools.count): The seed counter.
 
     Returns:
         (tuple): Tuple containing.
 
-            - demands_test (pandas.Series): A boolean series indicating which person
-              demands a test.
-            - channel_demands_test (pandas.Series): A series indicating the demand model
-              which made the individual ask for a test.
+        - demands_test (pandas.Series): A boolean series indicating which person
+          demands a test.
+        - channel_demands_test (pandas.Series): A series indicating the demand model
+          which made the individual ask for a test.
 
     """
     demand_probabilities = _calculate_demand_probabilities(
@@ -46,9 +46,7 @@ def calculate_demand_for_tests(
 
     demands_test = _sample_which_individuals_demand_a_test(demand_probabilities, seed)
 
-    if (optional_state_columns["channels"] is True) or (
-        "channel_demands_test" in optional_state_columns
-    ):
+    if "channel_demands_test" in columns_to_keep:
         channel_demands_test = _sample_reason_for_demanding_a_test(
             demand_probabilities, demands_test, seed
         )

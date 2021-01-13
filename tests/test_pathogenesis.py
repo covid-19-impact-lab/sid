@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 from pandas.testing import assert_series_equal
 from sid.config import DTYPE_DRAW_COURSE_OF_DISEASE
 from sid.pathogenesis import _draw_countdowns
@@ -7,6 +8,7 @@ from sid.pathogenesis import draw_course_of_disease
 from sid.shared import load_epidemiological_parameters
 
 
+@pytest.mark.unit
 def test_draw_countdowns_single_row(params):
     states = pd.DataFrame(index=range(10))
     single_row = params.loc["cd_infectious_true"]
@@ -19,6 +21,7 @@ def test_draw_countdowns_single_row(params):
     assert_series_equal(left=expected, right=res)
 
 
+@pytest.mark.unit
 def test_draw_countdowns_deterministic():
     states = pd.DataFrame(index=range(10))
     params = pd.DataFrame(
@@ -29,6 +32,7 @@ def test_draw_countdowns_deterministic():
     assert_series_equal(left=expected, right=res)
 
 
+@pytest.mark.unit
 def test_draw_countdowns_no_age_variance():
     states = pd.DataFrame(index=range(4))
     params = pd.DataFrame(
@@ -43,6 +47,7 @@ def test_draw_countdowns_no_age_variance():
     assert_series_equal(left=expected, right=res)
 
 
+@pytest.mark.unit
 def test_draw_countdowns_age_variant():
     states = pd.DataFrame({"age_group": ["young", "old", "young", "young", "old"]})
     params = pd.DataFrame(
@@ -59,6 +64,7 @@ def test_draw_countdowns_age_variant():
     assert_series_equal(left=expected, right=res)
 
 
+@pytest.mark.integration
 def test_draw_countdowns_with_covid_params():
     # This test makes sure that the provided covid params are not corrupted
     # It also tests that everyone scheduled to die won't recover before.

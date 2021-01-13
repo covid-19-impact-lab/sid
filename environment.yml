@@ -17,6 +17,7 @@ dependencies:
   - dask
   - estimagic
   - fastparquet <0.5
+  - hypothesis
   - jupyterlab
   - nbsphinx
   - numba >=0.48

@@ -1,6 +1,4 @@
 import itertools
-from typing import Any
-from typing import Dict
 from typing import Optional
 
 import numpy as np
@@ -17,16 +15,9 @@ def update_states(
     newly_infected_contacts: pd.Series,
     newly_infected_events: pd.Series,
     params: pd.DataFrame,
+    share_known_cases: Optional[float],
+    to_be_processed_tests: Optional[pd.Series],
     seed: itertools.count,
-    optional_state_columns: Dict[str, Any] = None,
-    n_has_additionally_infected: Optional[pd.Series] = None,
-    indexers: Optional[Dict[int, np.ndarray]] = None,
-    contacts: Optional[np.ndarray] = None,
-    to_be_processed_tests: Optional[pd.Series] = None,
-    channel_infected_by_contact: Optional[pd.Series] = None,
-    channel_infected_by_event: Optional[pd.Series] = None,
-    channel_demands_test: Optional[pd.Series] = None,
-    share_known_cases: Optional[float] = 0,
 ):
     """Update the states with new infections and advance it by one period.
 
@@ -39,32 +30,14 @@ def update_states(
         newly_infected_events (pandas.Series): Boolean series indicating individuals
             infected by events. There can be an overlap with infections by contacts.
         params (pandas.DataFrame): See :ref:`params`.
-        seed (itertools.count): Seed counter to control randomness.
-        optional_state_columns (dict): Dictionary with categories of state columns
-            that can additionally be added to the states dataframe, either for use in
-            contact models and policies or to be saved. Most types of columns are added
-            by default, but some of them are costly to add and thus only added when
-            needed. Columns that are not in the state but specified in ``saved_columns``
-            will not be saved. The categories are "contacts" and "reason_for_infection".
-        n_has_additionally_infected (Optional[pandas.Series]): Additionally infected
-            persons by this individual.
-        indexers (dict): Dictionary with contact models as keys in the same order as the
-            contacts matrix.
-        contacts (numpy.ndarray): Matrix with number of contacts for each contact model.
-        to_be_processed_tests (pandas.Series): Tests which are going to be processed.
-        channel_infected_by_contact (pandas.Series): A categorical series containing the
-            information which contact model lead to the infection.
-        channel_infected_by_event (pandas.Series): A categorical series containing the
-            information which event model lead to the infection.
         share_known_cases (Optional[float]): Share of known cases.
+        to_be_processed_tests (pandas.Series): Tests which are going to be processed.
+        seed (itertools.count): Seed counter to control randomness.
 
     Returns: states (pandas.DataFrame): Updated states with reduced countdown lengths,
         newly started countdowns, and killed people over the ICU limit.
 
     """
-    if optional_state_columns is None:
-        optional_state_columns = {"reason_for_infection": False, "contacts": False}
-
     states = _update_countdowns(states)
 
     states = _update_info_on_newly_infected(
@@ -76,36 +49,13 @@ def update_states(
     # important: this has to be called after _kill_people_over_icu_limit!
     states["newly_deceased"] = states.eval(IS_NEWLY_DECEASED)
 
-    if share_known_cases != 0:
+    if share_known_cases is not None:
         to_be_processed_tests = _compute_new_tests_with_share_known_cases(
             states, share_known_cases
         )
 
     if to_be_processed_tests is not None:
         states = _update_info_on_new_tests(states, to_be_processed_tests)
-
-    # Add additional information.
-    if optional_state_columns["contacts"]:
-        if isinstance(optional_state_columns, list):
-            cols_to_add = optional_state_columns["contacts"]
-        else:
-            cols_to_add = [f"n_contacts_{model}" for model in indexers]
-        if indexers is not None and contacts is not None:
-            for i, contact_model in enumerate(indexers):
-                if f"n_contacts_{contact_model}" in cols_to_add:
-                    states[f"n_contacts_{contact_model}"] = contacts[:, i]
-
-    if channel_infected_by_contact is not None:
-        states["channel_infected_by_contact"] = channel_infected_by_contact
-
-    if channel_infected_by_event is not None:
-        states["channel_infected_by_event"] = channel_infected_by_event
-
-    if channel_demands_test is not None and optional_state_columns["channels"]:
-        states["channel_demands_test"] = channel_demands_test
-
-    if n_has_additionally_infected is not None:
-        states["n_has_infected"] += n_has_additionally_infected
 
     return states
 
@@ -206,14 +156,14 @@ def _update_info_on_new_tests(
         states["new_known_case"], "cd_immune_false"
     ]
 
-    knows_infectious = states.eval(KNOWS_INFECTIOUS)
-    states.loc[knows_infectious, "knows_infectious"] = True
-    states.loc[knows_infectious, "cd_knows_infectious_false"] = states.loc[
-        knows_infectious, "cd_infectious_false"
+    new_knows_infectious = states.eval(KNOWS_INFECTIOUS) & states["new_known_case"]
+    states.loc[new_knows_infectious, "knows_infectious"] = True
+    states.loc[new_knows_infectious, "cd_knows_infectious_false"] = states.loc[
+        new_knows_infectious, "cd_infectious_false"
     ]
 
     # Everyone looses ``received_test_result == True`` because it is passed to the
     # more specific knows attributes.
-    states.loc[states.received_test_result, "received_test_result"] = False
+    states.loc[states["received_test_result"], "received_test_result"] = False
 
     return states

@@ -18,7 +18,6 @@ import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
-from sid.config import OPTIONAL_STATE_COLUMNS
 from sid.config import POLICIES
 from sid.config import SAVED_COLUMNS
 from sid.contacts import calculate_contacts
@@ -56,7 +55,7 @@ def get_simulate_func(
     params: pd.DataFrame,
     initial_states: pd.DataFrame,
     contact_models: Dict[str, Any],
-    duration: Dict[str, Any] = None,
+    duration: Optional[Dict[str, Any]] = None,
     events: Optional[Dict[str, Any]] = None,
     contact_policies: Optional[Dict[str, Any]] = None,
     testing_demand_models: Optional[Dict[str, Any]] = None,
@@ -65,7 +64,6 @@ def get_simulate_func(
     seed: Optional[int] = None,
     path: Union[str, Path, None] = None,
     saved_columns: Optional[Dict[str, Union[bool, str, List[str]]]] = None,
-    optional_state_columns=None,
     initial_conditions: Optional[Dict[str, Any]] = None,
     share_known_cases: Optional[Union[float, pd.Series]] = None,
 ):
@@ -76,15 +74,20 @@ def get_simulate_func(
     when the resulting function is called.
 
     Args:
-        params (pandas.DataFrame): DataFrame with parameters that influence the number
-            of contacts, contagiousness and dangerousness of the disease, ... .
-        initial_states (pandas.DataFrame): See :ref:`states`. Cannot contain the column
-            "date" because it is used internally.
-        contact_models (Dict[str, Any]): Dictionary of dictionaries where each
-            dictionary describes a channel by which contacts can be formed. See
-            :ref:`contact_models`.
-        duration (Dict[str, Any]): Duration is a dictionary containing kwargs for
-            :func:`pandas.date_range`.
+        params (pandas.DataFrame): ``params`` is a DataFrame with a three-level index
+            which contains parameters for various aspects of the model. For example,
+            infection probabilities of contact models, multiplier effects of policies,
+            determinants of the course of the disease. More information can be found in
+            :ref:`params`.
+        initial_states (pandas.DataFrame): The initial states are a DataFrame which
+            contains individuals and their characteristics. More information can be
+            found in :ref:`states`.
+        contact_models (Dict[str, Any]): A dictionary of dictionaries where each
+            dictionary describes a channel by which contacts can be formed. More
+            information can be found in :ref:`contact_models`.
+        duration (Optional[Dict[str, Any]]): A dictionary which contains keys and values
+            suited to be passed to :func:`pandas.date_range`. Only the first three
+            arguments, ``"start"``, ``"end"``, and ``"periods"``, are allowed.
         events (Optional[Dict[str, Any]]): Dictionary of events which cause infections.
         contact_policies (Optional[Dict[str, Any]]): Dict of dicts with contact. See
             :ref:`policies`.
@@ -112,12 +115,6 @@ def get_simulate_func(
             simulation and calculation of moments faster. The categories are
             "initial_states", "disease_states", "testing_states", "countdowns",
             "contacts", "countdown_draws", "group_codes" and "other".
-        optional_state_columns (dict): Dictionary with categories of state columns
-            that can additionally be added to the states DataFrame, either for use in
-            contact models and policies or to be saved. Most types of columns are added
-            by default, but some of them are costly to add and thus only added when
-            needed. Columns that are not in the state but specified in ``saved_columns``
-            will not be saved. The sole category is currently "contacts".
         initial_conditions (Optional[Dict[str, Any]]): The initial conditions allow you
             to govern the distribution of infections and immunity and the heterogeneity
             of courses of disease at the start of the simulation. Use ``None`` to assume
@@ -190,7 +187,6 @@ def get_simulate_func(
         testing_processing_models,
     )
 
-    optional_state_columns = _process_optional_state_columns(optional_state_columns)
     user_state_columns = initial_states.columns
 
     path = _create_output_directory(path)
@@ -242,11 +238,7 @@ def get_simulate_func(
     )
 
     cols_to_keep = _process_saved_columns(
-        saved_columns,
-        user_state_columns,
-        contact_models,
-        group_codes_names,
-        optional_state_columns,
+        saved_columns, user_state_columns, group_codes_names, contact_models
     )
 
     sim_func = functools.partial(
@@ -265,7 +257,6 @@ def get_simulate_func(
         path=path,
         columns_to_keep=cols_to_keep,
         indexers=indexers,
-        optional_state_columns=optional_state_columns,
         share_known_cases=share_known_cases,
     )
     return sim_func
@@ -287,7 +278,6 @@ def _simulate(
     path,
     columns_to_keep,
     indexers,
-    optional_state_columns,
     share_known_cases,
 ):
     """Simulate the spread of an infectious disease.
@@ -319,12 +309,6 @@ def _simulate(
             :class:`numpy.random.seed` right before the call.
         path (pathlib.Path): Path to the directory where the simulated data is stored.
         columns_to_keep (list): Columns of states that will be saved in each period.
-        optional_state_columns (dict): Dictionary with categories of state columns
-            that can additionally be added to the states dataframe, either for use in
-            contact models and policies or to be saved. Most types of columns are added
-            by default, but some of them are costly to add and thus only added when
-            needed. Columns that are not in the state but specified in ``saved_columns``
-            will not be saved. The sole category is currently "contacts".
         share_known_cases (pandas.Series): Share of known cases to all cases. The
             argument is a float or a series with :class:`pd.DatetimeIndex` which covers
             the whole simulation period and yields the ratio of known infections to all
@@ -399,7 +383,7 @@ def _simulate(
                 testing_demand_models,
                 params,
                 date,
-                optional_state_columns,
+                columns_to_keep,
                 seed,
             )
             allocated_tests = allocate_tests(
@@ -422,16 +406,20 @@ def _simulate(
             newly_infected_contacts=newly_infected_contacts,
             newly_infected_events=newly_infected_events,
             params=params,
+            share_known_cases=share_known_cases[date],
+            to_be_processed_tests=to_be_processed_tests,
             seed=seed,
-            optional_state_columns=optional_state_columns,
+        )
+
+        states = _add_additional_information_to_states(
+            states=states,
+            columns_to_keep=columns_to_keep,
             n_has_additionally_infected=n_has_additionally_infected,
             indexers=indexers,
             contacts=contacts,
-            to_be_processed_tests=to_be_processed_tests,
             channel_infected_by_contact=channel_infected_by_contact,
             channel_infected_by_event=channel_infected_by_event,
             channel_demands_test=channel_demands_test,
-            share_known_cases=share_known_cases[date],
         )
 
         _dump_periodic_states(states, columns_to_keep, path, date)
@@ -792,12 +780,23 @@ def _prepare_simulation_result(output_directory, columns_to_keep, last_states):
 
 
 def _process_saved_columns(
-    saved_columns,
-    initial_state_columns,
-    contact_models,
-    group_codes_names,
-    optional_state_columns,
-):
+    saved_columns: Union[None, Dict[str, Union[bool, str, List[str]]]],
+    initial_state_columns: List[str],
+    group_codes_names: Dict[str, str],
+    contact_models: Dict[str, Dict[str, Any]],
+) -> List[str]:
+    """Process saved columns.
+
+    This functions combines the user-defined ``saved_columns`` with the default and
+    produces a list of columns names which should be kept in the periodic states.
+
+    The list is also used to check whether additional information should be computed and
+    then stored in the periodic states.
+
+    Returns:
+        keep (List[str]): A list of columns names which should be kept in the states.
+
+    """
     saved_columns = (
         SAVED_COLUMNS if saved_columns is None else {**SAVED_COLUMNS, **saved_columns}
     )
@@ -832,14 +831,6 @@ def _process_saved_columns(
     if isinstance(saved_columns["other"], list):
         keep += saved_columns["other"]
 
-    keep += _combine_column_lists(
-        optional_state_columns["contacts"], all_columns["contacts"]
-    )
-
-    keep += _combine_column_lists(
-        optional_state_columns["channels"], all_columns["channels"]
-    )
-
     # drop duplicates
     keep = list(set(keep))
 
@@ -847,6 +838,7 @@ def _process_saved_columns(
 
 
 def _combine_column_lists(user_entries, all_entries):
+    """Combine multiple lists."""
     if isinstance(user_entries, bool) and user_entries:
         res = all_entries
     elif isinstance(user_entries, list):
@@ -859,12 +851,6 @@ def _combine_column_lists(user_entries, all_entries):
     return res
 
 
-def _process_optional_state_columns(opt_state_cols):
-    opt_state_cols = {} if opt_state_cols is None else opt_state_cols
-    res = {**OPTIONAL_STATE_COLUMNS, **opt_state_cols}
-    return res
-
-
 def _are_states_prepared(states: pd.DataFrame) -> bool:
     """Are states prepared.
 
@@ -873,3 +859,58 @@ def _are_states_prepared(states: pd.DataFrame) -> bool:
 
     """
     return states.columns.isin(["date", "period"]).any()
+
+
+def _add_additional_information_to_states(
+    states: pd.DataFrame,
+    columns_to_keep: List[str],
+    n_has_additionally_infected: Optional[pd.Series],
+    indexers: Optional[Dict[int, np.ndarray]],
+    contacts: Optional[np.ndarray],
+    channel_infected_by_contact: Optional[pd.Series],
+    channel_infected_by_event: Optional[pd.Series],
+    channel_demands_test: Optional[pd.Series],
+):
+    """Add additional but optional information to states.
+
+    Args:
+        states (pandas.DataFrame): The states of one period.
+        columns_to_keep (List[str]): A list of columns names which should be kept.
+        n_has_additionally_infected (Optional[pandas.Series]): Additionally infected
+            persons by this individual.
+        indexers (dict): Dictionary with contact models as keys in the same order as the
+            contacts matrix.
+        contacts (numpy.ndarray): Matrix with number of contacts for each contact model.
+        channel_infected_by_contact (pandas.Series): A categorical series containing the
+            information which contact model lead to the infection.
+        channel_infected_by_event (pandas.Series): A categorical series containing the
+            information which event model lead to the infection.
+
+    Returns:
+        states (pandas.DataFrame): The states with additional information.
+
+    """
+    if indexers is not None and contacts is not None:
+        for i, contact_model in enumerate(indexers):
+            if f"n_contacts_{contact_model}" in columns_to_keep:
+                states[f"n_contacts_{contact_model}"] = contacts[:, i]
+
+    if (
+        channel_infected_by_contact is not None
+        and "channel_infected_by_contact" in columns_to_keep
+    ):
+        states["channel_infected_by_contact"] = channel_infected_by_contact
+
+    if (
+        channel_infected_by_event is not None
+        and "channel_infected_by_event" in columns_to_keep
+    ):
+        states["channel_infected_by_event"] = channel_infected_by_event
+
+    if channel_demands_test is not None and "channel_demands_test" in columns_to_keep:
+        states["channel_demands_test"] = channel_demands_test
+
+    if n_has_additionally_infected is not None:
+        states["n_has_infected"] += n_has_additionally_infected
+
+    return states

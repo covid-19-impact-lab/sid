@@ -3,11 +3,11 @@ sid
 
 .. start-badges
 
-.. .. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/version.svg
-..     :target: https://anaconda.org/covid-19-impact-lab/sid
+.. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/version.svg
+    :target: https://anaconda.org/covid-19-impact-lab/sid
 
-.. .. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/platforms.svg
-..     :target: https://anaconda.org/covid-19-impact-lab/sid
+.. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/platforms.svg
+    :target: https://anaconda.org/covid-19-impact-lab/sid
 
 .. image:: https://readthedocs.org/projects/sid-dev/badge/?version=latest
     :target: https://sid-dev.readthedocs.io/en/latest
