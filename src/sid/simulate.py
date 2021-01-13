@@ -566,7 +566,7 @@ def _create_group_codes_names(
     The group codes are either found in the initial states or are a factorization of one
     or multiple variables in the initial states.
 
-    'is_factorized' can be set in contact models to indicate that the assortative
+    ``"is_factorized"`` can be set in contact models to indicate that the assortative
     variable is already factorized which saves memory.
 
     """
