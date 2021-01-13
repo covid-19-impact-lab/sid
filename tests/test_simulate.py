@@ -1,3 +1,4 @@
+import math
 from contextlib import ExitStack as does_not_raise  # noqa: N813
 
 import numpy as np
@@ -162,3 +163,45 @@ def test_create_group_codes_names(contact_models, assort_bys, expectation, expec
     with expectation:
         result = _create_group_codes_names(contact_models, assort_bys)
         assert result == expected
+
+
+@pytest.mark.end_to_end
+def test_skipping_factorization_of_assort_by_variable_works(
+    tmp_path, initial_states, params
+):
+    """Test that it is possible to skip the factorization of assort_by variables."""
+    contact_models = {
+        "households": {
+            "model": lambda states, params, seed: states["hh_id"] != -1,
+            "is_recurrent": True,
+            "assort_by": "hh_id",
+            "is_factorized": True,
+        }
+    }
+
+    initial_states["hh_id"] = pd.Series(
+        np.repeat(np.arange(-1, math.ceil(len(initial_states) / 2)), 2)[
+            : len(initial_states)
+        ],
+        dtype="category",
+    )
+
+    params.loc[("infection_prob", "households", "households"), "value"] = 0.1
+
+    simulate = get_simulate_func(
+        params=params,
+        initial_states=initial_states,
+        contact_models=contact_models,
+        duration={"start": "2020-01-01", "periods": 2},
+        saved_columns={"group_codes": True},
+        path=tmp_path,
+        seed=144,
+    )
+
+    result = simulate(params)
+
+    time_series = result["time_series"].compute()
+    last_states = result["last_states"].compute()
+
+    assert "group_codes_households" not in time_series
+    assert "group_codes_households" not in last_states
