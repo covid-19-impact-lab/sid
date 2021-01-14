@@ -185,14 +185,23 @@ def setup_households_w_one_infection():
 
     group_probs = {}
 
-    return states, contacts, params, indexers, group_probs
+    group_codes_names = {"households": "group_codes_households"}
+
+    return states, contacts, params, indexers, group_probs, group_codes_names
 
 
 @pytest.mark.integration
 def test_calculate_infections_only_recurrent_all_participate(
     setup_households_w_one_infection,
 ):
-    states, contacts, params, indexers, group_probs = setup_households_w_one_infection
+    (
+        states,
+        contacts,
+        params,
+        indexers,
+        group_probs,
+        group_codes_names,
+    ) = setup_households_w_one_infection
 
     (
         calc_infected,
@@ -206,6 +215,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         indexers=indexers,
         group_cdfs=group_probs,
         code_to_contact_model={0: "the_model"},
+        group_codes_names=group_codes_names,
         seed=itertools.count(),
     )
 
@@ -226,7 +236,14 @@ def test_calculate_infections_only_recurrent_all_participate(
 def test_calculate_infections_only_recurrent_sick_skips(
     setup_households_w_one_infection,
 ):
-    states, contacts, params, indexers, group_probs = setup_households_w_one_infection
+    (
+        states,
+        contacts,
+        params,
+        indexers,
+        group_probs,
+        group_codes_names,
+    ) = setup_households_w_one_infection
 
     contacts[0] = 0
 
@@ -242,6 +259,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
         indexers=indexers,
         group_cdfs=group_probs,
         code_to_contact_model={0: "the_model"},
+        group_codes_names=group_codes_names,
         seed=itertools.count(),
     )
 
@@ -258,7 +276,14 @@ def test_calculate_infections_only_recurrent_sick_skips(
 def test_calculate_infections_only_recurrent_one_skips(
     setup_households_w_one_infection,
 ):
-    states, contacts, params, indexers, group_probs = setup_households_w_one_infection
+    (
+        states,
+        contacts,
+        params,
+        indexers,
+        group_probs,
+        group_codes_names,
+    ) = setup_households_w_one_infection
 
     # 2nd person does not participate in household meeting
     contacts[1] = 0
@@ -275,6 +300,7 @@ def test_calculate_infections_only_recurrent_one_skips(
         indexers=indexers,
         group_cdfs=group_probs,
         code_to_contact_model={0: "the_model"},
+        group_codes_names=group_codes_names,
         seed=itertools.count(),
     )
 
@@ -290,7 +316,14 @@ def test_calculate_infections_only_recurrent_one_skips(
 def test_calculate_infections_only_recurrent_one_immune(
     setup_households_w_one_infection,
 ):
-    states, contacts, params, indexers, group_probs = setup_households_w_one_infection
+    (
+        states,
+        contacts,
+        params,
+        indexers,
+        group_probs,
+        group_codes_names,
+    ) = setup_households_w_one_infection
 
     states.loc[1, "immune"] = True
 
@@ -306,6 +339,7 @@ def test_calculate_infections_only_recurrent_one_immune(
         indexers=indexers,
         group_cdfs=group_probs,
         code_to_contact_model={0: "the_model"},
+        group_codes_names=group_codes_names,
         seed=itertools.count(),
     )
 
@@ -369,6 +403,7 @@ def test_calculate_infections_only_non_recurrent(
             indexers=indexers,
             group_cdfs=group_probs,
             code_to_contact_model={0: "the_model"},
+            group_codes_names={"non_rec": "group_codes_non_rec"},
             seed=itertools.count(),
         )
 

@@ -1,3 +1,4 @@
+import math
 from contextlib import ExitStack as does_not_raise  # noqa: N813
 
 import numpy as np
@@ -7,6 +8,7 @@ from pandas.api.types import is_categorical_dtype
 from resources import CONTACT_MODELS
 from sid.config import INDEX_NAMES
 from sid.simulate import _add_default_duration_to_models
+from sid.simulate import _create_group_codes_names
 from sid.simulate import _process_assort_bys
 from sid.simulate import _process_initial_states
 from sid.simulate import get_simulate_func
@@ -40,11 +42,16 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
 @pytest.mark.unit
 def test_check_assort_by_are_categoricals(initial_states):
     assort_bys = _process_assort_bys(CONTACT_MODELS)
+    group_codes_names = _create_group_codes_names(CONTACT_MODELS, assort_bys)
 
-    _ = _process_initial_states(initial_states, assort_bys, CONTACT_MODELS)
+    _ = _process_initial_states(
+        initial_states, assort_bys, group_codes_names, CONTACT_MODELS
+    )
 
     initial_states = initial_states.astype(str)
-    processed = _process_initial_states(initial_states, assort_bys, CONTACT_MODELS)
+    processed = _process_initial_states(
+        initial_states, assort_bys, group_codes_names, CONTACT_MODELS
+    )
     for var in ["age_group", "region"]:
         assert is_categorical_dtype(processed[var].dtype)
 
@@ -130,3 +137,71 @@ def test_add_default_duration_to_models(dicts, duration, expectation, expected):
     with expectation:
         result = _add_default_duration_to_models(dicts, duration)
         assert result == expected
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "contact_models, assort_bys, expectation, expected",
+    [
+        ({"a": {}}, {"a": ["id"]}, does_not_raise(), {"a": "group_codes_a"}),
+        ({"b": {"is_factorized": True}}, {"b": ["id"]}, does_not_raise(), {"b": "id"}),
+        (
+            {"c": {"is_factorized": False}},
+            {"c": ["id_1", "id_2"]},
+            does_not_raise(),
+            {"c": "group_codes_c"},
+        ),
+        (
+            {"d": {"is_factorized": True}},
+            {"d": ["id_1", "id_2"]},
+            pytest.raises(ValueError, match="'is_factorized'"),
+            None,
+        ),
+    ],
+)
+def test_create_group_codes_names(contact_models, assort_bys, expectation, expected):
+    with expectation:
+        result = _create_group_codes_names(contact_models, assort_bys)
+        assert result == expected
+
+
+@pytest.mark.end_to_end
+def test_skipping_factorization_of_assort_by_variable_works(
+    tmp_path, initial_states, params
+):
+    """Test that it is possible to skip the factorization of assort_by variables."""
+    contact_models = {
+        "households": {
+            "model": lambda states, params, seed: states["hh_id"] != -1,
+            "is_recurrent": True,
+            "assort_by": "hh_id",
+            "is_factorized": True,
+        }
+    }
+
+    initial_states["hh_id"] = pd.Series(
+        np.repeat(np.arange(-1, math.ceil(len(initial_states) / 2)), 2)[
+            : len(initial_states)
+        ],
+        dtype="category",
+    )
+
+    params.loc[("infection_prob", "households", "households"), "value"] = 0.1
+
+    simulate = get_simulate_func(
+        params=params,
+        initial_states=initial_states,
+        contact_models=contact_models,
+        duration={"start": "2020-01-01", "periods": 2},
+        saved_columns={"group_codes": True},
+        path=tmp_path,
+        seed=144,
+    )
+
+    result = simulate(params)
+
+    time_series = result["time_series"].compute()
+    last_states = result["last_states"].compute()
+
+    assert "group_codes_households" not in time_series
+    assert "group_codes_households" not in last_states

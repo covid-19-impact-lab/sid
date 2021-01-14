@@ -192,6 +192,7 @@ def get_simulate_func(
     path = _create_output_directory(path)
     contact_models = _sort_contact_models(contact_models)
     assort_bys = _process_assort_bys(contact_models)
+    group_codes_names = _create_group_codes_names(contact_models, assort_bys)
     duration = parse_duration(duration)
 
     contact_policies = _add_default_duration_to_models(contact_policies, duration)
@@ -223,7 +224,7 @@ def get_simulate_func(
     else:
         validate_initial_states(initial_states)
         initial_states = _process_initial_states(
-            initial_states, assort_bys, contact_models
+            initial_states, assort_bys, group_codes_names, contact_models
         )
         initial_states = draw_course_of_disease(
             initial_states, params, next(startup_seed)
@@ -237,7 +238,7 @@ def get_simulate_func(
     )
 
     cols_to_keep = _process_saved_columns(
-        saved_columns, user_state_columns, contact_models
+        saved_columns, user_state_columns, group_codes_names, contact_models
     )
 
     sim_func = functools.partial(
@@ -245,6 +246,7 @@ def get_simulate_func(
         initial_states=initial_states,
         assort_bys=assort_bys,
         contact_models=contact_models,
+        group_codes_names=group_codes_names,
         duration=duration,
         events=events,
         contact_policies=contact_policies,
@@ -265,6 +267,7 @@ def _simulate(
     initial_states,
     assort_bys,
     contact_models,
+    group_codes_names,
     duration,
     events,
     contact_policies,
@@ -366,6 +369,7 @@ def _simulate(
             indexers=indexers,
             group_cdfs=cum_probs,
             code_to_contact_model=code_to_contact_model,
+            group_codes_names=group_codes_names,
             seed=seed,
         )
         (
@@ -554,6 +558,34 @@ def _process_assort_bys(contact_models: Dict[str, Any]) -> Dict[str, List[str]]:
     return assort_bys
 
 
+def _create_group_codes_names(
+    contact_models: Dict[str, Any], assort_bys: Dict[str, List[str]]
+) -> Dict[str, str]:
+    """Create a name for each contact models group codes.
+
+    The group codes are either found in the initial states or are a factorization of one
+    or multiple variables in the initial states.
+
+    ``"is_factorized"`` can be set in contact models to indicate that the assortative
+    variable is already factorized which saves memory.
+
+    """
+    group_codes_names = {}
+    for name, model in contact_models.items():
+        is_factorized = model.get("is_factorized", False)
+        if is_factorized and len(assort_bys[name]) != 1:
+            raise ValueError(
+                f"'is_factorized' is 'True' for contact model {name}, but there is not "
+                "one assortative variable."
+            )
+        elif is_factorized:
+            group_codes_names[name] = assort_bys[name][0]
+        else:
+            group_codes_names[name] = f"group_codes_{name}"
+
+    return group_codes_names
+
+
 def _prepare_assortative_matching_indexers(
     states: pd.DataFrame, assort_bys: Dict[str, List[str]], contact_models
 ) -> Dict[str, nb.typed.List]:
@@ -643,7 +675,12 @@ def _add_defaults_to_policy_dict(policies):
     return policies
 
 
-def _process_initial_states(states, assort_bys, contact_models):
+def _process_initial_states(
+    states: pd.DataFrame,
+    assort_bys: Dict[str, List[str]],
+    group_codes_names: Dict[str, str],
+    contact_models: Dict[str, Dict[str, Any]],
+):
     """Process the initial states given by the user.
 
     Args:
@@ -682,11 +719,11 @@ def _process_initial_states(states, assort_bys, contact_models):
 
     for model_name, assort_by in assort_bys.items():
         is_recurrent = contact_models[model_name]["is_recurrent"]
-        states[f"group_codes_{model_name}"], _ = factorize_assortative_variables(
-            states,
-            assort_by,
-            is_recurrent=is_recurrent,
-        )
+        group_code_name = group_codes_names[model_name]
+        if group_code_name not in states.columns:
+            states[group_code_name], _ = factorize_assortative_variables(
+                states, assort_by, is_recurrent=is_recurrent
+            )
 
     return states
 
@@ -744,6 +781,7 @@ def _prepare_simulation_result(output_directory, columns_to_keep, last_states):
 def _process_saved_columns(
     saved_columns: Union[None, Dict[str, Union[bool, str, List[str]]]],
     initial_state_columns: List[str],
+    group_codes_names: Dict[str, str],
     contact_models: Dict[str, Dict[str, Any]],
 ) -> List[str]:
     """Process saved columns.
@@ -773,7 +811,11 @@ def _process_saved_columns(
         "countdowns": list(COUNTDOWNS),
         "contacts": [f"n_contacts_{model}" for model in contact_models],
         "countdown_draws": [f"{cd}_draws" for cd in COUNTDOWNS],
-        "group_codes": [f"group_codes_{model}" for model in contact_models],
+        "group_codes": [
+            name
+            for name in group_codes_names.values()
+            if name.startswith("group_codes_")
+        ],
         "channels": [
             "channel_infected_by_contact",
             "channel_infected_by_event",
@@ -795,6 +837,7 @@ def _process_saved_columns(
 
 
 def _combine_column_lists(user_entries, all_entries):
+    """Combine multiple lists."""
     if isinstance(user_entries, bool) and user_entries:
         res = all_entries
     elif isinstance(user_entries, list):

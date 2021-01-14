@@ -68,7 +68,14 @@ def calculate_contacts(contact_models, contact_policies, states, params, date, s
 
 
 def calculate_infections_by_contacts(
-    states, contacts, params, indexers, group_cdfs, code_to_contact_model, seed
+    states,
+    contacts,
+    params,
+    indexers,
+    group_cdfs,
+    code_to_contact_model,
+    group_codes_names,
+    seed,
 ):
     """Calculate infections from contacts.
 
@@ -86,6 +93,8 @@ def calculate_infections_by_contacts(
         group_cdfs (dict): dict of arrays of shape
             n_group, n_groups. probs[i, j] is the cumulative probability that an
             individual from group i meets someone from group j.
+        group_codes_names (Dict[str, str]): The name of the group code column for each
+            contact model.
         seed (itertools.count): Seed counter to control randomness.
 
     Returns:
@@ -103,7 +112,7 @@ def calculate_infections_by_contacts(
     states = states.copy()
     infectious = states["infectious"].to_numpy(copy=True)
     immune = states["immune"].to_numpy(copy=True)
-    group_codes = states[[f"group_codes_{cm}" for cm in indexers]].to_numpy()
+    group_codes = states[[group_codes_names[cm] for cm in indexers]].to_numpy()
     infect_probs = np.array(
         [params.loc[("infection_prob", cm, cm), "value"] for cm in indexers]
     )

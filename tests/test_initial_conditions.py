@@ -180,7 +180,7 @@ def test_scale_and_spread_initial_infections(
 ):
     with expectation:
         initial_states = _process_initial_states(
-            initial_states, {"a": []}, {"a": {"is_recurrent": False}}
+            initial_states, {"a": []}, {"a": "a"}, {"a": {"is_recurrent": False}}
         )
         initial_states = draw_course_of_disease(initial_states, params, 0)
         initial_conditions = parse_initial_conditions(
