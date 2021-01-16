@@ -65,13 +65,11 @@ More information can be found in the `discussion paper
 Installation
 ------------
 
-sid will soon become available as a conda package and will be installed with
+sid is available as a conda package and can be installed with
 
 .. code-block:: bash
 
     $ conda install -c covid-19-impact-lab sid
-
-For now, clone the repository and install the package with pip or conda.
 
 .. end-installation
 
