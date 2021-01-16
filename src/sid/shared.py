@@ -28,6 +28,9 @@ def factorize_assortative_variables(states, assort_by, is_recurrent):
     variables. If there are no assortative variables, a single group is assigned to all
     states.
 
+    The unique values of the ``assort_by`` variables should be sorted to maintain the
+    relationship, especially if already factorized variables are passed.
+
     The group codes are converted to a lower dtype to save memory.
 
     Args:
