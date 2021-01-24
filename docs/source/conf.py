@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath("../../src"))
 project = "sid"
 copyright = "2020, Janos Gabler, Tobias Raabe, Klara Röhrl"  # noqa: A001
 author = "Janos Gabler, Tobias Raabe, Klara Röhrl"
-release = "0.0.1"
+release = "0.0.2"
 
 
 # -- General configuration ---------------------------------------------------

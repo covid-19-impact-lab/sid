@@ -15,7 +15,7 @@ README = Path("README.rst").read_text()
 
 setup(
     name="sid",
-    version="0.0.1",
+    version="0.0.2",
     description=DESCRIPTION,
     long_description=DESCRIPTION + "\n\n" + README,
     long_description_content_type="text/x-rst",

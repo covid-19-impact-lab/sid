@@ -24,7 +24,7 @@ __all__ = [
     "sid_period_to_timestamp",
     "timestamp_to_sid_period",
 ]
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 
 logger = logging.getLogger("sid")
