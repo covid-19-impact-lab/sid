@@ -7,7 +7,7 @@ from numba import njit
 from numba.typed import List as NumbaList
 from numpy.testing import assert_array_equal
 from sid.config import DTYPE_N_CONTACTS
-from sid.contacts import _calculate_infections_by_contacts_numba
+from sid.contacts import _calculate_infections_by_contacts
 from sid.contacts import _reduce_contacts_with_infection_probs
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
@@ -45,6 +45,8 @@ def test_create_group_indexer_recurrent():
 @pytest.mark.parametrize("seed", range(10))
 def test_calculate_infections_numba_with_single_group(num_regression, seed):
     """If you need to regenerate the test data, use ``pytest --force-regen``."""
+    seed = itertools.count(seed)
+
     (
         contacts,
         infectious,
@@ -54,7 +56,7 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
         indexer,
         infection_prob,
         is_recurrent,
-    ) = _sample_data_for_calculate_infections_numba(n_individuals=100, seed=seed)
+    ) = _sample_data_for_calculate_infections(n_individuals=100, seed=next(seed))
 
     (
         infected,
@@ -62,7 +64,7 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
         immune,
         missed,
         was_infected_by,
-    ) = _calculate_infections_by_contacts_numba(
+    ) = _calculate_infections_by_contacts(
         contacts,
         infectious,
         immune,
@@ -84,7 +86,7 @@ def test_calculate_infections_numba_with_single_group(num_regression, seed):
     )
 
 
-def _sample_data_for_calculate_infections_numba(
+def _sample_data_for_calculate_infections(
     n_individuals=None,
     n_contacts=None,
     infectious_share=None,
