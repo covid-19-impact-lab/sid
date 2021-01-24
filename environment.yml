@@ -9,6 +9,7 @@ dependencies:
   - pip
 
   - anaconda-client
+  - bump2version
   - conda-build
   - conda-verify
 
