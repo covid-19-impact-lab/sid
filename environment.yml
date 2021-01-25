@@ -2,10 +2,10 @@ name: sid
 
 channels:
   - conda-forge
-  - janosg
+  - opensourceeconomics
 
 dependencies:
-  - python >=3.6,<3.9
+  - python >=3.6
   - pip
 
   - anaconda-client
@@ -17,7 +17,7 @@ dependencies:
   - bokeh
   - dask
   - estimagic
-  - fastparquet <0.5
+  - fastparquet
   - hypothesis
   - jupyterlab
   - nbsphinx

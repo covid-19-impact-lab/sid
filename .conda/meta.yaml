@@ -20,11 +20,11 @@ requirements:
     - setuptools
 
   run:
-    - python >=3.6,<3.9
+    - python >=3.6
     - setuptools
     - bokeh
     - dask
-    - fastparquet <0.5
+    - fastparquet
     - numba >=0.48
     - numpy
     - pandas >=1
