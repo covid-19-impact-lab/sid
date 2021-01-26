@@ -14,31 +14,38 @@ from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 @pytest.mark.parametrize(
-    ("assort_by", "expected"),
+    "states, assort_by, is_recurrent, expected",
     [
         (
-            ["age_group", "region"],
+            pd.DataFrame({"a": [1] * 7 + [0] * 8, "b": [0, 1, 2] * 5}),
+            ["a", "b"],
+            False,
             [[9, 12], [7, 10, 13], [8, 11, 14], [0, 3, 6], [1, 4], [2, 5]],
         ),
-        ([], [list(range(15))]),
+        (
+            pd.DataFrame({"a": [0, 1, 2, 3, 1, 2], "b": [0, 0, 1, 1, 0, 1]}),
+            ["a", "b"],
+            False,
+            [[0], [1, 4], [2, 5], [3]],
+        ),
+        (
+            pd.DataFrame({"a": [1, -1, 2, 2, 1]}).astype("category"),
+            ["a"],
+            True,
+            [[0, 4], [2, 3]],
+        ),
+        (pd.DataFrame(index=range(5)), [], False, [list(range(5))]),
+        # The following two test cases ensure sorting.
+        (pd.DataFrame({"a": range(1, 4)}), ["a"], False, [[0], [1], [2]]),
+        (pd.DataFrame({"a": reversed(range(1, 4))}), ["a"], False, [[2], [1], [0]]),
     ],
 )
-def test_create_group_indexer(initial_states, assort_by, expected):
-    calculated = create_group_indexer(initial_states, assort_by, is_recurrent=False)
-    calculated = [arr.tolist() for arr in calculated]
-
-    assert calculated == expected
-
-
-@pytest.mark.unit
-def test_create_group_indexer_recurrent():
-    df = pd.DataFrame()
-    df["some_id"] = pd.Series([1, -1, 2, 2, 1]).astype("category")
-    calculated = create_group_indexer(df, ["some_id"], True)
-    calculated = [arr.tolist() for arr in calculated]
-    assert calculated == [[0, 4], [2, 3]]
+def test_create_group_indexer(states, assort_by, is_recurrent, expected):
+    result = create_group_indexer(states, assort_by, is_recurrent)
+    result = [r.tolist() for r in result]
+    assert result == expected
 
 
 @pytest.mark.unit

@@ -1,3 +1,4 @@
+"""This module contains everything related to contacts and matching."""
 from typing import Dict
 from typing import List
 
