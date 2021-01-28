@@ -573,10 +573,11 @@ def _create_group_codes_names(
     group_codes_names = {}
     for name, model in contact_models.items():
         is_factorized = model.get("is_factorized", False)
-        if is_factorized and len(assort_bys[name]) != 1:
+        n_assort_bys = len(assort_bys[name])
+        if is_factorized and n_assort_bys != 1:
             raise ValueError(
                 f"'is_factorized' is 'True' for contact model {name}, but there is not "
-                "one assortative variable."
+                f"one assortative variable, but {n_assort_bys}."
             )
         elif is_factorized:
             group_codes_names[name] = assort_bys[name][0]
