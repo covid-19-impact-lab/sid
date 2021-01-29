@@ -234,9 +234,7 @@ def get_simulate_func(
     initial_states, group_codes_info = _create_group_codes_and_info(
         initial_states, assort_bys, contact_models
     )
-    indexers = _prepare_assortative_matching_indexers(
-        initial_states, assort_bys, group_codes_info
-    )
+    indexers = _prepare_assortative_matching_indexers(initial_states, group_codes_info)
 
     cols_to_keep = _process_saved_columns(
         saved_columns, user_state_columns, group_codes_info, contact_models
@@ -590,15 +588,15 @@ def _create_group_codes_names(
 
 def _prepare_assortative_matching_indexers(
     states: pd.DataFrame,
-    assort_bys: Dict[str, List[str]],
     group_codes_info: Dict[str, Dict[str, Any]],
 ) -> Dict[str, nb.typed.List]:
     """Create indexers and first stage probabilities for assortative matching.
 
     Args:
         states (pandas.DataFrame): see :ref:`states`.
-        assort_bys (Dict[str, List[str]]): Keys are names of contact models, values are
-            lists with the assort_by variables of the model.
+        group_codes_info (Dict[str, Dict[str, Any]]): A dictionary where keys are names
+          of contact models and values are dictionaries containing the name and the
+          original codes of the assortative variables.
 
     returns:
         indexers (Dict[str, numba.typed.List]): The i_th entry of the lists are the
@@ -606,10 +604,8 @@ def _prepare_assortative_matching_indexers(
 
     """
     indexers = {}
-    for model_name, assort_by in assort_bys.items():
-        indexers[model_name] = create_group_indexer(
-            states, assort_by, group_codes_info[model_name]["name"]
-        )
+    for model_name, info in group_codes_info.items():
+        indexers[model_name] = create_group_indexer(states, info["name"])
 
     return indexers
 

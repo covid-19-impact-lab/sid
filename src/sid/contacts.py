@@ -1,7 +1,4 @@
 """This module contains everything related to contacts and matching."""
-from typing import Dict
-from typing import List
-
 import numba as nb
 import numpy as np
 import pandas as pd
@@ -427,7 +424,6 @@ def _get_index_refining_search(u, cdf):
 
 def create_group_indexer(
     states: pd.DataFrame,
-    assort_by: Dict[str, List[str]],
     group_code_name: str,
 ) -> nb.typed.List:
     """Create the group indexer.
@@ -443,11 +439,8 @@ def create_group_indexer(
     For efficiency reasons, we assign each group a number instead of identifying by
     the values of the assort_by variables directly.
 
-    Note: This function is also used in sid-estimation.
-
     Args:
         states (pandas.DataFrame): See :ref:`states`
-        assort_by (List[str]): List of variables that influence matching probabilities.
         group_code_name (str): The name of the group codes belonging to this contact
             model.
 
@@ -455,17 +448,11 @@ def create_group_indexer(
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
 
     """
-    states = states.reset_index()
-    if assort_by:
-        indices_per_group = states.groupby(group_code_name, sort=True).indices.values()
+    indices_per_group = states.groupby(group_code_name, sort=True).indices.values()
 
-        indexer = NumbaList()
-        for indices in indices_per_group:
-            indexer.append(indices.astype(DTYPE_INDEX))
-
-    else:
-        indexer = NumbaList()
-        indexer.append(states.index.to_numpy(DTYPE_INDEX))
+    indexer = NumbaList()
+    for indices in indices_per_group:
+        indexer.append(indices.astype(DTYPE_INDEX))
 
     return indexer
 
