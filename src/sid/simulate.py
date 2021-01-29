@@ -223,7 +223,8 @@ def get_simulate_func(
         validate_prepared_initial_states(initial_states, duration)
     else:
         validate_initial_states(initial_states)
-        initial_states = _process_initial_states(
+        initial_states = _process_initial_states(initial_states, assort_bys)
+        initial_states, group_codes_info = _create_group_codes_and_info(
             initial_states, assort_bys, group_codes_names, contact_models
         )
         initial_states = draw_course_of_disease(
@@ -234,7 +235,7 @@ def get_simulate_func(
         )
 
     indexers = _prepare_assortative_matching_indexers(
-        initial_states, assort_bys, contact_models
+        initial_states, assort_bys, group_codes_info
     )
 
     cols_to_keep = _process_saved_columns(
@@ -246,7 +247,7 @@ def get_simulate_func(
         initial_states=initial_states,
         assort_bys=assort_bys,
         contact_models=contact_models,
-        group_codes_names=group_codes_names,
+        group_codes_info=group_codes_info,
         duration=duration,
         events=events,
         contact_policies=contact_policies,
@@ -267,7 +268,7 @@ def _simulate(
     initial_states,
     assort_bys,
     contact_models,
-    group_codes_names,
+    group_codes_info,
     duration,
     events,
     contact_policies,
@@ -330,7 +331,7 @@ def _simulate(
     seed = itertools.count(seed)
 
     cum_probs = _prepare_assortative_matching_probabilities(
-        initial_states, assort_bys, params, contact_models
+        initial_states, assort_bys, params, contact_models, group_codes_info
     )
 
     code_to_contact_model = dict(enumerate(contact_models))
@@ -369,7 +370,7 @@ def _simulate(
             indexers=indexers,
             group_cdfs=cum_probs,
             code_to_contact_model=code_to_contact_model,
-            group_codes_names=group_codes_names,
+            group_codes_info=group_codes_info,
             seed=seed,
         )
         (
@@ -588,7 +589,9 @@ def _create_group_codes_names(
 
 
 def _prepare_assortative_matching_indexers(
-    states: pd.DataFrame, assort_bys: Dict[str, List[str]], contact_models
+    states: pd.DataFrame,
+    assort_bys: Dict[str, List[str]],
+    group_codes_info: Dict[str, Dict[str, Any]],
 ) -> Dict[str, nb.typed.List]:
     """Create indexers and first stage probabilities for assortative matching.
 
@@ -604,16 +607,15 @@ def _prepare_assortative_matching_indexers(
     """
     indexers = {}
     for model_name, assort_by in assort_bys.items():
-        is_recurrent = contact_models[model_name]["is_recurrent"]
         indexers[model_name] = create_group_indexer(
-            states, assort_by, is_recurrent=is_recurrent
+            states, assort_by, group_codes_info[model_name]["name"]
         )
 
     return indexers
 
 
 def _prepare_assortative_matching_probabilities(
-    states, assort_bys, params, contact_models
+    states, assort_bys, params, contact_models, group_codes_info
 ):
     """Create indexers and first stage probabilities for assortative matching.
 
@@ -635,7 +637,11 @@ def _prepare_assortative_matching_probabilities(
     for model_name, assort_by in assort_bys.items():
         if not contact_models[model_name]["is_recurrent"]:
             first_probs[model_name] = create_group_transition_probs(
-                states, assort_by, params, model_name
+                states,
+                assort_by,
+                params,
+                model_name,
+                group_codes_info[model_name]["groups"],
             )
     return first_probs
 
@@ -676,12 +682,7 @@ def _add_defaults_to_policy_dict(policies):
     return policies
 
 
-def _process_initial_states(
-    states: pd.DataFrame,
-    assort_bys: Dict[str, List[str]],
-    group_codes_names: Dict[str, str],
-    contact_models: Dict[str, Dict[str, Any]],
-):
+def _process_initial_states(states: pd.DataFrame, assort_bys: Dict[str, List[str]]):
     """Process the initial states given by the user.
 
     Args:
@@ -718,15 +719,29 @@ def _process_initial_states(
     states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
     states["pending_test_date"] = pd.NaT
 
+    return states
+
+
+def _create_group_codes_and_info(
+    states: pd.DataFrame,
+    assort_bys: Dict[str, List[str]],
+    group_codes_names: Dict[str, str],
+    contact_models: Dict[str, Dict[str, Any]],
+):
+    group_codes_info = {}
+
     for model_name, assort_by in assort_bys.items():
         is_recurrent = contact_models[model_name]["is_recurrent"]
         group_code_name = group_codes_names[model_name]
         if group_code_name not in states.columns:
-            states[group_code_name], _ = factorize_assortative_variables(
+            states[group_code_name], groups = factorize_assortative_variables(
                 states, assort_by, is_recurrent=is_recurrent
             )
+        else:
+            groups = states[group_code_name].cat.categories
+        group_codes_info[model_name] = {"name": group_code_name, "groups": groups}
 
-    return states
+    return states, group_codes_info
 
 
 def _dump_periodic_states(states, columns_to_keep, output_directory, date):
