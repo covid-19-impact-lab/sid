@@ -3,7 +3,6 @@ import itertools
 import numpy as np
 import pandas as pd
 import pytest
-from numba import njit
 from numba.typed import List as NumbaList
 from numpy.testing import assert_array_equal
 from sid.config import DTYPE_N_CONTACTS
@@ -353,35 +352,15 @@ def test_calculate_infections_only_recurrent_one_immune(
     )
 
 
-def set_deterministic_context(m):
-    """Replace all randomness in the model with specified orders."""
-
-    @njit
-    def fake_choose_other_group(a, cdf):
-        """Deterministically switch between groups."""
-        return a[0]
-
-    m.setattr("sid.contacts.choose_other_group", fake_choose_other_group)
-
-    @njit
-    def fake_choose_j(a, weights):
-        """Deterministically switch between groups."""
-        return a[1]
-
-    m.setattr("sid.contacts.choose_other_individual", fake_choose_j)
-
-
 @pytest.mark.integration
-def test_calculate_infections_only_non_recurrent(
-    setup_households_w_one_infection, monkeypatch
-):
+def test_calculate_infections_only_non_recurrent(setup_households_w_one_infection):
     states, contacts, *_ = setup_households_w_one_infection
 
     contacts[0] = 1
 
     params = pd.DataFrame(
         columns=["value"],
-        data=1.0,
+        data=1,
         index=pd.MultiIndex.from_tuples([("infection_prob", "non_rec", "non_rec")]),
     )
     indexers = {
@@ -391,25 +370,23 @@ def test_calculate_infections_only_non_recurrent(
     }
     group_probs = {"non_rec": np.array([[0.8, 1], [0.2, 1]])}
 
-    with monkeypatch.context() as m:
-        set_deterministic_context(m)
-        (
-            calc_infected,
-            calc_n_has_additionally_infected,
-            calc_missed_contacts,
-            was_infected_by,
-        ) = calculate_infections_by_contacts(
-            states=states,
-            contacts=contacts,
-            params=params,
-            indexers=indexers,
-            group_cdfs=group_probs,
-            code_to_contact_model={0: "the_model"},
-            group_codes_names={"non_rec": "group_codes_non_rec"},
-            seed=itertools.count(),
-        )
+    (
+        calc_infected,
+        calc_n_has_additionally_infected,
+        calc_missed_contacts,
+        was_infected_by,
+    ) = calculate_infections_by_contacts(
+        states=states,
+        contacts=contacts,
+        params=params,
+        indexers=indexers,
+        group_cdfs=group_probs,
+        code_to_contact_model={0: "the_model"},
+        group_codes_names={"non_rec": "group_codes_non_rec"},
+        seed=itertools.count(1),
+    )
 
-    exp_infected = pd.Series([False, True, False, False, False, False, False, False])
+    exp_infected = pd.Series([False, False, True, False, False, False, False, False])
     exp_infection_counter = pd.Series([1] + [0] * 7).astype(np.int32)
     assert calc_infected.equals(exp_infected)
     assert calc_n_has_additionally_infected.astype(np.int32).equals(

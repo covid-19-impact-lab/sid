@@ -1,3 +1,4 @@
+"""This module contains the code the parse input data."""
 import warnings
 from collections.abc import Iterable
 from typing import Any

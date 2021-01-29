@@ -277,4 +277,5 @@ def _flatten_index(data):
 
 
 def _is_diagonal(mat):
+    """Check if the matrix is diagonal."""
     return not np.count_nonzero(mat - np.diag(np.diagonal(mat)))
