@@ -14,36 +14,29 @@ from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
 
 
-@pytest.mark.integration
+@pytest.mark.unit
 @pytest.mark.parametrize(
-    "states, assort_by, is_recurrent, expected",
+    "states, group_code_name, expected",
     [
         (
-            pd.DataFrame({"a": [1] * 7 + [0] * 8, "b": [0, 1, 2] * 5}),
-            ["a", "b"],
-            False,
-            [[9, 12], [7, 10, 13], [8, 11, 14], [0, 3, 6], [1, 4], [2, 5]],
-        ),
-        (
-            pd.DataFrame({"a": [0, 1, 2, 3, 1, 2], "b": [0, 0, 1, 1, 0, 1]}),
-            ["a", "b"],
-            False,
-            [[0], [1, 4], [2, 5], [3]],
-        ),
-        (
-            pd.DataFrame({"a": [1, -1, 2, 2, 1]}).astype("category"),
+            pd.DataFrame({"a": [1] * 7 + [0] * 8}),
             ["a"],
-            True,
-            [[0, 4], [2, 3]],
+            [list(range(7, 15)), list(range(7))],
         ),
-        (pd.DataFrame(index=range(5)), [], False, [list(range(5))]),
-        # The following two test cases ensure sorting.
-        (pd.DataFrame({"a": range(1, 4)}), ["a"], False, [[0], [1], [2]]),
-        (pd.DataFrame({"a": reversed(range(1, 4))}), ["a"], False, [[2], [1], [0]]),
+        (
+            pd.DataFrame({"a": pd.Series([0, 1, 2, 3, 0, 1, 2, 3]).astype("category")}),
+            ["a"],
+            [[0, 4], [1, 5], [2, 6], [3, 7]],
+        ),
+        (
+            pd.DataFrame({"a": pd.Series([0, 1, 2, 3, 0, 1, 2, -1])}),
+            ["a"],
+            [[7], [0, 4], [1, 5], [2, 6], [3]],
+        ),
     ],
 )
-def test_create_group_indexer(states, assort_by, is_recurrent, expected):
-    result = create_group_indexer(states, assort_by, is_recurrent)
+def test_create_group_indexer(states, group_code_name, expected):
+    result = create_group_indexer(states, group_code_name)
     result = [r.tolist() for r in result]
     assert result == expected
 
