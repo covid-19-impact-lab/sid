@@ -9,6 +9,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import Union
 
 import dask.dataframe as dd
@@ -192,7 +193,6 @@ def get_simulate_func(
     path = _create_output_directory(path)
     contact_models = _sort_contact_models(contact_models)
     assort_bys = _process_assort_bys(contact_models)
-    group_codes_names = _create_group_codes_names(contact_models, assort_bys)
     duration = parse_duration(duration)
 
     contact_policies = _add_default_duration_to_models(contact_policies, duration)
@@ -224,9 +224,6 @@ def get_simulate_func(
     else:
         validate_initial_states(initial_states)
         initial_states = _process_initial_states(initial_states, assort_bys)
-        initial_states, group_codes_info = _create_group_codes_and_info(
-            initial_states, assort_bys, group_codes_names, contact_models
-        )
         initial_states = draw_course_of_disease(
             initial_states, params, next(startup_seed)
         )
@@ -234,12 +231,15 @@ def get_simulate_func(
             initial_states, params, initial_conditions, share_known_cases, startup_seed
         )
 
+    initial_states, group_codes_info = _create_group_codes_and_info(
+        initial_states, assort_bys, contact_models
+    )
     indexers = _prepare_assortative_matching_indexers(
         initial_states, assort_bys, group_codes_info
     )
 
     cols_to_keep = _process_saved_columns(
-        saved_columns, user_state_columns, group_codes_names, contact_models
+        saved_columns, user_state_columns, group_codes_info, contact_models
     )
 
     sim_func = functools.partial(
@@ -725,9 +725,27 @@ def _process_initial_states(states: pd.DataFrame, assort_bys: Dict[str, List[str
 def _create_group_codes_and_info(
     states: pd.DataFrame,
     assort_bys: Dict[str, List[str]],
-    group_codes_names: Dict[str, str],
     contact_models: Dict[str, Dict[str, Any]],
-):
+) -> Tuple[pd.DataFrame, Dict[str, Dict[str, Any]]]:
+    """Create group codes and additional information.
+
+    Args:
+        states (pd.DataFrame): The states.
+        assort_bys (Dict[str, List[str]]): The assortative variables for each contact
+            model.
+        contact_models (Dict[str, Dict[str, Any]]): The contact models.
+
+    Returns:
+        A tuple containing:
+
+        - states (pandas.DataFrame): The states.
+        - group_codes_info (Dict[str, Dict[str, Any]]): A dictionary where keys are
+          names of contact models and values are dictionaries containing the name and
+          the original codes of the assortative variables.
+
+    """
+    group_codes_names = _create_group_codes_names(contact_models, assort_bys)
+
     group_codes_info = {}
 
     for model_name, assort_by in assort_bys.items():
@@ -744,7 +762,8 @@ def _create_group_codes_and_info(
     return states, group_codes_info
 
 
-def _dump_periodic_states(states, columns_to_keep, output_directory, date):
+def _dump_periodic_states(states, columns_to_keep, output_directory, date) -> None:
+    """Dump the states of one period."""
     states = states[columns_to_keep]
     states.to_parquet(
         output_directory / "time_series" / f"{date.date()}.parquet",
@@ -797,7 +816,7 @@ def _prepare_simulation_result(output_directory, columns_to_keep, last_states):
 def _process_saved_columns(
     saved_columns: Union[None, Dict[str, Union[bool, str, List[str]]]],
     initial_state_columns: List[str],
-    group_codes_names: Dict[str, str],
+    group_codes_info: Dict[str, str],
     contact_models: Dict[str, Dict[str, Any]],
 ) -> List[str]:
     """Process saved columns.
@@ -807,6 +826,15 @@ def _process_saved_columns(
 
     The list is also used to check whether additional information should be computed and
     then stored in the periodic states.
+
+    Args:
+        saved_columns (Union[None, Dict[str, Union[bool, str, List[str]]]]): The columns
+            the user decided to save in the simulation output.
+        initial_state_columns (List[str]): The columns available in the initial states
+            passed by the user.
+        group_codes_info (Dict[str, str]): A dictionary which contains the name and
+            groups for each group code variable.
+        contact_models (Dict[str, Dict[str, Any]]): The contact models.
 
     Returns:
         keep (List[str]): A list of columns names which should be kept in the states.
@@ -828,9 +856,9 @@ def _process_saved_columns(
         "contacts": [f"n_contacts_{model}" for model in contact_models],
         "countdown_draws": [f"{cd}_draws" for cd in COUNTDOWNS],
         "group_codes": [
-            name
-            for name in group_codes_names.values()
-            if name.startswith("group_codes_")
+            group_codes_info[model]["name"]
+            for model in group_codes_info
+            if group_codes_info[model]["name"].startswith("group_codes_")
         ],
         "channels": [
             "channel_infected_by_contact",
