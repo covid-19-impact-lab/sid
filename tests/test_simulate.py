@@ -42,16 +42,11 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
 @pytest.mark.unit
 def test_check_assort_by_are_categoricals(initial_states):
     assort_bys = _process_assort_bys(CONTACT_MODELS)
-    group_codes_names = _create_group_codes_names(CONTACT_MODELS, assort_bys)
 
-    _ = _process_initial_states(
-        initial_states, assort_bys, group_codes_names, CONTACT_MODELS
-    )
+    _ = _process_initial_states(initial_states, assort_bys)
 
     initial_states = initial_states.astype(str)
-    processed = _process_initial_states(
-        initial_states, assort_bys, group_codes_names, CONTACT_MODELS
-    )
+    processed = _process_initial_states(initial_states, assort_bys)
     for var in ["age_group", "region"]:
         assert is_categorical_dtype(processed[var].dtype)
 

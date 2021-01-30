@@ -28,6 +28,9 @@ def factorize_assortative_variables(states, assort_by, is_recurrent):
     variables. If there are no assortative variables, a single group is assigned to all
     states.
 
+    The unique values of the ``assort_by`` variables should be sorted to maintain the
+    relationship, especially if already factorized variables are passed.
+
     The group codes are converted to a lower dtype to save memory.
 
     Args:
@@ -47,7 +50,7 @@ def factorize_assortative_variables(states, assort_by, is_recurrent):
     """
     if is_recurrent:
         assort_by_series = states[assort_by[0]].astype(int).replace({-1: pd.NA})
-        group_codes, group_codes_values = pd.factorize(assort_by_series)
+        group_codes, group_codes_values = pd.factorize(assort_by_series, sort=True)
         group_codes = group_codes.astype(DTYPE_GROUP_CODE)
     elif assort_by:
         assort_by_series = [states[col].to_numpy() for col in assort_by]

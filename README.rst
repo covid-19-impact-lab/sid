@@ -25,6 +25,9 @@ sid
     :target: https://results.pre-commit.ci/latest/github/covid-19-impact-lab/sid/main
     :alt: pre-commit.ci status
 
+.. image:: https://sid-dev.readthedocs.io/en/latest/_static/images/interrogate_badge.svg
+    :target: https://github.com/econchick/interrogate
+
 .. end-badges
 
 
@@ -65,13 +68,11 @@ More information can be found in the `discussion paper
 Installation
 ------------
 
-sid will soon become available as a conda package and will be installed with
+sid is available as a conda package and can be installed with
 
 .. code-block:: bash
 
     $ conda install -c covid-19-impact-lab sid
-
-For now, clone the repository and install the package with pip or conda.
 
 .. end-installation
 

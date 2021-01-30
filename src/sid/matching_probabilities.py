@@ -3,10 +3,9 @@ import string
 
 import numpy as np
 import pandas as pd
-from sid.shared import factorize_assortative_variables
 
 
-def create_group_transition_probs(states, assort_by, params, model_name):
+def create_group_transition_probs(states, assort_by, params, model_name, groups):
     """Create a transition matrix for groups.
 
     Args:
@@ -14,6 +13,7 @@ def create_group_transition_probs(states, assort_by, params, model_name):
         assort_by (list): List of variables that influence matching probabilities.
         params (pandas.DataFrame): See :ref:`params`
         model_name (str): name of the contact model.
+        groups (List[Any]): The list of original group values of the group column.
 
     Returns
         cum_probs (numpy.ndarray): Array of shape n_group, n_groups. cum_probs[i, j]
@@ -21,12 +21,8 @@ def create_group_transition_probs(states, assort_by, params, model_name):
             j or lower.
 
     """
-    _, group_codes_values = factorize_assortative_variables(
-        states, assort_by, is_recurrent=False
-    )
-
     if not assort_by:
-        probs = np.ones((len(group_codes_values), len(group_codes_values)))
+        probs = np.ones((len(groups), len(groups)))
 
     else:
         trans_mats = []
@@ -35,7 +31,7 @@ def create_group_transition_probs(states, assort_by, params, model_name):
             trans_mats.append(tm)
 
         probs = _join_transition_matrices(trans_mats)
-        probs = probs.loc[group_codes_values, group_codes_values].to_numpy()
+        probs = probs.loc[groups, groups].to_numpy()
 
     cum_probs = probs.cumsum(axis=1)
 
