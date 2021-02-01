@@ -347,7 +347,7 @@ def _simulate(
         states["date"] = date
         states["period"] = timestamp_to_sid_period(date)
 
-        contacts = calculate_contacts(
+        recurrent_contacts, random_contacts = calculate_contacts(
             contact_models=contact_models,
             contact_policies=contact_policies,
             states=states,
@@ -363,7 +363,8 @@ def _simulate(
             channel_infected_by_contact,
         ) = calculate_infections_by_contacts(
             states=states,
-            contacts=contacts,
+            recurrent_contacts=recurrent_contacts,
+            random_contacts=random_contacts,
             params=params,
             indexers=indexers,
             group_cdfs=cum_probs,

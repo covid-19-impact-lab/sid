@@ -1,4 +1,9 @@
 """This module contains everything related to contacts and matching."""
+import itertools
+from typing import Any
+from typing import Dict
+from typing import Tuple
+
 import numba as nb
 import numpy as np
 import pandas as pd
@@ -11,24 +16,38 @@ from sid.shared import boolean_choice
 from sid.validation import validate_return_is_series_or_ndarray
 
 
-def calculate_contacts(contact_models, contact_policies, states, params, date, seed):
+def calculate_contacts(
+    contact_models: Dict[str, Dict[str, Any]],
+    contact_policies: Dict[str, Dict[str, Any]],
+    states: pd.DataFrame,
+    params: pd.DataFrame,
+    date: pd.Timestamp,
+    seed: itertools.count,
+) -> Tuple[np.ndarray, np.ndarray]:
     """Calculate number of contacts of different types.
 
     Args:
-        contact_models (dict): See :ref:`contact_models`. They are already sorted.
-        contact_policies (dict): See :ref:`policies`.
+        contact_models (Dict[str, Dict[str, Any]]): See :ref:`contact_models`. They are
+            already sorted.
+        contact_policies (Dict[str, Dict[str, Any]]): See :ref:`policies`.
         states (pandas.DataFrame): See :ref:`states`.
         params (pandas.DataFrame): See :ref:`params`.
         date (pandas.Timestamp): The current date.
-        seed (itertools.count)
+        seed (itertools.count): The seed counter.
 
     Returns:
-        contacts (numpy.ndarray): DataFrame with one column for each contact model.
+        A tuple containing the following entries:
+
+        - recurrent_contacts (numpy.ndarray): An array with boolean entries for each
+          person and recurrent contact model.
+        - random_contacts (numpy.ndarray): An array with integer entries indicating the
+          number of contacts for each person and random contact model.
 
     """
-    contacts = np.zeros((len(states), len(contact_models)), dtype=DTYPE_N_CONTACTS)
+    random_contacts = []
+    recurrent_contacts = []
 
-    for i, (model_name, model) in enumerate(contact_models.items()):
+    for model_name, model in contact_models.items():
         loc = model.get("loc", params.index)
         func = model["model"]
         model_specific_contacts = func(
@@ -51,29 +70,40 @@ def calculate_contacts(contact_models, contact_policies, states, params, date, s
                             seed=next(seed),
                         )
 
-        if not model["is_recurrent"]:
+        if model["is_recurrent"]:
+            recurrent_contacts.append(model_specific_contacts.astype(bool))
+        else:
             model_specific_contacts = _sum_preserving_round(
                 model_specific_contacts.to_numpy().astype(DTYPE_N_CONTACTS)
             )
+            random_contacts.append(model_specific_contacts)
 
-        contacts[:, i] = model_specific_contacts
+    random_contacts = np.column_stack(random_contacts) if random_contacts else None
+    recurrent_contacts = (
+        np.column_stack(recurrent_contacts) if recurrent_contacts else None
+    )
 
-        # Dead people and ICU patients don't have contacts.
-        contacts[states["needs_icu"] | states["dead"]] = 0
+    # Dead people and ICU patients don't have contacts.
+    has_no_contacts = states["needs_icu"] | states["dead"]
+    if random_contacts is not None:
+        random_contacts[has_no_contacts, :] = 0
+    if recurrent_contacts is not None:
+        recurrent_contacts[has_no_contacts, :] = False
 
-    return contacts
+    return recurrent_contacts, random_contacts
 
 
 def calculate_infections_by_contacts(
-    states,
-    contacts,
-    params,
-    indexers,
+    states: pd.DataFrame,
+    recurrent_contacts: np.ndarray,
+    random_contacts: np.ndarray,
+    params: pd.DataFrame,
+    indexers: nb.typed.List,
     group_cdfs,
     code_to_contact_model,
-    group_codes_info,
-    seed,
-):
+    group_codes_info: Dict[str, Dict[str, Any]],
+    seed: itertools.count,
+) -> Tuple[pd.Series, pd.Series, pd.DataFrame]:
     """Calculate infections from contacts.
 
     This function mainly converts the relevant parts from states and contacts into numpy
@@ -83,15 +113,18 @@ def calculate_infections_by_contacts(
 
     Args:
         states (pandas.DataFrame): see :ref:`states`.
-        contacts (pandas.DataFrame): One column per contact_model. Same index as states.
+        recurrent_contacts (numpy.ndarray): An array with boolean entries for each
+            person and recurrent contact model.
+        random_contacts (numpy.ndarray): An array with integer entries indicating the
+            number of contacts for each person and random contact model.
         params (pandas.DataFrame): See :ref:`params`.
         indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
             indices of the i_th group.
         group_cdfs (dict): dict of arrays of shape
             n_group, n_groups. probs[i, j] is the cumulative probability that an
             individual from group i meets someone from group j.
-        group_codes_info (Dict[str, str]): The name of the group code column for each
-            contact model.
+        group_codes_info (Dict[str, Dict[str, Any]]): The name of the group code column
+            for each contact model.
         seed (itertools.count): Seed counter to control randomness.
 
     Returns:
@@ -105,17 +138,25 @@ def calculate_infections_by_contacts(
           model.
 
     """
-    is_recurrent = np.array([k not in group_cdfs for k in indexers])
     states = states.copy()
     infectious = states["infectious"].to_numpy(copy=True)
     immune = states["immune"].to_numpy(copy=True)
-    group_codes = states[[group_codes_info[cm]["name"] for cm in indexers]].to_numpy()
-    infect_probs = np.array(
-        [params.loc[("infection_prob", cm, cm), "value"] for cm in indexers]
-    )
 
-    contacts = _reduce_contacts_with_infection_probs(
-        contacts, is_recurrent, infect_probs, next(seed)
+    recurrent_models = [cm for cm in indexers if cm not in group_cdfs]
+    random_models = [cm for cm in indexers if cm not in recurrent_models]
+
+    group_codes_recurrent = states[
+        [group_codes_info[cm]["name"] for cm in recurrent_models]
+    ].to_numpy()
+    group_codes_random = states[
+        [group_codes_info[cm]["name"] for cm in random_models]
+    ].to_numpy()
+
+    infection_probabilities_recurrent = np.array(
+        [params.loc[("infection_prob", cm, cm), "value"] for cm in recurrent_models]
+    )
+    infection_probabilities_random = np.array(
+        [params.loc[("infection_prob", cm, cm), "value"] for cm in random_models]
     )
 
     group_cdfs_list = NumbaList()
@@ -125,38 +166,69 @@ def calculate_infections_by_contacts(
     if len(group_cdfs_list) == 0:
         group_cdfs_list.append(np.zeros((0, 0)))
 
-    indexers_list = NumbaList()
-    for ind in indexers.values():
-        indexers_list.append(ind)
+    indexers_recurrent = NumbaList()
+    for cm in recurrent_models:
+        indexers_recurrent.append(indexers[cm])
 
-    (
-        infected,
-        infection_counter,
-        immune,
-        missed,
-        was_infected_by,
-    ) = _calculate_infections_by_contacts(
-        contacts,
-        infectious,
-        immune,
-        group_codes,
-        group_cdfs_list,
-        indexers_list,
-        infect_probs,
-        seed,
-        is_recurrent,
-    )
+    indexers_random = NumbaList()
+    for cm in random_models:
+        indexers_random.append(indexers[cm])
+
+    infected = np.zeros(len(states), dtype=DTYPE_INFECTED)
+    infection_counter = np.zeros(len(states), dtype=DTYPE_INFECTION_COUNTER)
+
+    if recurrent_models:
+        (
+            infected,
+            infection_counter,
+            immune,
+            was_infected_by_recurrent,
+        ) = _calculate_infections_by_recurrent_contacts(
+            recurrent_contacts,
+            infectious,
+            immune,
+            group_codes_recurrent,
+            indexers_recurrent,
+            infection_probabilities_recurrent,
+            infected,
+            infection_counter,
+            next(seed),
+        )
+
+    if random_models:
+        random_contacts = _reduce_random_contacts_with_infection_probs(
+            random_contacts, infection_probabilities_random, next(seed)
+        )
+
+        (
+            infected,
+            infection_counter,
+            immune,
+            missed,
+            was_infected_by_random,
+        ) = _calculate_infections_by_random_contacts(
+            random_contacts,
+            infectious,
+            immune,
+            group_codes_random,
+            group_cdfs_list,
+            indexers_random,
+            infected,
+            infection_counter,
+            next(seed),
+        )
+
+        # Save missed contacts and set missed contacts of recurrent models to zero which
+        # happens in :func:`_calculate_infections_by_contacts_numba` since ``missed`` is
+        # set to ``contacts``.
+        missed_contacts = pd.DataFrame(
+            missed, columns=[f"missed_{name}" for name in random_models]
+        )
+    else:
+        missed_contacts = None
 
     infected = pd.Series(infected, index=states.index)
     n_has_additionally_infected = pd.Series(infection_counter, index=states.index)
-
-    # Save missed contacts and set missed contacts of recurrent models to zero which
-    # happens in :func:`_calculate_infections_by_contacts_numba` since ``missed`` is set
-    # to ``contacts``.
-    missed_contacts = pd.DataFrame(
-        missed, columns=[f"missed_{name}" for name in indexers]
-    )
-    missed_contacts.loc[:, is_recurrent] = 0
 
     categories = {-1: "not_infected_by_contact", **code_to_contact_model}
     was_infected_by = pd.Series(
@@ -167,100 +239,43 @@ def calculate_infections_by_contacts(
 
 
 @nb.njit
-def _reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, seed):
-    """Reduce the number of contacts stochastically.
+def _reduce_random_contacts_with_infection_probs(
+    random_contacts: np.ndarray, probs: np.ndarray, seed: itertools.count
+) -> np.ndarray:
+    """Reduce the number of random contacts stochastically.
 
-    The remaining contacts have the interpretation that they would lead
-    to an infection if one person is susceptible and one is infectious.
+    The remaining random contacts have the interpretation that they would lead to an
+    infection if one person is susceptible and one is infectious.
 
     Args:
-        contacts (numpy.ndarray): 2d integer array with number of contacts per
-            individual. There is one row per individual in the state and one column
-            for each contact model where model["model"] != "meet_group".
-        is_recurrent (numpy.ndarray): One entry per contact model.
-        probs (numpy.ndarray): Infection probabilities. One entry per contact model.
+        random_contacts (numpy.ndarray): An integer array containing the number of
+            contacts per individual for each random (non-recurrent) contact model.
+        probs (numpy.ndarray): An array containing one infection probability for each
+            random contact model.
         seed (int): The seed.
 
     Returns
-        reduced_contacts (numpy.ndarray): Same shape as contacts. Equal to contacts for
+        random_contacts (numpy.ndarray): Same shape as contacts. Equal to contacts for
             recurrent contact models. Less or equal to contacts otherwise.
 
     """
-
-    contacts = contacts.copy()
     np.random.seed(seed)
-    n_obs, n_contacts = contacts.shape
+
+    n_obs, n_contacts = random_contacts.shape
     for i in range(n_obs):
         for j in range(n_contacts):
-            if not is_recurrent[j] and contacts[i, j] != 0:
+            if random_contacts[i, j] != 0:
                 success = 0
-                for _ in range(contacts[i, j]):
+                for _ in range(random_contacts[i, j]):
                     if boolean_choice(probs[j]):
                         success += 1
-                contacts[i, j] = success
-    return contacts
-
-
-def _calculate_infections_by_contacts(
-    contacts,
-    infectious,
-    immune,
-    group_codes,
-    group_cdfs,
-    indexers_list,
-    infection_probs,
-    seed,
-    is_recurrent,
-):
-    infected = np.zeros(len(contacts), dtype=DTYPE_INFECTED)
-    infection_counter = np.zeros(len(contacts), dtype=DTYPE_INFECTION_COUNTER)
-    was_infected_by = np.full(len(contacts), -1, dtype=np.int16)
-
-    (
-        infected,
-        infection_counter,
-        immune,
-        was_infected_by,
-    ) = _calculate_infections_by_recurrent_contacts(
-        contacts,
-        infectious,
-        immune,
-        group_codes,
-        indexers_list,
-        infection_probs,
-        infected,
-        infection_counter,
-        was_infected_by,
-        next(seed),
-        is_recurrent,
-    )
-
-    (
-        infected,
-        infection_counter,
-        immune,
-        missed,
-        was_infected_by,
-    ) = _calculate_infections_by_random_contacts(
-        contacts,
-        infectious,
-        immune,
-        group_codes,
-        group_cdfs,
-        indexers_list,
-        infected,
-        infection_counter,
-        was_infected_by,
-        next(seed),
-        is_recurrent,
-    )
-
-    return infected, infection_counter, immune, missed, was_infected_by
+                random_contacts[i, j] = success
+    return random_contacts
 
 
 @nb.njit
 def _calculate_infections_by_recurrent_contacts(
-    contacts,
+    recurrent_contacts,
     infectious,
     immune,
     group_codes,
@@ -270,12 +285,11 @@ def _calculate_infections_by_recurrent_contacts(
     infection_counter,
     was_infected_by,
     seed,
-    is_recurrent,
 ):
     """Match recurrent contacts and record infections.
 
     Args:
-        contacts (numpy.ndarray): 2d integer array with number of contacts per
+        recurrent_contacts (numpy.ndarray): 2d integer array with number of contacts per
             individual. There is one row per individual in the state and one column
             for each contact model where model["model"] != "meet_group".
         infectious (numpy.ndarray): 1d boolean array that indicates if a person is
@@ -286,15 +300,14 @@ def _calculate_infections_by_recurrent_contacts(
         indexers_list (numba.typed.List): Nested typed list. The i_th entry of the inner
             lists are the indices of the i_th group. There is one inner list per contact
             model.
-        infection_probs (numpy.ndarray): 1d array of length n_contact_models with the
-            probability of infection for each contact model.
+        infection_probs (numpy.ndarray): An array containing the infection probabilities
+            for each recurrent contact model.
         infected (numpy.ndarray): An array indicating newly infected individuals.
         infection_counter (numpy.ndarray): An array counting infection caused by an
             individual.
         was_infected_by (numpy.ndarray): An array indicating the contact model which
             caused the infection.
         seed (int): Seed value to control randomness.
-        is_recurrent (numpy.ndarray): Boolean array of length n_contact_models.
 
     Returns:
         (tuple) Tuple containing
@@ -310,30 +323,30 @@ def _calculate_infections_by_recurrent_contacts(
     """
     np.random.seed(seed)
 
-    n_obs, n_contact_models = contacts.shape
+    n_individuals, n_recurrent_contact_models = recurrent_contacts.shape
+    was_infected_by = np.full(len(infectious), -1, dtype=np.int16)
 
-    for i in range(n_obs):
-        for cm in range(n_contact_models):
-            if is_recurrent[cm]:
-                # We only check if i infects someone else from his group. Whether
-                # he is infected by some j is only checked, when the main loop arrives
-                # at j. This allows us to skip completely if i is not infectious or has
-                # no contacts under contact model cm.
-                group_i = group_codes[i, cm]
-                if group_i >= 0 and infectious[i] and contacts[i, cm] > 0:
-                    others = indexers_list[cm][group_i]
-                    # extract infection probability into a variable for faster access
-                    prob = infection_probs[cm]
-                    for j in others:
-                        # the case i == j is skipped by the next if condition because it
-                        # never happens that i is infectious but not immune
-                        if not immune[j] and contacts[j, cm] > 0:
-                            is_infection = boolean_choice(prob)
-                            if is_infection:
-                                infection_counter[i] += 1
-                                infected[j] = 1
-                                immune[j] = True
-                                was_infected_by[j] = cm
+    for i in range(n_individuals):
+        for cm in range(n_recurrent_contact_models):
+            # We only check if i infects someone else from his group. Whether
+            # he is infected by some j is only checked, when the main loop arrives
+            # at j. This allows us to skip completely if i is not infectious or has
+            # no contacts under contact model cm.
+            group_i = group_codes[i, cm]
+            if group_i >= 0 and infectious[i] and recurrent_contacts[i, cm] > 0:
+                others = indexers_list[cm][group_i]
+                # extract infection probability into a variable for faster access
+                prob = infection_probs[cm]
+                for j in others:
+                    # the case i == j is skipped by the next if condition because it
+                    # never happens that i is infectious but not immune
+                    if not immune[j] and recurrent_contacts[j, cm] > 0:
+                        is_infection = boolean_choice(prob)
+                        if is_infection:
+                            infection_counter[i] += 1
+                            infected[j] = 1
+                            immune[j] = True
+                            was_infected_by[j] = cm
 
     return infected, infection_counter, immune, was_infected_by
 
@@ -392,6 +405,7 @@ def _calculate_infections_by_random_contacts(
     np.random.seed(seed)
 
     groups_list = [np.arange(len(gp)) for gp in group_cdfs]
+    was_infected_by = np.full(len(infectious), -1, dtype=np.int16)
 
     n_obs, n_contact_models = contacts.shape
     # Loop over all individual-contact_model combinations
