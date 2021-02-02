@@ -46,7 +46,7 @@ def factorize_assortative_variables(states, assort_by, is_recurrent):
           positions correspond the values of assortative variables to form the group.
 
     """
-    if is_recurrent:
+    if is_recurrent or len(assort_by) == 1:
         assort_by_series = states[assort_by[0]].astype(int).replace({-1: pd.NA})
         group_codes, group_codes_values = pd.factorize(assort_by_series, sort=True)
         group_codes = group_codes.astype(DTYPE_GROUP_CODE)
