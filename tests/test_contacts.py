@@ -20,18 +20,18 @@ from sid.contacts import create_group_indexer
     [
         (
             pd.DataFrame({"a": [1] * 7 + [0] * 8}),
-            ["a"],
+            "a",
             [list(range(7, 15)), list(range(7))],
         ),
         (
             pd.DataFrame({"a": pd.Series([0, 1, 2, 3, 0, 1, 2, 3]).astype("category")}),
-            ["a"],
+            "a",
             [[0, 4], [1, 5], [2, 6], [3, 7]],
         ),
         (
             pd.DataFrame({"a": pd.Series([0, 1, 2, 3, 0, 1, 2, -1])}),
-            ["a"],
-            [[7], [0, 4], [1, 5], [2, 6], [3]],
+            "a",
+            [[0, 4], [1, 5], [2, 6], [3]],
         ),
     ],
 )

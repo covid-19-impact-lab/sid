@@ -436,8 +436,8 @@ def create_group_indexer(
     group with code 0 and the indexer is a list where the first position contains all
     indices of states.
 
-    For efficiency reasons, we assign each group a number instead of identifying by
-    the values of the assort_by variables directly.
+    When an assortative variable is factorized, missing values receive -1 as the group
+    key. Thus, we remove all negative group keys from the indexer.
 
     Args:
         states (pandas.DataFrame): See :ref:`states`
@@ -448,10 +448,11 @@ def create_group_indexer(
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
 
     """
-    indices_per_group = states.groupby(group_code_name, sort=True).indices.values()
+    indices = states.groupby(group_code_name, sort=True).indices
+    reduced_indices = {idx: indices[idx] for idx in sorted(indices) if idx >= 0}
 
     indexer = NumbaList()
-    for indices in indices_per_group:
+    for indices in reduced_indices.values():
         indexer.append(indices.astype(DTYPE_INDEX))
 
     return indexer
