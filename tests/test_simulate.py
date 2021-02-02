@@ -166,31 +166,39 @@ def test_create_group_codes_names(contact_models, assort_bys, expectation, expec
     "states, assort_bys, contact_models, expected_states, expected_group_codes_info",
     [
         (
-            pd.DataFrame({"a": [2, 4, 1, 3, -1]}),
+            pd.DataFrame({"a": [2, 4, 1, 3, -1]}, dtype="category"),
             {"cm": ["a"]},
             {"cm": {"assort_by": ["a"], "is_recurrent": False}},
             pd.DataFrame(
-                {"a": [2, 4, 1, 3, -1], "group_codes_cm": np.int32([1, 3, 0, 2, -1])}
+                {
+                    "a": pd.Series([2, 4, 1, 3, -1]).astype("category"),
+                    "group_codes_cm": np.int32([1, 3, 0, 2, -1]),
+                }
             ),
             {"cm": {"name": "group_codes_cm", "groups": [1, 2, 3, 4]}},
         ),
         (
-            pd.DataFrame({"a": [2, 4, 1, 3, -1]}),
+            pd.DataFrame({"a": [2, 4, 1, 3, -1]}, dtype="category"),
             {"cm": ["a"]},
             {"cm": {"assort_by": ["a"], "is_recurrent": True}},
             pd.DataFrame(
-                {"a": [2, 4, 1, 3, -1], "group_codes_cm": np.int32([1, 3, 0, 2, -1])}
+                {
+                    "a": pd.Series([2, 4, 1, 3, -1]).astype("category"),
+                    "group_codes_cm": np.int32([1, 3, 0, 2, -1]),
+                }
             ),
             {"cm": {"name": "group_codes_cm", "groups": [1, 2, 3, 4]}},
         ),
         (
-            pd.DataFrame({"a": [2, 4, 1, 3, -1], "b": [1, 1, 2, 2, 1]}),
+            pd.DataFrame(
+                {"a": [2, 4, 1, 3, -1], "b": [1, 1, 2, 2, 1]}, dtype="category"
+            ),
             {"cm": ["a", "b"]},
             {"cm": {"assort_by": ["a", "b"], "is_recurrent": False}},
             pd.DataFrame(
                 {
-                    "a": [2, 4, 1, 3, -1],
-                    "b": [1, 1, 2, 2, 1],
+                    "a": pd.Series([2, 4, 1, 3, -1]).astype("category"),
+                    "b": pd.Series([1, 1, 2, 2, 1]).astype("category"),
                     "group_codes_cm": np.int32([2, 4, 1, 3, 0]),
                 }
             ),
