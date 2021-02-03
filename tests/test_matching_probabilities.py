@@ -6,6 +6,7 @@ from sid.matching_probabilities import _create_transition_matrix_from_own_prob
 from sid.matching_probabilities import _einsum_kronecker_product
 from sid.matching_probabilities import _join_transition_matrices
 from sid.matching_probabilities import create_group_transition_probs
+from sid.shared import factorize_assortative_variables
 
 
 @pytest.mark.integration
@@ -58,8 +59,14 @@ def test_create_group_transition_probs(initial_states, assort_by, params, expect
     assort_probs["value"] = [0.5, 0.9]
     params = params.append(assort_probs)
 
+    _, groups = factorize_assortative_variables(initial_states, assort_by, False)
+
     transition_matrix = create_group_transition_probs(
-        states=initial_states, assort_by=assort_by, params=params, model_name="model1"
+        states=initial_states,
+        assort_by=assort_by,
+        params=params,
+        model_name="model1",
+        groups=groups,
     )
     np.testing.assert_allclose(transition_matrix, expected.cumsum(axis=1))
 

@@ -1,6 +1,4 @@
-from typing import Dict
-from typing import List
-
+"""This module contains everything related to contacts and matching."""
 import numba as nb
 import numpy as np
 import pandas as pd
@@ -10,7 +8,6 @@ from sid.config import DTYPE_INFECTED
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_N_CONTACTS
 from sid.shared import boolean_choice
-from sid.shared import factorize_assortative_variables
 from sid.validation import validate_return_is_series_or_ndarray
 
 
@@ -74,7 +71,7 @@ def calculate_infections_by_contacts(
     indexers,
     group_cdfs,
     code_to_contact_model,
-    group_codes_names,
+    group_codes_info,
     seed,
 ):
     """Calculate infections from contacts.
@@ -93,7 +90,7 @@ def calculate_infections_by_contacts(
         group_cdfs (dict): dict of arrays of shape
             n_group, n_groups. probs[i, j] is the cumulative probability that an
             individual from group i meets someone from group j.
-        group_codes_names (Dict[str, str]): The name of the group code column for each
+        group_codes_info (Dict[str, str]): The name of the group code column for each
             contact model.
         seed (itertools.count): Seed counter to control randomness.
 
@@ -112,7 +109,7 @@ def calculate_infections_by_contacts(
     states = states.copy()
     infectious = states["infectious"].to_numpy(copy=True)
     immune = states["immune"].to_numpy(copy=True)
-    group_codes = states[[group_codes_names[cm] for cm in indexers]].to_numpy()
+    group_codes = states[[group_codes_info[cm]["name"] for cm in indexers]].to_numpy()
     infect_probs = np.array(
         [params.loc[("infection_prob", cm, cm), "value"] for cm in indexers]
     )
@@ -426,7 +423,8 @@ def _get_index_refining_search(u, cdf):
 
 
 def create_group_indexer(
-    states: pd.DataFrame, assort_by: Dict[str, List[str]], is_recurrent
+    states: pd.DataFrame,
+    group_code_name: str,
 ) -> nb.typed.List:
     """Create the group indexer.
 
@@ -438,36 +436,24 @@ def create_group_indexer(
     group with code 0 and the indexer is a list where the first position contains all
     indices of states.
 
-    For efficiency reasons, we assign each group a number instead of identifying by
-    the values of the assort_by variables directly.
-
-    Note: This function is also used in sid-estimation.
+    When an assortative variable is factorized, missing values receive -1 as the group
+    key. Thus, we remove all negative group keys from the indexer.
 
     Args:
         states (pandas.DataFrame): See :ref:`states`
-        assort_by (List[str]): List of variables that influence matching probabilities.
+        group_code_name (str): The name of the group codes belonging to this contact
+            model.
 
     Returns:
         indexer (numba.typed.List): The i_th entry are the indices of the i_th group.
 
     """
-    states = states.reset_index()
-    if assort_by:
-        groups = states.groupby(assort_by).groups
-        _, group_codes_values = factorize_assortative_variables(
-            states, assort_by, is_recurrent
-        )
+    indices = states.groupby(group_code_name, sort=True).indices
+    reduced_indices = {idx: indices[idx] for idx in sorted(indices) if idx >= 0}
 
-        indexer = NumbaList()
-        for group in group_codes_values:
-            # the keys of groups are not tuples if there was just one assort_by variable
-            # but the group_codes_values are.
-            group = group[0] if isinstance(group, tuple) and len(group) == 1 else group
-            indexer.append(groups[group].to_numpy(dtype=DTYPE_INDEX))
-
-    else:
-        indexer = NumbaList()
-        indexer.append(states.index.to_numpy(DTYPE_INDEX))
+    indexer = NumbaList()
+    for indices in reduced_indices.values():
+        indexer.append(indices.astype(DTYPE_INDEX))
 
     return indexer
 

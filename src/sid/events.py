@@ -1,3 +1,4 @@
+"""This module contains the code for events which cause infections."""
 import pandas as pd
 
 

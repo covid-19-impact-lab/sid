@@ -61,7 +61,13 @@ repos:
     rev: 1.3.2
     hooks:
     -   id: interrogate
-        args: [-v, --fail-under=40, src, tests]
+        args: [
+            -v,
+            --fail-under=78,
+            --generate-badge=docs/source/_static/images/interrogate_badge.svg,
+            src,
+        ]
+        pass_filenames: false
 -   repo: https://github.com/codespell-project/codespell
     rev: v2.0.0
     hooks:
