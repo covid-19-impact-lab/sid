@@ -100,7 +100,7 @@ def calculate_infections_by_contacts(
     params: pd.DataFrame,
     indexers: nb.typed.List,
     group_cdfs,
-    code_to_contact_model,
+    contact_models: Dict[str, Dict[str, Any]],
     group_codes_info: Dict[str, Dict[str, Any]],
     seed: itertools.count,
 ) -> Tuple[pd.Series, pd.Series, pd.DataFrame]:
@@ -142,8 +142,8 @@ def calculate_infections_by_contacts(
     infectious = states["infectious"].to_numpy(copy=True)
     immune = states["immune"].to_numpy(copy=True)
 
-    recurrent_models = [cm for cm in indexers if cm not in group_cdfs]
-    random_models = [cm for cm in indexers if cm not in recurrent_models]
+    recurrent_models = [c for c in contact_models if contact_models[c]["is_recurrent"]]
+    random_models = [c for c in contact_models if not contact_models[c]["is_recurrent"]]
 
     group_codes_recurrent = states[
         [group_codes_info[cm]["name"] for cm in recurrent_models]

@@ -332,7 +332,6 @@ def _simulate(
         initial_states, assort_bys, params, contact_models, group_codes_info
     )
 
-    code_to_contact_model = dict(enumerate(contact_models))
     states = initial_states
 
     if states.columns.isin(["date", "period"]).any():
@@ -368,7 +367,7 @@ def _simulate(
             params=params,
             indexers=indexers,
             group_cdfs=cum_probs,
-            code_to_contact_model=code_to_contact_model,
+            contact_models=contact_models,
             group_codes_info=group_codes_info,
             seed=seed,
         )
