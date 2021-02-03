@@ -109,7 +109,7 @@ def _sample_data_for_calculate_infections(
     if infectious_share is None:
         infectious_share = np.random.uniform(0.000001, 1)
 
-    infectious = np.zeros(n_individuals, dtype=np.bool)
+    infectious = np.zeros(n_individuals, dtype=bool)
     mask = np.random.choice(n_individuals, size=int(n_individuals * infectious_share))
     infectious[mask] = True
 
