@@ -235,7 +235,9 @@ def get_simulate_func(
     initial_states, group_codes_info = _create_group_codes_and_info(
         initial_states, assort_bys, contact_models
     )
-    indexers = _prepare_assortative_matching_indexers(initial_states, group_codes_info)
+    indexers = _prepare_assortative_matching_indexers(
+        initial_states, contact_models, group_codes_info
+    )
 
     cols_to_keep = _process_saved_columns(
         saved_columns, user_state_columns, group_codes_info, contact_models
@@ -590,24 +592,41 @@ def _create_group_codes_names(
 
 def _prepare_assortative_matching_indexers(
     states: pd.DataFrame,
+    contact_models: Dict[str, Dict[str, Any]],
     group_codes_info: Dict[str, Dict[str, Any]],
 ) -> Dict[str, nb.typed.List]:
-    """Create indexers and first stage probabilities for assortative matching.
+    """Create indexers for matching individuals within contact models.
+
+    For each contact model, :func:`create_group_indexer` returns a Numba list where each
+    position contains a :class:`numpy.ndarray` with all the indices of individuals
+    belonging to the same group given by the index.
+
+    The indexer has one Numba list for recurrent and random models. Each list has one
+    entry per contact model which holds the result of :func:`create_group_indexer`.
 
     Args:
         states (pandas.DataFrame): see :ref:`states`.
+        contact_models (Dict[str, Dict[str, Any]]): The contact models.
         group_codes_info (Dict[str, Dict[str, Any]]): A dictionary where keys are names
           of contact models and values are dictionaries containing the name and the
           original codes of the assortative variables.
 
-    returns:
-        indexers (Dict[str, numba.typed.List]): The i_th entry of the lists are the
-            indices of the i_th group.
+    Returns:
+        indexers (Dict[str, numba.typed.List]): The indexer is a dictionary with one
+            entry for recurrent and random contact models. The values are Numba lists
+            containing Numba lists for each contact model. Each list holds indices for
+            each group in the contact model.
 
     """
-    indexers = {}
-    for model_name, info in group_codes_info.items():
-        indexers[model_name] = create_group_indexer(states, info["name"])
+    recurrent_models, random_models = separate_contact_model_names(contact_models)
+
+    indexers = {"recurrent": nb.typed.List(), "random": nb.typed.List()}
+    for cm in recurrent_models:
+        indexer = create_group_indexer(states, group_codes_info[cm]["name"])
+        indexers["recurrent"].append(indexer)
+    for cm in random_models:
+        indexer = create_group_indexer(states, group_codes_info[cm]["name"])
+        indexers["random"].append(indexer)
 
     return indexers
 

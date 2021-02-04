@@ -99,7 +99,7 @@ def calculate_infections_by_contacts(
     recurrent_contacts: np.ndarray,
     random_contacts: np.ndarray,
     params: pd.DataFrame,
-    indexers: nb.typed.List,
+    indexers: Dict[str, nb.typed.List],
     group_cdfs,
     contact_models: Dict[str, Dict[str, Any]],
     group_codes_info: Dict[str, Dict[str, Any]],
@@ -119,8 +119,12 @@ def calculate_infections_by_contacts(
         random_contacts (numpy.ndarray): An array with integer entries indicating the
             number of contacts for each person and random contact model.
         params (pandas.DataFrame): See :ref:`params`.
-        indexers (dict): Dict of numba.Typed.List The i_th entry of the lists are the
-            indices of the i_th group.
+        indexers (Dict[str, numba.typed.List]): The indexer is a dictionary with one
+            entry for recurrent and random contact models. The values are Numba lists
+            containing Numba lists for each contact model. Each list holds indices for
+            each group in the contact model.
+        Dict of numba.Typed.List The i_th entry of
+            the lists are the indices of the i_th group.
         group_cdfs (dict): dict of arrays of shape
             n_group, n_groups. probs[i, j] is the cumulative probability that an
             individual from group i meets someone from group j.
@@ -166,14 +170,6 @@ def calculate_infections_by_contacts(
     if len(group_cdfs_list) == 0:
         group_cdfs_list.append(np.zeros((0, 0)))
 
-    indexers_recurrent = NumbaList()
-    for cm in recurrent_models:
-        indexers_recurrent.append(indexers[cm])
-
-    indexers_random = NumbaList()
-    for cm in random_models:
-        indexers_random.append(indexers[cm])
-
     infected = np.zeros(len(states), dtype=DTYPE_INFECTED)
     infection_counter = np.zeros(len(states), dtype=DTYPE_INFECTION_COUNTER)
 
@@ -188,7 +184,7 @@ def calculate_infections_by_contacts(
             infectious,
             immune,
             group_codes_recurrent,
-            indexers_recurrent,
+            indexers["recurrent"],
             infection_probabilities_recurrent,
             infected,
             infection_counter,
@@ -214,7 +210,7 @@ def calculate_infections_by_contacts(
             immune,
             group_codes_random,
             group_cdfs_list,
-            indexers_random,
+            indexers["random"],
             infected,
             infection_counter,
             next(seed),

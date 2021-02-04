@@ -180,7 +180,8 @@ def setup_households_w_one_infection():
         ),
     )
 
-    indexers = {"households": create_group_indexer(states, ["households"])}
+    indexers = {"recurrent": NumbaList()}
+    indexers["recurrent"].append(create_group_indexer(states, ["households"]))
 
     group_probs = {}
 
@@ -369,7 +370,8 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
         data=1,
         index=pd.MultiIndex.from_tuples([("infection_prob", "non_rec", "non_rec")]),
     )
-    indexers = {"non_rec": create_group_indexer(states, ["group_codes_non_rec"])}
+    indexers = {"random": NumbaList()}
+    indexers["random"].append(create_group_indexer(states, ["group_codes_non_rec"]))
     group_probs = {"non_rec": np.array([[0.8, 1], [0.2, 1]])}
 
     (
