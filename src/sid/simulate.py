@@ -355,6 +355,7 @@ def _simulate(
             seed=seed,
         )
 
+        # Pass a copy of the random contacts, so that we can store them later.
         (
             newly_infected_contacts,
             n_has_additionally_infected,
@@ -363,7 +364,7 @@ def _simulate(
         ) = calculate_infections_by_contacts(
             states=states,
             recurrent_contacts=recurrent_contacts,
-            random_contacts=random_contacts,
+            random_contacts=random_contacts.copy(),
             params=params,
             indexers=indexers,
             group_cdfs=cum_probs,
@@ -415,7 +416,8 @@ def _simulate(
             columns_to_keep=columns_to_keep,
             n_has_additionally_infected=n_has_additionally_infected,
             indexers=indexers,
-            contacts=contacts,
+            random_contacts=random_contacts,
+            recurrent_contacts=recurrent_contacts,
             channel_infected_by_contact=channel_infected_by_contact,
             channel_infected_by_event=channel_infected_by_event,
             channel_demands_test=channel_demands_test,
@@ -905,7 +907,8 @@ def _add_additional_information_to_states(
     columns_to_keep: List[str],
     n_has_additionally_infected: Optional[pd.Series],
     indexers: Optional[Dict[int, np.ndarray]],
-    contacts: Optional[np.ndarray],
+    random_contacts: Optional[np.ndarray],
+    recurrent_contacts: Optional[np.ndarray],
     channel_infected_by_contact: Optional[pd.Series],
     channel_infected_by_event: Optional[pd.Series],
     channel_demands_test: Optional[pd.Series],
@@ -929,10 +932,10 @@ def _add_additional_information_to_states(
         states (pandas.DataFrame): The states with additional information.
 
     """
-    if indexers is not None and contacts is not None:
-        for i, contact_model in enumerate(indexers):
-            if f"n_contacts_{contact_model}" in columns_to_keep:
-                states[f"n_contacts_{contact_model}"] = contacts[:, i]
+    # if indexers is not None and contacts is not None:
+    #     for i, contact_model in enumerate(indexers):
+    #         if f"n_contacts_{contact_model}" in columns_to_keep:
+    #             states[f"n_contacts_{contact_model}"] = contacts[:, i]
 
     if (
         channel_infected_by_contact is not None
