@@ -169,3 +169,10 @@ def boolean_choices(truth_probabilities):
     """
     u = np.random.uniform(0, 1, size=len(truth_probabilities))
     return u <= truth_probabilities
+
+
+def separate_contact_model_names(contact_models):
+    recurrent_models = [c for c in contact_models if contact_models[c]["is_recurrent"]]
+    random_models = [c for c in contact_models if not contact_models[c]["is_recurrent"]]
+
+    return recurrent_models, random_models

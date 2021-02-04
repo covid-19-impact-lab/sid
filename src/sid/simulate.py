@@ -35,6 +35,7 @@ from sid.parse_model import parse_initial_conditions
 from sid.parse_model import parse_share_known_cases
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
+from sid.shared import separate_contact_model_names
 from sid.testing_allocation import allocate_tests
 from sid.testing_allocation import update_pending_tests
 from sid.testing_demand import calculate_demand_for_tests
@@ -355,7 +356,6 @@ def _simulate(
             seed=seed,
         )
 
-        # Pass a copy of the random contacts, so that we can store them later.
         (
             newly_infected_contacts,
             n_has_additionally_infected,
@@ -364,7 +364,7 @@ def _simulate(
         ) = calculate_infections_by_contacts(
             states=states,
             recurrent_contacts=recurrent_contacts,
-            random_contacts=random_contacts.copy(),
+            random_contacts=random_contacts,
             params=params,
             indexers=indexers,
             group_cdfs=cum_probs,
@@ -415,7 +415,7 @@ def _simulate(
             states=states,
             columns_to_keep=columns_to_keep,
             n_has_additionally_infected=n_has_additionally_infected,
-            indexers=indexers,
+            contact_models=contact_models,
             random_contacts=random_contacts,
             recurrent_contacts=recurrent_contacts,
             channel_infected_by_contact=channel_infected_by_contact,
@@ -906,7 +906,7 @@ def _add_additional_information_to_states(
     states: pd.DataFrame,
     columns_to_keep: List[str],
     n_has_additionally_infected: Optional[pd.Series],
-    indexers: Optional[Dict[int, np.ndarray]],
+    contact_models: Optional[Dict[str, Dict[str, Any]]],
     random_contacts: Optional[np.ndarray],
     recurrent_contacts: Optional[np.ndarray],
     channel_infected_by_contact: Optional[pd.Series],
@@ -920,8 +920,7 @@ def _add_additional_information_to_states(
         columns_to_keep (List[str]): A list of columns names which should be kept.
         n_has_additionally_infected (Optional[pandas.Series]): Additionally infected
             persons by this individual.
-        indexers (dict): Dictionary with contact models as keys in the same order as the
-            contacts matrix.
+        contact_models (Optional[Dict[str, Dict[str, Any]]]): The contact models.
         contacts (numpy.ndarray): Matrix with number of contacts for each contact model.
         channel_infected_by_contact (pandas.Series): A categorical series containing the
             information which contact model lead to the infection.
@@ -932,10 +931,14 @@ def _add_additional_information_to_states(
         states (pandas.DataFrame): The states with additional information.
 
     """
-    # if indexers is not None and contacts is not None:
-    #     for i, contact_model in enumerate(indexers):
-    #         if f"n_contacts_{contact_model}" in columns_to_keep:
-    #             states[f"n_contacts_{contact_model}"] = contacts[:, i]
+    if contact_models is not None:
+        recurrent_models, random_models = separate_contact_model_names(contact_models)
+        if recurrent_contacts is not None:
+            for i, cm in enumerate(recurrent_models):
+                states[f"n_contacts_{cm}"] = recurrent_contacts[:, i]
+        if random_contacts is not None:
+            for i, cm in enumerate(random_models):
+                states[f"n_contacts_{cm}"] = random_contacts[:, i]
 
     if (
         channel_infected_by_contact is not None

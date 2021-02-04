@@ -13,6 +13,7 @@ from sid.config import DTYPE_INFECTED
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_N_CONTACTS
 from sid.shared import boolean_choice
+from sid.shared import separate_contact_model_names
 from sid.validation import validate_return_is_series_or_ndarray
 
 
@@ -142,8 +143,7 @@ def calculate_infections_by_contacts(
     infectious = states["infectious"].to_numpy(copy=True)
     immune = states["immune"].to_numpy(copy=True)
 
-    recurrent_models = [c for c in contact_models if contact_models[c]["is_recurrent"]]
-    random_models = [c for c in contact_models if not contact_models[c]["is_recurrent"]]
+    recurrent_models, random_models = separate_contact_model_names(contact_models)
 
     group_codes_recurrent = states[
         [group_codes_info[cm]["name"] for cm in recurrent_models]
@@ -249,6 +249,8 @@ def _reduce_random_contacts_with_infection_probs(
     The remaining random contacts have the interpretation that they would lead to an
     infection if one person is susceptible and one is infectious.
 
+    The copy is necessary as we need the original random contacts for debugging.
+
     Args:
         random_contacts (numpy.ndarray): An integer array containing the number of
             contacts per individual for each random (non-recurrent) contact model.
@@ -262,6 +264,7 @@ def _reduce_random_contacts_with_infection_probs(
 
     """
     np.random.seed(seed)
+    random_contacts = random_contacts.copy()
 
     n_obs, n_contacts = random_contacts.shape
     for i in range(n_obs):
@@ -630,7 +633,12 @@ def _consolidate_reason_of_infection(
     contact_models: Dict[str, Dict[str, Any]],
 ) -> pd.Series:
     """Consolidate reason of infection."""
-    was_infected_by = np.full(len(was_infected_by_recurrent), -1)
+    n_individuals = (
+        len(was_infected_by_recurrent)
+        if was_infected_by_recurrent is not None
+        else len(was_infected_by_random)
+    )
+    was_infected_by = np.full(n_individuals, -1)
     contact_model_to_code = {c: i for i, c in enumerate(contact_models)}
 
     if was_infected_by_random is not None:

@@ -360,9 +360,9 @@ def test_calculate_infections_only_recurrent_one_immune(
 
 @pytest.mark.integration
 def test_calculate_infections_only_non_recurrent(setup_households_w_one_infection):
-    states, recurrent_contacts, *_ = setup_households_w_one_infection
+    states, random_contacts, *_ = setup_households_w_one_infection
 
-    recurrent_contacts[0] = 1
+    random_contacts[0] = 1
 
     params = pd.DataFrame(
         columns=["value"],
@@ -379,14 +379,14 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
         was_infected_by,
     ) = calculate_infections_by_contacts(
         states=states,
-        recurrent_contacts=recurrent_contacts,
-        random_contacts=None,
+        recurrent_contacts=None,
+        random_contacts=random_contacts,
         params=params,
         indexers=indexers,
         group_cdfs=group_probs,
-        contact_models={"households": {"is_recurrent": True}},
+        contact_models={"non_rec": {"is_recurrent": False}},
         group_codes_info={"non_rec": {"name": "group_codes_non_rec"}},
-        seed=itertools.count(1),
+        seed=itertools.count(),
     )
 
     exp_infected = pd.Series([False, False, True, False, False, False, False, False])
@@ -395,7 +395,7 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
     assert calc_n_has_additionally_infected.astype(np.int32).equals(
         exp_infection_counter
     )
-    assert calc_missed_contacts is None
+    assert not np.any(calc_missed_contacts)
 
 
 # =====================================================================================
@@ -450,7 +450,7 @@ def test_calculate_contacts_no_policy(states_all_alive, contact_models):
         [[1, i < first_half] for i in range(len(states_all_alive))],
         dtype=DTYPE_N_CONTACTS,
     )
-    res = calculate_contacts(
+    recurrent_contacts, random_contacts = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
         states=states_all_alive,
@@ -458,7 +458,9 @@ def test_calculate_contacts_no_policy(states_all_alive, contact_models):
         date=date,
         seed=itertools.count(),
     )
-    np.testing.assert_array_equal(expected, res)
+
+    assert recurrent_contacts is None
+    assert (random_contacts == expected).all()
 
 
 @pytest.mark.integration
@@ -477,7 +479,7 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
     first_half = round(len(states_all_alive) / 2)
     expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
     expected[:first_half, 1] = 1
-    res = calculate_contacts(
+    recurrent_contacts, random_contacts = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
         states=states_all_alive,
@@ -485,7 +487,9 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
         date=date,
         seed=itertools.count(),
     )
-    np.testing.assert_array_equal(expected, res)
+
+    assert recurrent_contacts is None
+    assert (random_contacts == expected).all()
 
 
 @pytest.mark.integration
@@ -502,7 +506,7 @@ def test_calculate_contacts_policy_active(states_all_alive, contact_models):
     date = pd.Timestamp("2020-09-29")
     params = pd.DataFrame()
     expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
-    res = calculate_contacts(
+    recurrent_contacts, random_contacts = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
         states=states_all_alive,
@@ -510,7 +514,9 @@ def test_calculate_contacts_policy_active(states_all_alive, contact_models):
         date=date,
         seed=itertools.count(),
     )
-    np.testing.assert_array_equal(expected, res)
+
+    assert recurrent_contacts is None
+    assert (random_contacts == expected).all()
 
 
 @pytest.mark.integration
@@ -531,7 +537,7 @@ def test_calculate_contacts_policy_inactive_through_function(
     expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
     first_half = round(len(states_all_alive) / 2)
     expected[:first_half, 1] = 1
-    res = calculate_contacts(
+    recurrent_contacts, random_contacts = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
         states=states_all_alive,
@@ -539,7 +545,9 @@ def test_calculate_contacts_policy_inactive_through_function(
         date=date,
         seed=itertools.count(),
     )
-    np.testing.assert_array_equal(expected, res)
+
+    assert recurrent_contacts is None
+    assert (random_contacts == expected).all()
 
 
 @pytest.mark.integration
@@ -562,7 +570,7 @@ def test_calculate_contacts_policy_active_policy_func(states_all_alive, contact_
     params = pd.DataFrame()
     expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
     expected[2:4, 1] = 1
-    res = calculate_contacts(
+    recurrent_contacts, random_contacts = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
         states=states_all_alive,
@@ -570,7 +578,9 @@ def test_calculate_contacts_policy_active_policy_func(states_all_alive, contact_
         date=date,
         seed=itertools.count(),
     )
-    np.testing.assert_array_equal(expected, res)
+
+    assert recurrent_contacts is None
+    assert (random_contacts == expected).all()
 
 
 @pytest.fixture()
@@ -599,7 +609,7 @@ def test_calculate_contacts_with_dead(states_with_dead, contact_models):
         ],
         dtype=DTYPE_N_CONTACTS,
     )
-    res = calculate_contacts(
+    recurrent_contacts, random_contacts = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
         states=states_with_dead,
@@ -607,7 +617,9 @@ def test_calculate_contacts_with_dead(states_with_dead, contact_models):
         date=date,
         seed=itertools.count(),
     )
-    np.testing.assert_array_equal(expected, res)
+
+    assert recurrent_contacts is None
+    assert (random_contacts == expected).all()
 
 
 @pytest.mark.unit
