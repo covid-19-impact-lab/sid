@@ -1,9 +1,9 @@
 import itertools
 
+import numba as nb
 import numpy as np
 import pandas as pd
 import pytest
-from numba.typed import List as NumbaList
 from numpy.testing import assert_array_equal
 from sid.config import DTYPE_N_CONTACTS
 from sid.contacts import _reduce_random_contacts_with_infection_probs
@@ -129,14 +129,14 @@ def _sample_data_for_calculate_infections(
         group_probabilities = group_probabilities / group_probabilities.sum(
             axis=1, keepdims=True
         )
-    group_probs_list = NumbaList()
+    group_probs_list = nb.typed.List()
     group_probs_list.append(group_probabilities.cumsum(axis=1))
 
-    indexer = NumbaList()
+    indexer = nb.typed.List()
     for group in range(n_groups):
         indexer.append(np.where(group_codes == group)[0])
 
-    indexers_list = NumbaList()
+    indexers_list = nb.typed.List()
     indexers_list.append(indexer)
 
     if infection_prob is None:
@@ -180,14 +180,22 @@ def setup_households_w_one_infection():
         ),
     )
 
-    indexers = {"recurrent": NumbaList()}
+    indexers = {"recurrent": nb.typed.List()}
     indexers["recurrent"].append(create_group_indexer(states, ["households"]))
 
-    group_probs = {}
+    assortative_matching_probabilities = nb.typed.List()
+    assortative_matching_probabilities.append(np.zeros((0, 0)))
 
     group_codes_info = {"households": {"name": "group_codes_households"}}
 
-    return states, contacts, params, indexers, group_probs, group_codes_info
+    return (
+        states,
+        contacts,
+        params,
+        indexers,
+        assortative_matching_probabilities,
+        group_codes_info,
+    )
 
 
 @pytest.mark.integration
@@ -199,7 +207,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         recurrent_contacts,
         params,
         indexers,
-        group_probs,
+        assortative_matching_probabilities,
         group_codes_info,
     ) = setup_households_w_one_infection
 
@@ -214,7 +222,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         random_contacts=None,
         params=params,
         indexers=indexers,
-        group_cdfs=group_probs,
+        assortative_matching_probabilities=assortative_matching_probabilities,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
         seed=itertools.count(),
@@ -242,7 +250,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
         recurrent_contacts,
         params,
         indexers,
-        group_probs,
+        assortative_matching_probabilities,
         group_codes_info,
     ) = setup_households_w_one_infection
 
@@ -259,7 +267,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
         random_contacts=None,
         params=params,
         indexers=indexers,
-        group_cdfs=group_probs,
+        assortative_matching_probabilities=assortative_matching_probabilities,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
         seed=itertools.count(),
@@ -284,7 +292,7 @@ def test_calculate_infections_only_recurrent_one_skips(
         recurrent_contacts,
         params,
         indexers,
-        group_probs,
+        assortative_matching_probabilities,
         group_codes_info,
     ) = setup_households_w_one_infection
 
@@ -302,7 +310,7 @@ def test_calculate_infections_only_recurrent_one_skips(
         random_contacts=None,
         params=params,
         indexers=indexers,
-        group_cdfs=group_probs,
+        assortative_matching_probabilities=assortative_matching_probabilities,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
         seed=itertools.count(),
@@ -327,7 +335,7 @@ def test_calculate_infections_only_recurrent_one_immune(
         recurrent_contacts,
         params,
         indexers,
-        group_probs,
+        assortative_matching_probabilities,
         group_codes_info,
     ) = setup_households_w_one_infection
 
@@ -344,7 +352,7 @@ def test_calculate_infections_only_recurrent_one_immune(
         random_contacts=None,
         params=params,
         indexers=indexers,
-        group_cdfs=group_probs,
+        assortative_matching_probabilities=assortative_matching_probabilities,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
         seed=itertools.count(),
@@ -370,9 +378,10 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
         data=1,
         index=pd.MultiIndex.from_tuples([("infection_prob", "non_rec", "non_rec")]),
     )
-    indexers = {"random": NumbaList()}
+    indexers = {"random": nb.typed.List()}
     indexers["random"].append(create_group_indexer(states, ["group_codes_non_rec"]))
-    group_probs = {"non_rec": np.array([[0.8, 1], [0.2, 1]])}
+    assortative_matching_probabilities = nb.typed.List()
+    assortative_matching_probabilities.append(np.array([[0.8, 1], [0.2, 1]]))
 
     (
         calc_infected,
@@ -385,7 +394,7 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
         random_contacts=random_contacts,
         params=params,
         indexers=indexers,
-        group_cdfs=group_probs,
+        assortative_matching_probabilities=assortative_matching_probabilities,
         contact_models={"non_rec": {"is_recurrent": False}},
         group_codes_info={"non_rec": {"name": "group_codes_non_rec"}},
         seed=itertools.count(),

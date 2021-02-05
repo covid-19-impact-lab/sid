@@ -331,7 +331,7 @@ def _simulate(
     seed = np.random.randint(0, 1_000_000) if seed is None else seed
     seed = itertools.count(seed)
 
-    cum_probs = _prepare_assortative_matching_probabilities(
+    assortative_matching_probabilities = _prepare_assortative_matching_probabilities(
         initial_states, assort_bys, params, contact_models, group_codes_info
     )
 
@@ -369,7 +369,7 @@ def _simulate(
             random_contacts=random_contacts,
             params=params,
             indexers=indexers,
-            group_cdfs=cum_probs,
+            assortative_matching_probabilities=assortative_matching_probabilities,
             contact_models=contact_models,
             group_codes_info=group_codes_info,
             seed=seed,
@@ -632,35 +632,49 @@ def _prepare_assortative_matching_indexers(
 
 
 def _prepare_assortative_matching_probabilities(
-    states, assort_bys, params, contact_models, group_codes_info
-):
-    """Create indexers and first stage probabilities for assortative matching.
+    states: pd.DataFrame,
+    assort_bys: Dict[str, List[str]],
+    params: pd.DataFrame,
+    contact_models: Dict[str, Dict[str, Any]],
+    group_codes_info: Dict[str, Dict[str, Any]],
+) -> nb.typed.List:
+    """Create first stage probabilities for assortative matching with random contacts.
 
     Args:
-        states (pd.DataFrame): see :ref:`states`.
-        assort_bys (dict): Keys are names of contact models, values are lists with the
-            assort_by variables of the model.
-        params (pd.DataFrame): see :ref:`params`.
+        states (pandas.DataFrame): See :ref:`states`.
+        assort_bys (Dict[str, List[str]]): Keys are names of contact models, values are
+            lists with the assort_by variables of the model.
+        params (pandas.DataFrame): See :ref:`params`.
         contact_models (dict): see :ref:`contact_models`.
+        group_codes_info (Dict[str, Dict[str, Any]]): A dictionary where keys are names
+          of contact models and values are dictionaries containing the name and the
+          original codes of the assortative variables.
 
-    returns:
-        first_probs (dict): dict of arrays of shape n_group, n_groups with probabilities
-        for the first stage of sampling when matching contacts. probs[i, j] is the
-        cumulative probability that an individual from group i meets someone from
-        group j.
+    Returns:
+        probabilities (numba.typed.List): The list contains one entry for each random
+            contact model. Each entry holds a ``n_groups * n_groups`` transition matrix
+            where ``probs[i, j]`` is the cumulative probability that an individual from
+            group ``i`` meets someone from group ``j``.
 
     """
-    first_probs = {}
+    probabilities = nb.typed.List()
     for model_name, assort_by in assort_bys.items():
         if not contact_models[model_name]["is_recurrent"]:
-            first_probs[model_name] = create_group_transition_probs(
+            probs = create_group_transition_probs(
                 states,
                 assort_by,
                 params,
                 model_name,
                 group_codes_info[model_name]["groups"],
             )
-    return first_probs
+            probabilities.append(probs)
+
+    # The nopython mode fails while calculating infections, if we leave the list empty
+    # or put a 1d array inside the list.
+    if len(probabilities) == 0:
+        probabilities.append(np.zeros((0, 0)))
+
+    return probabilities
 
 
 def _add_default_duration_to_models(
