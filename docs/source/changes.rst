@@ -19,6 +19,7 @@ all releases are available on `Anaconda.org
 - :gh:`70` follows :gh:`67` and ensures that the unique values of ``assort_by``
   variables are always sorted to maintain a stable ordering. The PR also reworks the
   factorization such that it is only done once.
+- :gh:`75` passes sid's seed to the testing models.
 
 
 0.0.1 - 2021-01-05
