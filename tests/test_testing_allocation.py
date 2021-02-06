@@ -12,7 +12,7 @@ from sid.testing_allocation import allocate_tests
 def test_allocation_w_multiple_models(initial_states, params):
     iterator = itertools.count(0)
 
-    def allocation_model(n_allocated_tests, demands_test, states, params):
+    def allocation_model(n_allocated_tests, demands_test, states, params, seed):
         iteration = next(iterator)
 
         if iteration == 0:
@@ -59,6 +59,7 @@ def test_allocation_w_multiple_models(initial_states, params):
         demands_test,
         params,
         pd.Timestamp("2020-01-01"),
+        itertools.count(),
     )
 
     assert isinstance(allocated_tests, pd.Series)
@@ -72,9 +73,12 @@ def test_allocation_w_multiple_models(initial_states, params):
 def test_issue_warning_if_allocated_tests_exceed_available_tests(
     initial_states, params, excess, expectation
 ):
+    def allocation_model(**kwargs):
+        return pd.Series(data=True, index=initial_states.index)
+
     testing_allocation_models = {
         "all": {
-            "model": lambda *x: pd.Series(data=True, index=initial_states.index),
+            "model": allocation_model,
             "start": pd.Timestamp("2020-01-01"),
             "end": pd.Timestamp("2020-01-02"),
         }
@@ -93,6 +97,7 @@ def test_issue_warning_if_allocated_tests_exceed_available_tests(
             demands_test,
             params,
             pd.Timestamp("2020-01-01"),
+            itertools.count(),
         )
 
     assert allocated_tests.all()
@@ -111,9 +116,12 @@ def test_issue_warning_if_allocated_tests_exceed_available_tests(
 def test_raise_error_if_allocated_tests_have_invalid_return(
     initial_states, params, return_, expectation
 ):
+    def allocation_model(**kwargs):
+        return return_
+
     testing_allocation_models = {
         "all": {
-            "model": lambda *x: return_,
+            "model": allocation_model,
             "start": pd.Timestamp("2020-01-01"),
             "end": pd.Timestamp("2020-01-02"),
         }
@@ -130,5 +138,6 @@ def test_raise_error_if_allocated_tests_have_invalid_return(
             demands_test,
             params,
             pd.Timestamp("2020-01-01"),
+            itertools.count(),
         )
         assert allocated_tests.all()

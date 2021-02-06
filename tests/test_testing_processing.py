@@ -12,7 +12,7 @@ from sid.testing_processing import process_tests
 def test_processing_w_multiple_models(initial_states, params):
     iterator = itertools.count(0)
 
-    def processing_model(n_to_be_processed_tests, states, params):
+    def processing_model(n_to_be_processed_tests, states, params, seed):
         iteration = next(iterator)
 
         if iteration == 0:
@@ -59,7 +59,11 @@ def test_processing_w_multiple_models(initial_states, params):
     initial_states["pending_test"] = True
 
     processed_tests = process_tests(
-        initial_states, testing_processing_models, params, pd.Timestamp("2020-01-01")
+        initial_states,
+        testing_processing_models,
+        params,
+        pd.Timestamp("2020-01-01"),
+        itertools.count(),
     )
 
     assert isinstance(processed_tests, pd.Series)
@@ -73,9 +77,12 @@ def test_processing_w_multiple_models(initial_states, params):
 def test_issue_warning_if_processed_tests_exceed_available_tests(
     initial_states, params, excess, expectation
 ):
+    def processing_model(**kwargs):
+        return pd.Series(data=True, index=initial_states.index)
+
     testing_processing_models = {
         "all": {
-            "model": lambda *x: pd.Series(data=True, index=initial_states.index),
+            "model": processing_model,
             "start": pd.Timestamp("2020-01-01"),
             "end": pd.Timestamp("2020-01-02"),
         }
@@ -94,6 +101,7 @@ def test_issue_warning_if_processed_tests_exceed_available_tests(
             testing_processing_models,
             params,
             pd.Timestamp("2020-01-01"),
+            itertools.count(),
         )
 
     assert to_be_processed_tests.all()
@@ -112,9 +120,12 @@ def test_issue_warning_if_processed_tests_exceed_available_tests(
 def test_raise_error_if_processed_tests_have_invalid_return(
     initial_states, params, return_, expectation
 ):
+    def processing_model(**kwargs):
+        return return_
+
     testing_processing_models = {
         "all": {
-            "model": lambda *x: return_,
+            "model": processing_model,
             "start": pd.Timestamp("2020-01-01"),
             "end": pd.Timestamp("2020-01-02"),
         },
@@ -130,5 +141,6 @@ def test_raise_error_if_processed_tests_have_invalid_return(
             testing_processing_models,
             params,
             pd.Timestamp("2020-01-01"),
+            itertools.count(),
         )
         assert to_be_processed_tests.all()
