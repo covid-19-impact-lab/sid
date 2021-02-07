@@ -37,7 +37,8 @@ def factorize_assortative_variables(states, assort_by, is_recurrent):
         states (pandas.DataFrame): The user-defined initial states.
         assort_by (List[str]): List of variable names. Contacts are assortative by these
             variables.
-        is_recurrent (bool):
+        is_recurrent (bool): Indicator for that the assortative variable from a
+            recurrent contact model.
 
     Returns:
         (tuple): Tuple containing
@@ -48,7 +49,7 @@ def factorize_assortative_variables(states, assort_by, is_recurrent):
           positions correspond the values of assortative variables to form the group.
 
     """
-    if is_recurrent:
+    if is_recurrent or len(assort_by) == 1:
         assort_by_series = states[assort_by[0]].astype(int).replace({-1: pd.NA})
         group_codes, group_codes_values = pd.factorize(assort_by_series, sort=True)
         group_codes = group_codes.astype(DTYPE_GROUP_CODE)

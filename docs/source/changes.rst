@@ -17,7 +17,8 @@ all releases are available on `Anaconda.org
 - :gh:`67` allows to indicate already factorized ``assort_by`` variables to reduce
   memory consumption.
 - :gh:`70` follows :gh:`67` and ensures that the unique values of ``assort_by``
-  variables are always sorted to maintain a stable ordering.
+  variables are always sorted to maintain a stable ordering. The PR also reworks the
+  factorization such that it is only done once.
 
 
 0.0.1 - 2021-01-05

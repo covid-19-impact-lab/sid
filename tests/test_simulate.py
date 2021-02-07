@@ -8,6 +8,7 @@ from pandas.api.types import is_categorical_dtype
 from resources import CONTACT_MODELS
 from sid.config import INDEX_NAMES
 from sid.simulate import _add_default_duration_to_models
+from sid.simulate import _create_group_codes_and_info
 from sid.simulate import _create_group_codes_names
 from sid.simulate import _process_assort_bys
 from sid.simulate import _process_initial_states
@@ -42,16 +43,11 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
 @pytest.mark.unit
 def test_check_assort_by_are_categoricals(initial_states):
     assort_bys = _process_assort_bys(CONTACT_MODELS)
-    group_codes_names = _create_group_codes_names(CONTACT_MODELS, assort_bys)
 
-    _ = _process_initial_states(
-        initial_states, assort_bys, group_codes_names, CONTACT_MODELS
-    )
+    _ = _process_initial_states(initial_states, assort_bys)
 
     initial_states = initial_states.astype(str)
-    processed = _process_initial_states(
-        initial_states, assort_bys, group_codes_names, CONTACT_MODELS
-    )
+    processed = _process_initial_states(initial_states, assort_bys)
     for var in ["age_group", "region"]:
         assert is_categorical_dtype(processed[var].dtype)
 
@@ -163,6 +159,68 @@ def test_create_group_codes_names(contact_models, assort_bys, expectation, expec
     with expectation:
         result = _create_group_codes_names(contact_models, assort_bys)
         assert result == expected
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "states, assort_bys, contact_models, expected_states, expected_group_codes_info",
+    [
+        (
+            pd.DataFrame({"a": [2, 4, 1, 3, -1]}, dtype="category"),
+            {"cm": ["a"]},
+            {"cm": {"assort_by": ["a"], "is_recurrent": False}},
+            pd.DataFrame(
+                {
+                    "a": pd.Series([2, 4, 1, 3, -1]).astype("category"),
+                    "group_codes_cm": np.int32([1, 3, 0, 2, -1]),
+                }
+            ),
+            {"cm": {"name": "group_codes_cm", "groups": [1, 2, 3, 4]}},
+        ),
+        (
+            pd.DataFrame({"a": [2, 4, 1, 3, -1]}, dtype="category"),
+            {"cm": ["a"]},
+            {"cm": {"assort_by": ["a"], "is_recurrent": True}},
+            pd.DataFrame(
+                {
+                    "a": pd.Series([2, 4, 1, 3, -1]).astype("category"),
+                    "group_codes_cm": np.int32([1, 3, 0, 2, -1]),
+                }
+            ),
+            {"cm": {"name": "group_codes_cm", "groups": [1, 2, 3, 4]}},
+        ),
+        (
+            pd.DataFrame(
+                {"a": [2, 4, 1, 3, -1], "b": [1, 1, 2, 2, 1]}, dtype="category"
+            ),
+            {"cm": ["a", "b"]},
+            {"cm": {"assort_by": ["a", "b"], "is_recurrent": False}},
+            pd.DataFrame(
+                {
+                    "a": pd.Series([2, 4, 1, 3, -1]).astype("category"),
+                    "b": pd.Series([1, 1, 2, 2, 1]).astype("category"),
+                    "group_codes_cm": np.int32([2, 4, 1, 3, 0]),
+                }
+            ),
+            {
+                "cm": {
+                    "name": "group_codes_cm",
+                    "groups": [(-1, 1), (1, 2), (2, 1), (3, 2), (4, 1)],
+                }
+            },
+        ),
+    ],
+)
+def test_create_group_codes_and_info(
+    states, assort_bys, contact_models, expected_states, expected_group_codes_info
+):
+    states, group_codes_info = _create_group_codes_and_info(
+        states, assort_bys, contact_models
+    )
+    assert states.equals(expected_states)
+    for cm in group_codes_info:
+        group_codes_info[cm]["groups"] = group_codes_info[cm]["groups"].tolist()
+    assert group_codes_info == expected_group_codes_info
 
 
 @pytest.mark.end_to_end

@@ -16,29 +16,29 @@ from sid.contacts import create_group_indexer
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    ("assort_by", "expected"),
+    "states, group_code_name, expected",
     [
         (
-            ["age_group", "region"],
-            [[9, 12], [7, 10, 13], [8, 11, 14], [0, 3, 6], [1, 4], [2, 5]],
+            pd.DataFrame({"a": [1] * 7 + [0] * 8}),
+            "a",
+            [list(range(7, 15)), list(range(7))],
         ),
-        ([], [list(range(15))]),
+        (
+            pd.DataFrame({"a": pd.Series([0, 1, 2, 3, 0, 1, 2, 3]).astype("category")}),
+            "a",
+            [[0, 4], [1, 5], [2, 6], [3, 7]],
+        ),
+        (
+            pd.DataFrame({"a": pd.Series([0, 1, 2, 3, 0, 1, 2, -1])}),
+            "a",
+            [[0, 4], [1, 5], [2, 6], [3]],
+        ),
     ],
 )
-def test_create_group_indexer(initial_states, assort_by, expected):
-    calculated = create_group_indexer(initial_states, assort_by, is_recurrent=False)
-    calculated = [arr.tolist() for arr in calculated]
-
-    assert calculated == expected
-
-
-@pytest.mark.unit
-def test_create_group_indexer_recurrent():
-    df = pd.DataFrame()
-    df["some_id"] = pd.Series([1, -1, 2, 2, 1]).astype("category")
-    calculated = create_group_indexer(df, ["some_id"], True)
-    calculated = [arr.tolist() for arr in calculated]
-    assert calculated == [[0, 4], [2, 3]]
+def test_create_group_indexer(states, group_code_name, expected):
+    result = create_group_indexer(states, group_code_name)
+    result = [r.tolist() for r in result]
+    assert result == expected
 
 
 @pytest.mark.unit
@@ -108,7 +108,7 @@ def _sample_data_for_calculate_infections_numba(
     if infectious_share is None:
         infectious_share = np.random.uniform(0.000001, 1)
 
-    infectious = np.zeros(n_individuals, dtype=np.bool)
+    infectious = np.zeros(n_individuals, dtype=bool)
     mask = np.random.choice(n_individuals, size=int(n_individuals * infectious_share))
     infectious[mask] = True
 
@@ -179,15 +179,13 @@ def setup_households_w_one_infection():
         ),
     )
 
-    indexers = {
-        "households": create_group_indexer(states, ["households"], is_recurrent=False)
-    }
+    indexers = {"households": create_group_indexer(states, ["households"])}
 
     group_probs = {}
 
-    group_codes_names = {"households": "group_codes_households"}
+    group_codes_info = {"households": {"name": "group_codes_households"}}
 
-    return states, contacts, params, indexers, group_probs, group_codes_names
+    return states, contacts, params, indexers, group_probs, group_codes_info
 
 
 @pytest.mark.integration
@@ -200,7 +198,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         params,
         indexers,
         group_probs,
-        group_codes_names,
+        group_codes_info,
     ) = setup_households_w_one_infection
 
     (
@@ -215,7 +213,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         indexers=indexers,
         group_cdfs=group_probs,
         code_to_contact_model={0: "the_model"},
-        group_codes_names=group_codes_names,
+        group_codes_info=group_codes_info,
         seed=itertools.count(),
     )
 
@@ -242,7 +240,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
         params,
         indexers,
         group_probs,
-        group_codes_names,
+        group_codes_info,
     ) = setup_households_w_one_infection
 
     contacts[0] = 0
@@ -259,7 +257,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
         indexers=indexers,
         group_cdfs=group_probs,
         code_to_contact_model={0: "the_model"},
-        group_codes_names=group_codes_names,
+        group_codes_info=group_codes_info,
         seed=itertools.count(),
     )
 
@@ -282,7 +280,7 @@ def test_calculate_infections_only_recurrent_one_skips(
         params,
         indexers,
         group_probs,
-        group_codes_names,
+        group_codes_info,
     ) = setup_households_w_one_infection
 
     # 2nd person does not participate in household meeting
@@ -300,7 +298,7 @@ def test_calculate_infections_only_recurrent_one_skips(
         indexers=indexers,
         group_cdfs=group_probs,
         code_to_contact_model={0: "the_model"},
-        group_codes_names=group_codes_names,
+        group_codes_info=group_codes_info,
         seed=itertools.count(),
     )
 
@@ -322,7 +320,7 @@ def test_calculate_infections_only_recurrent_one_immune(
         params,
         indexers,
         group_probs,
-        group_codes_names,
+        group_codes_info,
     ) = setup_households_w_one_infection
 
     states.loc[1, "immune"] = True
@@ -339,7 +337,7 @@ def test_calculate_infections_only_recurrent_one_immune(
         indexers=indexers,
         group_cdfs=group_probs,
         code_to_contact_model={0: "the_model"},
-        group_codes_names=group_codes_names,
+        group_codes_info=group_codes_info,
         seed=itertools.count(),
     )
 
@@ -382,11 +380,7 @@ def test_calculate_infections_only_non_recurrent(
         data=1.0,
         index=pd.MultiIndex.from_tuples([("infection_prob", "non_rec", "non_rec")]),
     )
-    indexers = {
-        "non_rec": create_group_indexer(
-            states, ["group_codes_non_rec"], is_recurrent=False
-        )
-    }
+    indexers = {"non_rec": create_group_indexer(states, ["group_codes_non_rec"])}
     group_probs = {"non_rec": np.array([[0.8, 1], [0.2, 1]])}
 
     with monkeypatch.context() as m:
@@ -403,7 +397,7 @@ def test_calculate_infections_only_non_recurrent(
             indexers=indexers,
             group_cdfs=group_probs,
             code_to_contact_model={0: "the_model"},
-            group_codes_names={"non_rec": "group_codes_non_rec"},
+            group_codes_info={"non_rec": {"name": "group_codes_non_rec"}},
             seed=itertools.count(),
         )
 
