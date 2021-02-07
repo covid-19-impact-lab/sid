@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 from sid.contacts import boolean_choice
 from sid.testing import perform_testing
+from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
 
 
@@ -215,7 +216,10 @@ def sample_initial_distribution_of_infections_and_immunity(
 
     for burn_in_date in initial_conditions["burn_in_periods"]:
 
-        states, channel_demands_test, to_be_processed_tests = perform_testing(
+        states["date"] = burn_in_date
+        states["period"] = timestamp_to_sid_period(burn_in_date)
+
+        states, _, to_be_processed_tests = perform_testing(
             date=burn_in_date,
             states=states,
             params=params,
@@ -230,7 +234,7 @@ def sample_initial_distribution_of_infections_and_immunity(
             newly_infected_contacts=spread_out_infections[burn_in_date],
             newly_infected_events=spread_out_infections[burn_in_date],
             params=params,
-            to_be_processed_tests=None,
+            to_be_processed_tests=to_be_processed_tests,
             seed=seed,
         )
 

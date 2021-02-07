@@ -3,7 +3,8 @@
 Testing
 =======
 
-For an introduction to specify testing, have a look at the `testing tutorial <../tutorials/how_to_test.ipynb>`_
+For an introduction to specify testing, have a look at the `testing tutorial
+<../tutorials/how_to_test.ipynb>`_
 
 
 .. _testing_demand_models:

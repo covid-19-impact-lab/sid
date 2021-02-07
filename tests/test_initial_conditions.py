@@ -14,6 +14,7 @@ from sid.initial_conditions import sample_initial_immunity
 from sid.initial_conditions import sample_initial_infections
 from sid.parse_model import parse_initial_conditions
 from sid.pathogenesis import draw_course_of_disease
+from sid.simulate import _add_default_duration_to_models
 from sid.simulate import _process_initial_states
 
 
@@ -235,3 +236,74 @@ def test_create_initial_immunity(immunity, infected_or_immune, expectation, expe
             assert expected(out)
         else:
             assert out == expected
+
+
+def test_scale_and_spread_initial_infections_w_testing_models(initial_states, params):
+    """Testing models can be used to replicate the share_known_cases."""
+
+    def demand_model(states, params, seed):
+        return states["newly_infected"].copy()
+
+    def allocation_model(n_allocated_tests, demands_test, states, params, seed):
+        n_allocated_tests = int(demands_test.sum() / 2)
+        allocated_tests = pd.Series(False, index=states.index)
+        if n_allocated_tests > 0:
+            receives_test = states[demands_test].sample(n=n_allocated_tests).index
+            allocated_tests.loc[receives_test] = True
+
+        return allocated_tests
+
+    def processing_model(n_to_be_processed_tests, states, params, seed):
+        return states["pending_test"].copy()
+
+    initial_states = pd.concat([initial_states for _ in range(10_000)]).reset_index()
+
+    params.loc[("testing", "allocation", "rel_available_tests"), "value"] = 45_000
+    params.loc[("testing", "processing", "rel_available_capacity"), "value"] = 45_000
+
+    testing_demand_models = _add_default_duration_to_models(
+        {"dz": {"model": demand_model}}, {"start": "2020-01-01", "end": "2020-01-06"}
+    )
+    testing_allocation_models = _add_default_duration_to_models(
+        {"dz": {"model": allocation_model}},
+        {"start": "2020-01-01", "end": "2020-01-06"},
+    )
+    testing_processing_models = _add_default_duration_to_models(
+        {"dz": {"model": processing_model}},
+        {"start": "2020-01-01", "end": "2020-01-06"},
+    )
+
+    initial_conditions = {
+        "burn_in_periods": 3,
+        "growth_rate": 2,
+        "initial_infections": 70_000,
+    }
+
+    initial_states = _process_initial_states(initial_states, {"a": []})
+    initial_states = draw_course_of_disease(initial_states, params, 0)
+    initial_conditions = parse_initial_conditions(
+        initial_conditions, pd.Timestamp("2020-01-04")
+    )
+
+    df = sample_initial_distribution_of_infections_and_immunity(
+        states=initial_states,
+        params=params,
+        initial_conditions=initial_conditions,
+        testing_demand_models=testing_demand_models,
+        testing_allocation_models=testing_allocation_models,
+        testing_processing_models=testing_processing_models,
+        seed=itertools.count(),
+    )
+
+    assert df["ever_infected"].sum() == 70_000
+    assert np.allclose(
+        df["cd_immune_false"].value_counts(normalize=True),
+        np.array([8, 4, 2, 1]) / 15,
+        atol=1e-3,
+    )
+    # Shows that tests can only be assigned with a one day lag.
+    assert np.allclose(
+        df["cd_received_test_result_true"].value_counts(normalize=True),
+        np.array([27, 2, 1]) / 30,
+        atol=1e-3,
+    )
