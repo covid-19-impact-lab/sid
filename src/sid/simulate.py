@@ -400,12 +400,17 @@ def _simulate(
             allocated_tests = None
             to_be_processed_tests = None
 
+        if share_known_cases is None or share_known_cases.get(date) is None:
+            current_share_known_cases = None
+        else:
+            current_share_known_cases = share_known_cases.get(date)
+
         states = update_states(
             states=states,
             newly_infected_contacts=newly_infected_contacts,
             newly_infected_events=newly_infected_events,
             params=params,
-            share_known_cases=share_known_cases[date],
+            share_known_cases=current_share_known_cases,
             to_be_processed_tests=to_be_processed_tests,
             seed=seed,
         )

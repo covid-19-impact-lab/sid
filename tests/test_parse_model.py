@@ -119,7 +119,7 @@ def test_parse_duration(duration, expectation, expected):
             {"dates": pd.to_datetime(["2020-01-02"])},
             pd.to_datetime(["2020-01-01"]),
             does_not_raise(),
-            pd.Series([0, 0], pd.to_datetime(["2020-01-01", "2020-01-02"])),
+            None,
         ),
     ],
 )
@@ -128,7 +128,10 @@ def test_parse_share_known_cases(
 ):
     with expectation:
         result = parse_share_known_cases(share_known_cases, duration, burn_in_periods)
-        assert result.equals(expected)
+        if result is None:
+            assert result is expected
+        else:
+            assert result.equals(expected)
 
 
 @pytest.mark.unit

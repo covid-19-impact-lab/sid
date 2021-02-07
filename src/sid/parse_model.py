@@ -77,7 +77,7 @@ def parse_share_known_cases(share_known_cases, duration, burn_in_periods):
         )
 
     elif share_known_cases is None:
-        share_known_cases = pd.Series(index=extended_index, data=0)
+        pass
 
     else:
         raise ValueError(

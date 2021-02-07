@@ -124,7 +124,7 @@ def sample_initial_distribution_of_infections_and_immunity(
     states: pd.DataFrame,
     params: pd.DataFrame,
     initial_conditions: Dict[str, Any],
-    share_known_cases: pd.Series,
+    share_known_cases: Optional[pd.Series],
     seed: itertools.count,
 ):
     """Sample the initial distribution of infections and immunity.
@@ -216,6 +216,11 @@ def sample_initial_distribution_of_infections_and_immunity(
 
     else:
         spread_out_infections = initial_conditions["initial_infections"]
+
+    if share_known_cases is None:
+        share_known_cases = pd.Series(
+            data=0, index=initial_conditions["burn_in_periods"]
+        )
 
     for burn_in_date in initial_conditions["burn_in_periods"]:
         states = update_states(
