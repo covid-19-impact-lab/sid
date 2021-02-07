@@ -1,10 +1,6 @@
-import numpy as np
 import pandas as pd
 import pytest
-from hypothesis import given
-from hypothesis import strategies as st
 from sid.config import INDEX_NAMES
-from sid.update_states import _compute_new_tests_with_share_known_cases
 from sid.update_states import _kill_people_over_icu_limit
 from sid.update_states import _update_info_on_new_tests
 
@@ -46,26 +42,6 @@ def test_kill_people_over_icu_limit_binding(n_dead):
     result = _kill_people_over_icu_limit(states, params, 0)
     expected = [10 - n_dead, n_dead] if n_dead != 0 else [10]
     assert (result["cd_dead_true"].value_counts() == expected).all()
-
-
-@pytest.mark.unit
-@given(ratio_newly_infected=st.floats(0, 1), share_known_cases=st.floats(0, 1))
-def test_compute_new_tests_with_share_known_cases(
-    ratio_newly_infected, share_known_cases
-):
-    n_people = 100_000
-    states = pd.DataFrame(
-        {
-            "newly_infected": [True] * int(ratio_newly_infected * n_people)
-            + [False] * int((1 - ratio_newly_infected) * n_people)
-        }
-    )
-
-    result = _compute_new_tests_with_share_known_cases(states, share_known_cases)
-
-    assert np.isclose(
-        result.mean(), ratio_newly_infected * share_known_cases, atol=0.01
-    )
 
 
 @pytest.mark.unit

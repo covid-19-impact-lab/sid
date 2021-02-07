@@ -6,7 +6,6 @@ import pytest
 from sid.config import INITIAL_CONDITIONS
 from sid.parse_model import parse_duration
 from sid.parse_model import parse_initial_conditions
-from sid.parse_model import parse_share_known_cases
 from sid.validation import validate_initial_conditions
 
 
@@ -52,86 +51,6 @@ def test_parse_duration(duration, expectation, expected):
                 assert np.all(result[k] == expected[k])
             else:
                 assert result[k] == expected[k]
-
-
-@pytest.mark.unit
-@pytest.mark.parametrize(
-    "share_known_cases, duration, burn_in_periods, expectation, expected",
-    [
-        (
-            1,
-            {"dates": [1]},
-            [1],
-            pytest.raises(ValueError, match="'share_known_cases' is <class 'int'>"),
-            None,
-        ),
-        (
-            [1],
-            {"dates": [1]},
-            [1],
-            pytest.raises(ValueError, match="'share_known_cases' is <class 'list'>"),
-            None,
-        ),
-        (
-            1.2,
-            {"dates": [1]},
-            [1],
-            pytest.raises(ValueError, match="'share_known_cases' must be between"),
-            None,
-        ),
-        (
-            pd.Series([1.2, 0.5]),
-            {"dates": [1]},
-            [1],
-            pytest.raises(ValueError, match="'share_known_cases' must be between"),
-            None,
-        ),
-        (
-            pd.Series([0.3, 0.4], pd.to_datetime(["2020-01-01", "2020-01-02"])),
-            {"dates": pd.date_range(start="2020-01-01", periods=3)},
-            pd.to_datetime(["2019-12-31"]),
-            pytest.raises(ValueError, match="'share_known_cases' must be given for"),
-            None,
-        ),
-        (
-            0.5,
-            {"dates": pd.to_datetime(["2020-01-01"])},
-            pd.to_datetime(["2019-12-31"]),
-            does_not_raise(),
-            pd.Series(index=pd.date_range(start="2019-12-31", periods=2), data=0.5),
-        ),
-        (
-            pd.Series([0.3, 0.4], pd.to_datetime(["2020-01-01", "2020-01-02"])),
-            {"dates": pd.to_datetime(["2020-01-02"])},
-            pd.to_datetime(["2020-01-01"]),
-            does_not_raise(),
-            pd.Series([0.3, 0.4], pd.to_datetime(["2020-01-01", "2020-01-02"])),
-        ),
-        (
-            pd.Series([0.4], pd.to_datetime(["2020-01-02"])),
-            {"dates": pd.to_datetime(["2020-01-02"])},
-            pd.to_datetime(["2020-01-01"]),
-            does_not_raise(),
-            pd.Series([0.4, 0.4], pd.to_datetime(["2020-01-01", "2020-01-02"])),
-        ),
-        (
-            None,
-            {"dates": pd.to_datetime(["2020-01-02"])},
-            pd.to_datetime(["2020-01-01"]),
-            does_not_raise(),
-            None,
-        ),
-    ],
-)
-def test_parse_share_known_cases(
-    share_known_cases, duration, burn_in_periods, expectation, expected
-):
-    with expectation:
-        result = parse_share_known_cases(share_known_cases, duration, burn_in_periods)
-        if result is None:
-            assert result is expected
-        else:
-            assert result.equals(expected)
 
 
 @pytest.mark.unit

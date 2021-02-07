@@ -184,12 +184,9 @@ def test_scale_and_spread_initial_infections(
         initial_conditions = parse_initial_conditions(
             initial_conditions, pd.Timestamp("2020-01-01")
         )
-        share_known_cases = pd.Series(
-            index=initial_conditions["burn_in_periods"], data=0
-        )
 
         result = sample_initial_distribution_of_infections_and_immunity(
-            initial_states, params, initial_conditions, share_known_cases, seed
+            initial_states, params, initial_conditions, {}, {}, {}, seed
         )
         assert result["ever_infected"].equals(expected)
 
