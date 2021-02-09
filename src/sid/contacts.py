@@ -168,7 +168,7 @@ def calculate_infections_by_contacts(
 
     if recurrent_models:
         (
-            infected,
+            infected_recurrent,
             infection_counter,
             immune,
             was_infected_by_recurrent,
@@ -185,6 +185,7 @@ def calculate_infections_by_contacts(
         )
     else:
         was_infected_by_recurrent = None
+        infected_recurrent = np.full(len(states), False)
 
     if random_models:
         random_contacts = _reduce_random_contacts_with_infection_probs(
@@ -192,7 +193,7 @@ def calculate_infections_by_contacts(
         )
 
         (
-            infected,
+            infected_random,
             infection_counter,
             immune,
             missed,
@@ -218,13 +219,14 @@ def calculate_infections_by_contacts(
     else:
         missed_contacts = None
         was_infected_by_random = None
+        infected_random = np.full(len(states), False)
 
     was_infected_by = _consolidate_reason_of_infection(
         was_infected_by_recurrent, was_infected_by_random, contact_models
     )
     was_infected_by.index = states.index
     n_has_additionally_infected = pd.Series(infection_counter, index=states.index)
-    infected = pd.Series(infected, index=states.index)
+    infected = pd.Series(infected_recurrent | infected_random, index=states.index)
 
     return infected, n_has_additionally_infected, missed_contacts, was_infected_by
 
