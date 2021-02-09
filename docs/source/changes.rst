@@ -20,6 +20,8 @@ all releases are available on `Anaconda.org
   variables are always sorted to maintain a stable ordering. The PR also reworks the
   factorization such that it is only done once.
 - :gh:`75` passes sid's seed to the testing models.
+- :gh:`76` removes ``share_known_cases`` which should now be implemented with testing
+  models.
 
 
 0.0.1 - 2021-01-05
