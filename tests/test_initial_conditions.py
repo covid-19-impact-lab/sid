@@ -239,7 +239,11 @@ def test_create_initial_immunity(immunity, infected_or_immune, expectation, expe
 
 
 def test_scale_and_spread_initial_infections_w_testing_models(initial_states, params):
-    """Testing models can be used to replicate the share_known_cases."""
+    """Testing models can be used to replicate the share_known_cases.
+
+    This test assumes that only halve of all infections are known.
+
+    """
 
     def demand_model(states, params, seed):
         return states["newly_infected"].copy()
