@@ -1,11 +1,21 @@
+import itertools
 import warnings
+from typing import Any
+from typing import Dict
 
 import pandas as pd
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.validation import validate_return_is_series_or_ndarray
 
 
-def allocate_tests(states, testing_allocation_models, demands_test, params, date):
+def allocate_tests(
+    states: pd.DataFrame,
+    testing_allocation_models: Dict[str, Dict[str, Any]],
+    demands_test: pd.Series,
+    params: pd.DataFrame,
+    date: pd.Timestamp,
+    seed: itertools.count,
+) -> pd.Series:
     """Allocate tests to people who demand one.
 
     The function iterates over all test allocation models and each model is able to see
@@ -13,12 +23,13 @@ def allocate_tests(states, testing_allocation_models, demands_test, params, date
 
     Args:
         states (pandas.DataFrame): The states of all individuals.
-        testing_demand_models (dict): A dictionary containing the demand models for
-            testing.
+        testing_demand_models (Dict[str, Dict[str, Any]]): A dictionary containing the
+            demand models for testing.
         demands_test (pandas.Series): A boolean series indicating which person demands a
               test.
         params (pandas.DataFrame): The parameter DataFrame.
         date (pandas.Timestamp): Current date.
+        seed (itertools.count): The seed counter.
 
     Returns:
         all_allocated_tests (pandas.Series): A boolean series indicating which
@@ -34,7 +45,11 @@ def allocate_tests(states, testing_allocation_models, demands_test, params, date
 
         if model["start"] <= date <= model["end"]:
             allocated_tests = func(
-                all_allocated_tests.sum(), current_demands_test, states, params.loc[loc]
+                n_allocated_tests=all_allocated_tests.sum(),
+                demands_test=current_demands_test,
+                states=states,
+                params=params.loc[loc],
+                seed=next(seed),
             )
             allocated_tests = validate_return_is_series_or_ndarray(
                 allocated_tests, states.index, "testing_allocation_models"
@@ -64,7 +79,9 @@ def allocate_tests(states, testing_allocation_models, demands_test, params, date
     return all_allocated_tests
 
 
-def update_pending_tests(states, allocated_tests):
+def update_pending_tests(
+    states: pd.DataFrame, allocated_tests: pd.Series
+) -> pd.DataFrame:
     """Update information regarding pending tests."""
     states.loc[allocated_tests, "pending_test"] = True
     states.loc[allocated_tests, "pending_test_date"] = states.loc[

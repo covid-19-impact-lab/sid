@@ -21,6 +21,9 @@ all releases are available on `Anaconda.org
   factorization such that it is only done once.
 - :gh:`71` separates recurrent from random contacts and how infections are calculated
   for each contact type.
+- :gh:`75` passes sid's seed to the testing models.
+- :gh:`76` removes ``share_known_cases`` which should now be implemented with testing
+  models.
 
 
 0.0.1 - 2021-01-05
