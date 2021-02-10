@@ -1,11 +1,20 @@
+import itertools
 import warnings
+from typing import Any
+from typing import Dict
 
 import pandas as pd
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.validation import validate_return_is_series_or_ndarray
 
 
-def process_tests(states, testing_processing_models, params, date):
+def process_tests(
+    states: pd.DataFrame,
+    testing_processing_models: Dict[str, Dict[str, Any]],
+    params: pd.DataFrame,
+    date: pd.Timestamp,
+    seed: itertools.count,
+) -> pd.Series:
     """Process tests which have been taken by individuals and are pending.
 
     In ``states`` there is a column called ``"pending_test"`` which is ``True`` for
@@ -18,6 +27,7 @@ def process_tests(states, testing_processing_models, params, date):
             testing.
         params (pandas.DataFrame): The parameter DataFrame.
         date (pandas.Timestamp): Current date.
+        seed (itertools.count): The seed counter.
 
     Returns:
         all_to_be_processed_tests (pandas.Series): A boolean series indicating which
@@ -32,7 +42,10 @@ def process_tests(states, testing_processing_models, params, date):
 
         if model["start"] <= date <= model["end"]:
             to_be_processed_tests = func(
-                all_to_be_processed_tests.sum(), states, params.loc[loc]
+                n_to_be_processed_tests=all_to_be_processed_tests.sum(),
+                states=states,
+                params=params.loc[loc],
+                seed=next(seed),
             )
 
             to_be_processed_tests = validate_return_is_series_or_ndarray(

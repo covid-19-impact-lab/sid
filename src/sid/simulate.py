@@ -386,13 +386,13 @@ def _simulate(
                 seed,
             )
             allocated_tests = allocate_tests(
-                states, testing_allocation_models, demands_test, params, date
+                states, testing_allocation_models, demands_test, params, date, seed
             )
 
             states = update_pending_tests(states, allocated_tests)
 
             to_be_processed_tests = process_tests(
-                states, testing_processing_models, params, date
+                states, testing_processing_models, params, date, seed
             )
         else:
             demands_test = None

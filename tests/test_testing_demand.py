@@ -9,9 +9,12 @@ from sid.testing_demand import calculate_demand_for_tests
 @pytest.mark.integration
 @pytest.mark.parametrize("ask_for_tests", [True, False])
 def test_calculate_demand_for_tests(initial_states, params, ask_for_tests):
+    def demand_model(**kwargs):
+        return np.full(len(initial_states), ask_for_tests)
+
     testing_demand_models = {
         "dummy_model": {
-            "model": lambda *x: np.full(len(initial_states), ask_for_tests),
+            "model": demand_model,
             "start": pd.Timestamp("2020-01-01"),
             "end": pd.Timestamp("2020-01-02"),
         }
