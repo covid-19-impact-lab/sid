@@ -4,7 +4,6 @@ from typing import Any
 from typing import Dict
 from typing import Union
 
-import numpy as np
 import pandas as pd
 from sid.config import INITIAL_CONDITIONS
 
@@ -45,47 +44,6 @@ def parse_duration(duration: Union[Dict[str, Any], None]) -> Dict[str, Any]:
     internal_duration["dates"] = iterable
 
     return internal_duration
-
-
-def parse_share_known_cases(share_known_cases, duration, burn_in_periods):
-    """Parse the share of known cases.
-
-    In case ``share_known_cases is None``, the multiplier is set to 0 which means no
-    cases among all cases are known and no individual receives a test.
-
-    """
-    extended_index = np.append(burn_in_periods, duration["dates"])
-
-    if isinstance(share_known_cases, (float, pd.Series)):
-        if not np.all((0 <= share_known_cases) & (share_known_cases <= 1)):
-            raise ValueError("'share_known_cases' must be between 0 and 1.")
-
-    if isinstance(share_known_cases, float):
-        share_known_cases = pd.Series(index=extended_index, data=share_known_cases)
-
-    elif isinstance(share_known_cases, pd.Series):
-        if not duration["dates"].isin(share_known_cases.index).all():
-            raise ValueError(
-                "'share_known_cases' must be given for each date of the simulation "
-                "period."
-            )
-        # Extend series with burn-in periods and if shares for burn-in periods do not
-        # exist, backfill NaNs.
-        # .backfill() is only available in pandas which is not supported by estimagic.
-        share_known_cases = share_known_cases.reindex(extended_index).fillna(
-            method="bfill"
-        )
-
-    elif share_known_cases is None:
-        share_known_cases = pd.Series(index=extended_index, data=0)
-
-    else:
-        raise ValueError(
-            f"'share_known_cases' is {type(share_known_cases)}, but must be a float, a"
-            "pd.Series, or None."
-        )
-
-    return share_known_cases
 
 
 def parse_initial_conditions(

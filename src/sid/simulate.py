@@ -32,13 +32,9 @@ from sid.initial_conditions import (
 from sid.matching_probabilities import create_group_transition_probs
 from sid.parse_model import parse_duration
 from sid.parse_model import parse_initial_conditions
-from sid.parse_model import parse_share_known_cases
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
-from sid.testing_allocation import allocate_tests
-from sid.testing_allocation import update_pending_tests
-from sid.testing_demand import calculate_demand_for_tests
-from sid.testing_processing import process_tests
+from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
 from sid.validation import validate_initial_conditions
@@ -66,7 +62,6 @@ def get_simulate_func(
     path: Union[str, Path, None] = None,
     saved_columns: Optional[Dict[str, Union[bool, str, List[str]]]] = None,
     initial_conditions: Optional[Dict[str, Any]] = None,
-    share_known_cases: Optional[Union[float, pd.Series]] = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -153,13 +148,6 @@ def get_simulate_func(
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
               number of cases.
-        share_known_cases (Optional[Union[float, pd.Series]]): Share of known cases to
-            all cases. The argument is a float or a series with
-            :class:`pd.DatetimeIndex` which covers the whole simulation period and
-            yields the ratio of known infections to all infections.
-
-            This feature can be used instead of testing models which are hard to
-            calibrate to data.
 
     Returns:
         callable: Simulates dataset based on parameters.
@@ -209,9 +197,6 @@ def get_simulate_func(
 
     initial_conditions = parse_initial_conditions(initial_conditions, duration["start"])
     validate_initial_conditions(initial_conditions)
-    share_known_cases = parse_share_known_cases(
-        share_known_cases, duration, initial_conditions["burn_in_periods"]
-    )
 
     if _are_states_prepared(initial_states):
         if initial_conditions is not None:
@@ -228,7 +213,13 @@ def get_simulate_func(
             initial_states, params, next(startup_seed)
         )
         initial_states = sample_initial_distribution_of_infections_and_immunity(
-            initial_states, params, initial_conditions, share_known_cases, startup_seed
+            initial_states,
+            params,
+            initial_conditions,
+            testing_demand_models,
+            testing_allocation_models,
+            testing_processing_models,
+            startup_seed,
         )
 
     initial_states, group_codes_info = _create_group_codes_and_info(
@@ -256,7 +247,6 @@ def get_simulate_func(
         path=path,
         columns_to_keep=cols_to_keep,
         indexers=indexers,
-        share_known_cases=share_known_cases,
     )
     return sim_func
 
@@ -277,7 +267,6 @@ def _simulate(
     path,
     columns_to_keep,
     indexers,
-    share_known_cases,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -308,13 +297,6 @@ def _simulate(
             :class:`numpy.random.seed` right before the call.
         path (pathlib.Path): Path to the directory where the simulated data is stored.
         columns_to_keep (list): Columns of states that will be saved in each period.
-        share_known_cases (pandas.Series): Share of known cases to all cases. The
-            argument is a float or a series with :class:`pd.DatetimeIndex` which covers
-            the whole simulation period and yields the ratio of known infections to all
-            infections.
-
-            This feature can be used instead of testing models which are hard to
-            calibrate to data.
 
     Returns:
         result (dict): The simulation result which includes the following keys:
@@ -376,36 +358,22 @@ def _simulate(
             channel_infected_by_event,
         ) = calculate_infections_by_events(states, params, events)
 
-        if testing_demand_models:
-            demands_test, channel_demands_test = calculate_demand_for_tests(
-                states,
-                testing_demand_models,
-                params,
-                date,
-                columns_to_keep,
-                seed,
-            )
-            allocated_tests = allocate_tests(
-                states, testing_allocation_models, demands_test, params, date, seed
-            )
-
-            states = update_pending_tests(states, allocated_tests)
-
-            to_be_processed_tests = process_tests(
-                states, testing_processing_models, params, date, seed
-            )
-        else:
-            demands_test = None
-            channel_demands_test = None
-            allocated_tests = None
-            to_be_processed_tests = None
+        states, channel_demands_test, to_be_processed_tests = perform_testing(
+            date=date,
+            states=states,
+            params=params,
+            testing_demand_models=testing_demand_models,
+            testing_allocation_models=testing_allocation_models,
+            testing_processing_models=testing_processing_models,
+            seed=seed,
+            columns_to_keep=columns_to_keep,
+        )
 
         states = update_states(
             states=states,
             newly_infected_contacts=newly_infected_contacts,
             newly_infected_events=newly_infected_events,
             params=params,
-            share_known_cases=share_known_cases[date],
             to_be_processed_tests=to_be_processed_tests,
             seed=seed,
         )

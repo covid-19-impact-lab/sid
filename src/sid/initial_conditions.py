@@ -16,6 +16,8 @@ import numba as nb
 import numpy as np
 import pandas as pd
 from sid.contacts import boolean_choice
+from sid.testing import perform_testing
+from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
 
 
@@ -124,7 +126,9 @@ def sample_initial_distribution_of_infections_and_immunity(
     states: pd.DataFrame,
     params: pd.DataFrame,
     initial_conditions: Dict[str, Any],
-    share_known_cases: pd.Series,
+    testing_demand_models: Dict[str, Dict[str, Any]],
+    testing_allocation_models: Dict[str, Dict[str, Any]],
+    testing_processing_models: Dict[str, Dict[str, Any]],
     seed: itertools.count,
 ):
     """Sample the initial distribution of infections and immunity.
@@ -179,13 +183,6 @@ def sample_initial_distribution_of_infections_and_immunity(
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
               number of cases.
-        share_known_cases (pandas.Series): Share of known cases to all
-            cases. The argument is a float or a series with :class:`pd.DatetimeIndex`
-            which covers the whole simulation period and yields the ratio of known
-            infections to all infections.
-
-            This feature can be used instead of testing models which are hard to
-            calibrate to data.
         seed (itertools.count): The seed counter.
 
     Returns:
@@ -218,13 +215,26 @@ def sample_initial_distribution_of_infections_and_immunity(
         spread_out_infections = initial_conditions["initial_infections"]
 
     for burn_in_date in initial_conditions["burn_in_periods"]:
+
+        states["date"] = burn_in_date
+        states["period"] = timestamp_to_sid_period(burn_in_date)
+
+        states, _, to_be_processed_tests = perform_testing(
+            date=burn_in_date,
+            states=states,
+            params=params,
+            testing_demand_models=testing_demand_models,
+            testing_allocation_models=testing_allocation_models,
+            testing_processing_models=testing_processing_models,
+            seed=seed,
+        )
+
         states = update_states(
             states=states,
             newly_infected_contacts=spread_out_infections[burn_in_date],
             newly_infected_events=spread_out_infections[burn_in_date],
             params=params,
-            share_known_cases=share_known_cases[burn_in_date],
-            to_be_processed_tests=None,
+            to_be_processed_tests=to_be_processed_tests,
             seed=seed,
         )
 
