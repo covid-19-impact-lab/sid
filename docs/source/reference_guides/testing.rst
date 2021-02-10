@@ -12,11 +12,12 @@ to :func:`sid.get_simulate_func`.
 There are three categories of testing models:
 
 - ``testing_demand_models`` are used to compute the demand for tests. Each model returns
-  a :class:`pandas.Series` that contains for each individual the probability of demanding a test.
+  a :class:`pandas.Series` that contains for each individual the probability of
+  demanding a test.
 
 - ``testing_allocation_models`` are used to assign who will receive a test.
 
-- ``testing_processing_models`` are used to start the execution of tests. 
+- ``testing_processing_models`` are used to start the execution of tests.
 
 
 General
