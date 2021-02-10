@@ -12,16 +12,18 @@ to :func:`sid.get_simulate_func`.
 There are three categories of testing models:
 
 - ``testing_demand_models`` are used to compute the demand for tests. Each model returns
-  a :class:`pandas.Series` with probabilities for each individual.
+  a :class:`pandas.Series` that contains for each individual the probability of demanding a test.
 
-- ``testing_allocation_models`` are used to assign tests to individuals
+- ``testing_allocation_models`` are used to assign who will receive a test.
+
+- ``testing_processing_models`` are used to start the execution of tests. 
 
 
 General
 -------
 
 Regardless of the category of testing models, each argument receives a dictionary where
-keys are represent the names of the models. The values are dictionaries with the
+keys represent the names of the models. The values are dictionaries with the
 following keys:
 
 - ``"model"`` accepts a function. The three different categories of functions are
@@ -62,11 +64,11 @@ As an optional feature, you can add ``"channel_demands_test"`` to ``saved_column
 which allows you to store which demand model was responsible. It also costs a little bit
 of runtime and memory which is why it is deactivated by default.
 
-A demand model accepts only the ``states`` and ``params`` as arguments.
+A demand model accepts only the ``states``, ``params`` and a ``seed`` as arguments.
 
 .. code-block:: python
 
-    def demand_tests(states, params):
+    def demand_tests(states, params, seed):
         pass
 
 
@@ -94,7 +96,7 @@ An allocation model for tests has the following interface:
 
 .. code-block:: python
 
-    def allocate_tests(n_allocated_tests, demands_test, states, params):
+    def allocate_tests(n_allocated_tests, demands_test, states, params, seed):
         pass
 
 - ``n_allocated_tests`` returns the number of available tests minus the already
@@ -125,7 +127,7 @@ Processing models have the following interface:
 
 .. code-block:: python
 
-    def process_tests(n_to_be_processed_tests, states, params):
+    def process_tests(n_to_be_processed_tests, states, params, seed):
         pass
 
 - ``n_to_be_processed_tests`` yields the number of remaining tests in this period which
