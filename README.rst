@@ -96,3 +96,7 @@ sid has been featured in some publications which are listed here:
   individuellen Verhaltens über den Jahreswechsel für die Weiterentwicklung der
   Covid-19-Pandemie in Deutschland <http://ftp.iza.org/sp99.pdf>`_ (No. 99). Institute
   of Labor Economics (IZA).
+
+- Gabler, J., Raabe, T., Röhrl, K., & Gaudecker, H. M. V. (2021). `Der Effekt von
+  Heimarbeit auf die Entwicklung der Covid-19-Pandemie in Deutschland
+  <http://ftp.iza.org/sp100.pdf>`_ (No. 100). Institute of Labor Economics (IZA).
