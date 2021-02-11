@@ -19,8 +19,8 @@ def test_random_contact_infects_susceptibles():
     infected = np.array([False, False, False])
     infection_counter = np.zeros(3, dtype=np.int_)
 
-    assortative_matching_probabilities = nb.typed.List()
-    assortative_matching_probabilities.append(np.array([0.8, 0.2, 1, 0]).reshape(2, 2))
+    assortative_matching_cum_probs = nb.typed.List()
+    assortative_matching_cum_probs.append(np.array([0.8, 0.2, 1, 0]).reshape(2, 2))
 
     (
         infected,
@@ -33,7 +33,7 @@ def test_random_contact_infects_susceptibles():
         infectious,
         immune,
         group_codes,
-        assortative_matching_probabilities,
+        assortative_matching_cum_probs,
         indexers,
         infected,
         infection_counter,
@@ -63,10 +63,8 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
     infected = np.array([False, False, False, False, False])
     infection_counter = np.zeros(5, dtype=np.int_)
 
-    assortative_matching_probabilities = nb.typed.List()
-    assortative_matching_probabilities.append(
-        np.array([0.5, 0.5, 0.5, 0.5]).reshape(2, 2)
-    )
+    assortative_matching_cum_probs = nb.typed.List()
+    assortative_matching_cum_probs.append(np.array([0.5, 0.5, 0.5, 0.5]).reshape(2, 2))
 
     (
         infected,
@@ -79,7 +77,7 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
         infectious,
         immune,
         group_codes,
-        assortative_matching_probabilities,
+        assortative_matching_cum_probs,
         indexers,
         infected,
         infection_counter,

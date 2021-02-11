@@ -29,7 +29,7 @@ from sid.events import calculate_infections_by_events
 from sid.initial_conditions import (
     sample_initial_distribution_of_infections_and_immunity,
 )
-from sid.matching_probabilities import create_group_transition_probs
+from sid.matching_probabilities import create_cumulative_group_transition_probabilities
 from sid.parse_model import parse_duration
 from sid.parse_model import parse_initial_conditions
 from sid.pathogenesis import draw_course_of_disease
@@ -313,8 +313,10 @@ def _simulate(
     seed = np.random.randint(0, 1_000_000) if seed is None else seed
     seed = itertools.count(seed)
 
-    assortative_matching_probabilities = _prepare_assortative_matching_probabilities(
-        initial_states, assort_bys, params, contact_models, group_codes_info
+    assortative_matching_cum_probs = (
+        _prepare_assortative_matching_cumulative_probabilities(
+            initial_states, assort_bys, params, contact_models, group_codes_info
+        )
     )
 
     states = initial_states
@@ -351,7 +353,7 @@ def _simulate(
             random_contacts=random_contacts,
             params=params,
             indexers=indexers,
-            assortative_matching_probabilities=assortative_matching_probabilities,
+            assortative_matching_cum_probs=assortative_matching_cum_probs,
             contact_models=contact_models,
             group_codes_info=group_codes_info,
             seed=seed,
@@ -599,7 +601,7 @@ def _prepare_assortative_matching_indexers(
     return indexers
 
 
-def _prepare_assortative_matching_probabilities(
+def _prepare_assortative_matching_cumulative_probabilities(
     states: pd.DataFrame,
     assort_bys: Dict[str, List[str]],
     params: pd.DataFrame,
@@ -628,7 +630,7 @@ def _prepare_assortative_matching_probabilities(
     probabilities = nb.typed.List()
     for model_name, assort_by in assort_bys.items():
         if not contact_models[model_name]["is_recurrent"]:
-            probs = create_group_transition_probs(
+            probs = create_cumulative_group_transition_probabilities(
                 states,
                 assort_by,
                 params,

@@ -100,7 +100,7 @@ def calculate_infections_by_contacts(
     random_contacts: np.ndarray,
     params: pd.DataFrame,
     indexers: Dict[str, nb.typed.List],
-    assortative_matching_probabilities: nb.typed.List,
+    assortative_matching_cum_probs: nb.typed.List,
     contact_models: Dict[str, Dict[str, Any]],
     group_codes_info: Dict[str, Dict[str, Any]],
     seed: itertools.count,
@@ -123,7 +123,7 @@ def calculate_infections_by_contacts(
             entry for recurrent and random contact models. The values are Numba lists
             containing Numba lists for each contact model. Each list holds indices for
             each group in the contact model.
-        assortative_matching_probabilities (numba.typed.List): The list contains one
+        assortative_matching_cum_probs (numba.typed.List): The list contains one
             entry for each random contact model. Each entry holds a ``n_groups *
             n_groups`` transition matrix where ``probs[i, j]`` is the cumulative
             probability that an individual from group ``i`` meets someone from group
@@ -203,7 +203,7 @@ def calculate_infections_by_contacts(
             infectious,
             immune,
             group_codes_random,
-            assortative_matching_probabilities,
+            assortative_matching_cum_probs,
             indexers["random"],
             infected,
             infection_counter,
@@ -347,7 +347,7 @@ def _calculate_infections_by_random_contacts(
     infectious,
     immune,
     group_codes,
-    assortative_matching_probabilities,
+    assortative_matching_cum_probs,
     indexers,
     infected,
     infection_counter,
@@ -364,7 +364,7 @@ def _calculate_infections_by_random_contacts(
         immune (numpy.ndarray): 1d boolean array that indicates if a person is immune.
         group_codes (numpy.ndarray): 2d integer array with the index of the group used
             in the first stage of matching.
-        assortative_matching_probabilities (numba.typed.List): List of arrays of shape
+        assortative_matching_cum_probs (numba.typed.List): List of arrays of shape
             n_group, n_groups. arr[i, j] is the cumulative probability that an
             individual from group i meets someone from group j.
         indexers (numba.typed.List): Nested typed list. The i_th entry of the inner
@@ -386,7 +386,7 @@ def _calculate_infections_by_random_contacts(
     """
     np.random.seed(seed)
 
-    groups_list = [np.arange(len(gp)) for gp in assortative_matching_probabilities]
+    groups_list = [np.arange(len(gp)) for gp in assortative_matching_cum_probs]
     was_infected_by = np.full(len(infectious), -1, dtype=np.int16)
 
     n_obs, n_contact_models = random_contacts.shape
@@ -396,7 +396,7 @@ def _calculate_infections_by_random_contacts(
             # get the probabilities for meeting another group which depend on the
             # individual's group.
             group_i = group_codes[i, cm]
-            group_i_cdf = assortative_matching_probabilities[cm][group_i]
+            group_i_cdf = assortative_matching_cum_probs[cm][group_i]
 
             # Loop over each contact the individual has, sample the contact's group
             # and compute the sum of possible contacts in this group.

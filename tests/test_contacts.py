@@ -65,8 +65,8 @@ def setup_households_w_one_infection():
     indexers = {"recurrent": nb.typed.List()}
     indexers["recurrent"].append(create_group_indexer(states, ["households"]))
 
-    assortative_matching_probabilities = nb.typed.List()
-    assortative_matching_probabilities.append(np.zeros((0, 0)))
+    assortative_matching_cum_probs = nb.typed.List()
+    assortative_matching_cum_probs.append(np.zeros((0, 0)))
 
     group_codes_info = {"households": {"name": "group_codes_households"}}
 
@@ -75,7 +75,7 @@ def setup_households_w_one_infection():
         contacts,
         params,
         indexers,
-        assortative_matching_probabilities,
+        assortative_matching_cum_probs,
         group_codes_info,
     )
 
@@ -89,7 +89,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         recurrent_contacts,
         params,
         indexers,
-        assortative_matching_probabilities,
+        assortative_matching_cum_probs,
         group_codes_info,
     ) = setup_households_w_one_infection
 
@@ -104,7 +104,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         random_contacts=None,
         params=params,
         indexers=indexers,
-        assortative_matching_probabilities=assortative_matching_probabilities,
+        assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
         seed=itertools.count(),
@@ -132,7 +132,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
         recurrent_contacts,
         params,
         indexers,
-        assortative_matching_probabilities,
+        assortative_matching_cum_probs,
         group_codes_info,
     ) = setup_households_w_one_infection
 
@@ -149,7 +149,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
         random_contacts=None,
         params=params,
         indexers=indexers,
-        assortative_matching_probabilities=assortative_matching_probabilities,
+        assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
         seed=itertools.count(),
@@ -174,7 +174,7 @@ def test_calculate_infections_only_recurrent_one_skips(
         recurrent_contacts,
         params,
         indexers,
-        assortative_matching_probabilities,
+        assortative_matching_cum_probs,
         group_codes_info,
     ) = setup_households_w_one_infection
 
@@ -192,7 +192,7 @@ def test_calculate_infections_only_recurrent_one_skips(
         random_contacts=None,
         params=params,
         indexers=indexers,
-        assortative_matching_probabilities=assortative_matching_probabilities,
+        assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
         seed=itertools.count(),
@@ -217,7 +217,7 @@ def test_calculate_infections_only_recurrent_one_immune(
         recurrent_contacts,
         params,
         indexers,
-        assortative_matching_probabilities,
+        assortative_matching_cum_probs,
         group_codes_info,
     ) = setup_households_w_one_infection
 
@@ -234,7 +234,7 @@ def test_calculate_infections_only_recurrent_one_immune(
         random_contacts=None,
         params=params,
         indexers=indexers,
-        assortative_matching_probabilities=assortative_matching_probabilities,
+        assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
         seed=itertools.count(),
@@ -262,8 +262,8 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
     )
     indexers = {"random": nb.typed.List()}
     indexers["random"].append(create_group_indexer(states, ["group_codes_non_rec"]))
-    assortative_matching_probabilities = nb.typed.List()
-    assortative_matching_probabilities.append(np.array([[0.8, 1], [0.2, 1]]))
+    assortative_matching_cum_probs = nb.typed.List()
+    assortative_matching_cum_probs.append(np.array([[0.8, 1], [0.2, 1]]))
 
     (
         calc_infected,
@@ -276,7 +276,7 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
         random_contacts=random_contacts,
         params=params,
         indexers=indexers,
-        assortative_matching_probabilities=assortative_matching_probabilities,
+        assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"non_rec": {"is_recurrent": False}},
         group_codes_info={"non_rec": {"name": "group_codes_non_rec"}},
         seed=itertools.count(),
