@@ -4,6 +4,7 @@ from sid.contacts import _calculate_infections_by_random_contacts
 
 
 def test_random_contact_infects_susceptibles():
+    """Individual infects random contacts within its and across groups."""
     random_contacts = np.array([2, 1, 1]).reshape(-1, 1)
     infectious = np.array([True, False, False])
     immune = np.array([True, False, False])
@@ -48,6 +49,7 @@ def test_random_contact_infects_susceptibles():
 
 
 def test_random_contact_immune_and_people_without_contacts_are_not_infected():
+    """Infections do not occur for immune random contacts and those without contacts."""
     random_contacts = np.array([10, 10, 0, 10, 0]).reshape(-1, 1)
     infectious = np.array([True, False, False, False, False])
     immune = np.array([True, True, False, True, False])

@@ -43,7 +43,7 @@ def test_recurrent_contact_infects_susceptibles_and_leaves_other_group_untouched
     assert (was_infected == [-1, 0, -1, -1]).all()
 
 
-def test_infections_occur_in_other_recurrent_group():
+def test_infections_occur_not_in_other_recurrent_group():
     recurrent_contacts = np.array([True, True, True, True]).reshape(-1, 1)
     infectious = np.array([True, False, False, False])
     immune = np.array([True, False, False, False])
