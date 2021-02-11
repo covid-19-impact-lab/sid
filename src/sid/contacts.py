@@ -210,9 +210,6 @@ def calculate_infections_by_contacts(
             next(seed),
         )
 
-        # Save missed contacts and set missed contacts of recurrent models to zero which
-        # happens in :func:`_calculate_infections_by_contacts_numba` since ``missed`` is
-        # set to ``contacts``.
         missed_contacts = pd.DataFrame(
             missed, columns=[f"missed_{name}" for name in random_models]
         )
@@ -275,7 +272,7 @@ def _calculate_infections_by_recurrent_contacts(
     infectious,
     immune,
     group_codes,
-    indexers_list,
+    indexers,
     infection_probs,
     infected,
     infection_counter,
@@ -292,7 +289,7 @@ def _calculate_infections_by_recurrent_contacts(
         immune (numpy.ndarray): 1d boolean array that indicates if a person is immune.
         group_codes (numpy.ndarray): 2d integer array with the index of the group used
             in the first stage of matching.
-        indexers_list (numba.typed.List): Nested typed list. The i_th entry of the inner
+        indexers (numba.typed.List): Nested typed list. The i_th entry of the inner
             lists are the indices of the i_th group. There is one inner list per contact
             model.
         infection_probs (numpy.ndarray): An array containing the infection probabilities
@@ -327,7 +324,7 @@ def _calculate_infections_by_recurrent_contacts(
             # no contacts under contact model cm.
             group_i = group_codes[i, cm]
             if group_i >= 0 and infectious[i] and recurrent_contacts[i, cm] > 0:
-                others = indexers_list[cm][group_i]
+                others = indexers[cm][group_i]
                 # extract infection probability into a variable for faster access
                 prob = infection_probs[cm]
                 for j in others:
@@ -351,7 +348,7 @@ def _calculate_infections_by_random_contacts(
     immune,
     group_codes,
     assortative_matching_probabilities,
-    indexers_list,
+    indexers,
     infected,
     infection_counter,
     seed,
@@ -370,7 +367,7 @@ def _calculate_infections_by_random_contacts(
         assortative_matching_probabilities (numba.typed.List): List of arrays of shape
             n_group, n_groups. arr[i, j] is the cumulative probability that an
             individual from group i meets someone from group j.
-        indexers_list (numba.typed.List): Nested typed list. The i_th entry of the inner
+        indexers (numba.typed.List): Nested typed list. The i_th entry of the inner
             lists are the indices of the i_th group. There is one inner list per contact
             model.
         infected (numpy.ndarray): An array indicating newly infected individuals.
@@ -407,7 +404,7 @@ def _calculate_infections_by_random_contacts(
             for _ in range(n_contacts):
                 contact_takes_place = True
                 group_j = choose_other_group(groups_list[cm], cdf=group_i_cdf)
-                choice_indices = indexers_list[cm][group_j]
+                choice_indices = indexers[cm][group_j]
                 contacts_j = random_contacts[choice_indices, cm]
 
                 j = choose_other_individual(choice_indices, weights=contacts_j)
