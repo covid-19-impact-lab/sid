@@ -123,11 +123,11 @@ def calculate_infections_by_contacts(
             entry for recurrent and random contact models. The values are Numba lists
             containing Numba lists for each contact model. Each list holds indices for
             each group in the contact model.
-        assortative_matching_cum_probs (numba.typed.List): The list contains one
-            entry for each random contact model. Each entry holds a ``n_groups *
-            n_groups`` transition matrix where ``probs[i, j]`` is the cumulative
-            probability that an individual from group ``i`` meets someone from group
-            ``j``.
+        assortative_matching_cum_probs (numba.typed.List): The list contains one entry
+            for each random contact model. Each entry holds a ``n_groups * n_groups``
+            transition matrix where ``probs[i, j]`` is the cumulative probability that
+            an individual from group ``i`` meets someone from group ``j``.
+        contact_models (Dict[str, Dict[str, Any]]): The contact models.
         group_codes_info (Dict[str, Dict[str, Any]]): The name of the group code column
             for each contact model.
         seed (itertools.count): Seed counter to control randomness.
@@ -230,7 +230,7 @@ def calculate_infections_by_contacts(
 
 @nb.njit
 def _reduce_random_contacts_with_infection_probs(
-    random_contacts: np.ndarray, probs: np.ndarray, seed: itertools.count
+    random_contacts: np.ndarray, probs: np.ndarray, seed: int
 ) -> np.ndarray:
     """Reduce the number of random contacts stochastically.
 
@@ -268,16 +268,16 @@ def _reduce_random_contacts_with_infection_probs(
 
 @nb.njit
 def _calculate_infections_by_recurrent_contacts(
-    recurrent_contacts,
-    infectious,
-    immune,
-    group_codes,
-    indexers,
-    infection_probs,
-    infected,
-    infection_counter,
-    seed,
-):
+    recurrent_contacts: np.ndarray,
+    infectious: np.ndarray,
+    immune: np.ndarray,
+    group_codes: np.ndarray,
+    indexers: nb.typed.List,
+    infection_probs: np.ndarray,
+    infected: np.ndarray,
+    infection_counter: np.ndarray,
+    seed: int,
+) -> Tuple[np.ndarray]:
     """Match recurrent contacts and record infections.
 
     Args:
@@ -343,16 +343,16 @@ def _calculate_infections_by_recurrent_contacts(
 
 @nb.njit
 def _calculate_infections_by_random_contacts(
-    random_contacts,
-    infectious,
-    immune,
-    group_codes,
-    assortative_matching_cum_probs,
-    indexers,
-    infected,
-    infection_counter,
-    seed,
-):
+    random_contacts: np.ndarray,
+    infectious: np.ndarray,
+    immune: np.ndarray,
+    group_codes: np.ndarray,
+    assortative_matching_cum_probs: nb.typed.List,
+    indexers: nb.typed.List,
+    infected: np.ndarray,
+    infection_counter: np.ndarray,
+    seed: int,
+) -> Tuple[np.ndarray]:
     """Match random contacts and record infections.
 
     Args:
@@ -438,7 +438,7 @@ def _calculate_infections_by_random_contacts(
 def choose_other_group(a, cdf):
     """Choose a group out of a, given cumulative choice probabilities.
 
-    Note: This function is also used in sid-estimation.
+    Note: This function is also used in sid-germany.
 
     """
     u = np.random.uniform(0, 1)
@@ -454,7 +454,7 @@ def choose_other_individual(a, weights):
 
     :func:`numpy.argmax` returns the first index for multiple maximum values.
 
-    Note: This function is also used in sid-estimation.
+    Note: This function is also used in sid-germany.
 
     Args:
         a (numpy.ndarray): 1d array of choices

@@ -20,7 +20,7 @@ all releases are available on `Anaconda.org
   variables are always sorted to maintain a stable ordering. The PR also reworks the
   factorization such that it is only done once.
 - :gh:`71` separates recurrent from random contacts and how infections are calculated
-  for each contact type.
+  for each type of contact.
 - :gh:`75` passes sid's seed to the testing models.
 - :gh:`76` removes ``share_known_cases`` which should now be implemented with testing
   models.
