@@ -73,6 +73,24 @@ the preparation and ramp up of existing capacities in a country.
   "Daten zum Download" and "Tabellen zu Testzahlen, Testkapazitäten und Probenrückstau
   ...".
 
+For the countdown until tests are processed and individuals are informed about whether
+they have been infected we take data from the
+`ARS RKI data <https://ars.rki.de/Content/COVID19/Main.aspx>`_.
+From `November 2020 to February 2021 <https://tinyurl.com/2k5mqg7z>`_
+about a third of tests were processed on the same day, 50% on the next day, 10% within
+two days. The remaining 7% we collapse to take 3 days. Since countdowns are reduced
+directly after calculating the tests, we add one to each and arrive at the following
+distribution:
+
+.. csv-table::
+    :header: category, subcategory, name, value
+
+    cd_received_test_result_true, 1, 0.33
+    cd_received_test_result_true, 2, 0.5
+    cd_received_test_result_true, 3, 0.1
+    cd_received_test_result_true, 4, 0.07
+
+
 
 Immunity Countdown
 ------------------

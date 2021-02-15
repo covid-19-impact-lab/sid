@@ -8,12 +8,12 @@ repos:
     -   id: check-added-large-files
         args: ['--maxkb=500']
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.9.0
+    rev: v2.10.0
     hooks:
     -   id: pyupgrade
         args: [--py36-plus]
 -   repo: https://github.com/asottile/reorder_python_imports
-    rev: v2.3.6
+    rev: v2.4.0
     hooks:
     -   id: reorder-python-imports
         types: [python]
@@ -73,6 +73,7 @@ repos:
     hooks:
     -   id: codespell
         exclude: \.ipynb
+        args: [--ignore-words-list, effekt]
 -   repo: meta
     hooks:
     -   id: check-hooks-apply

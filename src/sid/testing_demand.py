@@ -1,4 +1,10 @@
 """Contains the code for calculating the demand for tests."""
+import itertools
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
 from sid.shared import boolean_choices
@@ -6,8 +12,13 @@ from sid.shared import random_choice
 
 
 def calculate_demand_for_tests(
-    states, testing_demand_models, params, date, columns_to_keep, seed
-):
+    states: pd.DataFrame,
+    testing_demand_models: Dict[str, Dict[str, Any]],
+    params: pd.DataFrame,
+    date: pd.Timestamp,
+    columns_to_keep: List[str],
+    seed: itertools.count,
+) -> Tuple[pd.Series, pd.Series]:
     """Calculate the demand for tests.
 
     The following is a three-staged process:
@@ -41,7 +52,7 @@ def calculate_demand_for_tests(
 
     """
     demand_probabilities = _calculate_demand_probabilities(
-        states, testing_demand_models, params, date
+        states, testing_demand_models, params, date, seed
     )
 
     demands_test = _sample_which_individuals_demand_a_test(demand_probabilities, seed)
@@ -56,7 +67,13 @@ def calculate_demand_for_tests(
     return demands_test, channel_demands_test
 
 
-def _calculate_demand_probabilities(states, testing_demand_models, params, date):
+def _calculate_demand_probabilities(
+    states: pd.DataFrame,
+    testing_demand_models: Dict[str, Dict[str, Any]],
+    params: pd.DataFrame,
+    date: pd.Timestamp,
+    seed: itertools.count,
+) -> pd.DataFrame:
     """Calculate the demand probabilities for each test demand model.
 
     Args:
@@ -65,6 +82,7 @@ def _calculate_demand_probabilities(states, testing_demand_models, params, date)
             testing.
         params (pandas.DataFrame): The parameter DataFrame.
         date (pandas.Timestamp): Current date.
+        seed (itertools.count): The seed counter.
 
     Returns:
         demand_probabilities (pandas.DataFrame): Contains for each individual and every
@@ -77,7 +95,7 @@ def _calculate_demand_probabilities(states, testing_demand_models, params, date)
         func = model["model"]
 
         if model["start"] <= date <= model["end"]:
-            probabilities = func(states, params.loc[loc])
+            probabilities = func(states=states, params=params.loc[loc], seed=next(seed))
         else:
             probabilities = 0
 
@@ -86,7 +104,9 @@ def _calculate_demand_probabilities(states, testing_demand_models, params, date)
     return demand_probabilities
 
 
-def _sample_which_individuals_demand_a_test(demand_probabilities, seed):
+def _sample_which_individuals_demand_a_test(
+    demand_probabilities: pd.DataFrame, seed: itertools.count
+) -> pd.Series:
     """Sample which individuals demand a test.
 
     At first, compute the probabilities that each individual will demand no test at all
@@ -116,7 +136,9 @@ def _sample_which_individuals_demand_a_test(demand_probabilities, seed):
     return demands_test
 
 
-def _sample_reason_for_demanding_a_test(demand_probabilities, demands_test, seed):
+def _sample_reason_for_demanding_a_test(
+    demand_probabilities: pd.DataFrame, demands_test: pd.Series, seed: itertools.count
+) -> pd.Series:
     """Sample reason for demanding a test.
 
     Args:
@@ -165,7 +187,7 @@ def _sample_reason_for_demanding_a_test(demand_probabilities, demands_test, seed
     return demands_test_reason
 
 
-def _normalize_probabilities(probabilities):
+def _normalize_probabilities(probabilities: pd.DataFrame) -> pd.Series:
     """Normalize probabilities such that they sum to one.
 
     Args:

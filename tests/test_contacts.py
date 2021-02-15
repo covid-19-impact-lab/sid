@@ -1,14 +1,12 @@
 import itertools
 
+import numba as nb
 import numpy as np
 import pandas as pd
 import pytest
-from numba import njit
-from numba.typed import List as NumbaList
 from numpy.testing import assert_array_equal
 from sid.config import DTYPE_N_CONTACTS
-from sid.contacts import _calculate_infections_by_contacts_numba
-from sid.contacts import _reduce_contacts_with_infection_probs
+from sid.contacts import _reduce_random_contacts_with_infection_probs
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
@@ -41,121 +39,6 @@ def test_create_group_indexer(states, group_code_name, expected):
     assert result == expected
 
 
-@pytest.mark.unit
-@pytest.mark.parametrize("seed", range(10))
-def test_calculate_infections_numba_with_single_group(num_regression, seed):
-    """If you need to regenerate the test data, use ``pytest --force-regen``."""
-    (
-        contacts,
-        infectious,
-        immune,
-        group_codes,
-        group_probabilities,
-        indexer,
-        infection_prob,
-        is_recurrent,
-    ) = _sample_data_for_calculate_infections_numba(n_individuals=100, seed=seed)
-
-    (
-        infected,
-        infection_counter,
-        immune,
-        missed,
-        was_infected_by,
-    ) = _calculate_infections_by_contacts_numba(
-        contacts,
-        infectious,
-        immune,
-        group_codes,
-        group_probabilities,
-        indexer,
-        infection_prob,
-        seed,
-        is_recurrent,
-    )
-
-    num_regression.check(
-        data_dict={
-            "infected": infected.astype("float"),
-            "n_has_infected": infection_counter.astype("float"),
-            "immune": immune.astype("float"),
-            "missed": missed[:, 0].astype("float"),
-        },
-    )
-
-
-def _sample_data_for_calculate_infections_numba(
-    n_individuals=None,
-    n_contacts=None,
-    infectious_share=None,
-    group_shares=None,
-    group_probabilities=None,
-    infection_prob=None,
-    seed=None,
-):
-    """Sample data for the calculation of new infections."""
-    if seed is not None:
-        np.random.seed(seed)
-
-    if n_individuals is None:
-        n_individuals = np.random.randint(5, 1_000)
-
-    if n_contacts is None:
-        contacts = np.random.randint(2, 6, size=n_individuals)
-    else:
-        contacts = np.full(n_individuals, n_contacts)
-
-    if infectious_share is None:
-        infectious_share = np.random.uniform(0.000001, 1)
-
-    infectious = np.zeros(n_individuals, dtype=bool)
-    mask = np.random.choice(n_individuals, size=int(n_individuals * infectious_share))
-    infectious[mask] = True
-
-    immune = infectious.copy()
-
-    if group_shares is None:
-        n_groups = np.random.randint(1, 4)
-        group_shares = np.random.uniform(0.1, 1, size=n_groups)
-    group_shares = group_shares / group_shares.sum()
-    group_shares[-1] = 1 - group_shares[:-1].sum()
-
-    n_groups = len(group_shares)
-    group_codes = np.random.choice(n_groups, p=group_shares, size=n_individuals)
-
-    if group_probabilities is None:
-        group_probabilities = np.random.uniform(0.00001, 1, size=(n_groups, n_groups))
-        group_probabilities = group_probabilities / group_probabilities.sum(
-            axis=1, keepdims=True
-        )
-    group_probs_list = NumbaList()
-    group_probs_list.append(group_probabilities.cumsum(axis=1))
-
-    indexer = NumbaList()
-    for group in range(n_groups):
-        indexer.append(np.where(group_codes == group)[0])
-
-    indexers_list = NumbaList()
-    indexers_list.append(indexer)
-
-    if infection_prob is None:
-        ip = np.random.uniform()
-        infection_prob = np.array([ip])
-
-    is_recurrent = np.array([False])
-
-    return (
-        contacts.reshape(-1, 1),
-        infectious,
-        immune,
-        group_codes.reshape(-1, 1),
-        group_probs_list,
-        indexers_list,
-        infection_prob,
-        is_recurrent,
-    )
-
-
 @pytest.fixture()
 def setup_households_w_one_infection():
     states = pd.DataFrame(
@@ -169,7 +52,7 @@ def setup_households_w_one_infection():
         }
     )
 
-    contacts = np.ones((len(states), 1), dtype=int)
+    contacts = np.ones((len(states), 1), dtype=bool)
 
     params = pd.DataFrame(
         columns=["value"],
@@ -179,13 +62,22 @@ def setup_households_w_one_infection():
         ),
     )
 
-    indexers = {"households": create_group_indexer(states, ["households"])}
+    indexers = {"recurrent": nb.typed.List()}
+    indexers["recurrent"].append(create_group_indexer(states, ["households"]))
 
-    group_probs = {}
+    assortative_matching_cum_probs = nb.typed.List()
+    assortative_matching_cum_probs.append(np.zeros((0, 0)))
 
     group_codes_info = {"households": {"name": "group_codes_households"}}
 
-    return states, contacts, params, indexers, group_probs, group_codes_info
+    return (
+        states,
+        contacts,
+        params,
+        indexers,
+        assortative_matching_cum_probs,
+        group_codes_info,
+    )
 
 
 @pytest.mark.integration
@@ -194,10 +86,10 @@ def test_calculate_infections_only_recurrent_all_participate(
 ):
     (
         states,
-        contacts,
+        recurrent_contacts,
         params,
         indexers,
-        group_probs,
+        assortative_matching_cum_probs,
         group_codes_info,
     ) = setup_households_w_one_infection
 
@@ -208,11 +100,12 @@ def test_calculate_infections_only_recurrent_all_participate(
         was_infected_by,
     ) = calculate_infections_by_contacts(
         states=states,
-        contacts=contacts,
+        recurrent_contacts=recurrent_contacts,
+        random_contacts=None,
         params=params,
         indexers=indexers,
-        group_cdfs=group_probs,
-        code_to_contact_model={0: "the_model"},
+        assortative_matching_cum_probs=assortative_matching_cum_probs,
+        contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
         seed=itertools.count(),
     )
@@ -227,7 +120,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         .equals(exp_infection_counter)
     )
     assert (states["immune"] | calc_infected).equals(exp_immune)
-    assert np.all(calc_missed_contacts == 0)
+    assert calc_missed_contacts is None
 
 
 @pytest.mark.integration
@@ -236,14 +129,14 @@ def test_calculate_infections_only_recurrent_sick_skips(
 ):
     (
         states,
-        contacts,
+        recurrent_contacts,
         params,
         indexers,
-        group_probs,
+        assortative_matching_cum_probs,
         group_codes_info,
     ) = setup_households_w_one_infection
 
-    contacts[0] = 0
+    recurrent_contacts[0] = 0
 
     (
         calc_infected,
@@ -252,11 +145,12 @@ def test_calculate_infections_only_recurrent_sick_skips(
         was_infected_by,
     ) = calculate_infections_by_contacts(
         states=states,
-        contacts=contacts,
+        recurrent_contacts=recurrent_contacts,
+        random_contacts=None,
         params=params,
         indexers=indexers,
-        group_cdfs=group_probs,
-        code_to_contact_model={0: "the_model"},
+        assortative_matching_cum_probs=assortative_matching_cum_probs,
+        contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
         seed=itertools.count(),
     )
@@ -268,6 +162,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
     assert calc_n_has_additionally_infected.astype(np.int32).equals(
         exp_infection_counter
     )
+    assert calc_missed_contacts is None
 
 
 @pytest.mark.integration
@@ -276,15 +171,15 @@ def test_calculate_infections_only_recurrent_one_skips(
 ):
     (
         states,
-        contacts,
+        recurrent_contacts,
         params,
         indexers,
-        group_probs,
+        assortative_matching_cum_probs,
         group_codes_info,
     ) = setup_households_w_one_infection
 
     # 2nd person does not participate in household meeting
-    contacts[1] = 0
+    recurrent_contacts[1] = 0
 
     (
         calc_infected,
@@ -293,21 +188,24 @@ def test_calculate_infections_only_recurrent_one_skips(
         was_infected_by,
     ) = calculate_infections_by_contacts(
         states=states,
-        contacts=contacts,
+        recurrent_contacts=recurrent_contacts,
+        random_contacts=None,
         params=params,
         indexers=indexers,
-        group_cdfs=group_probs,
-        code_to_contact_model={0: "the_model"},
+        assortative_matching_cum_probs=assortative_matching_cum_probs,
+        contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
         seed=itertools.count(),
     )
 
     exp_infected = pd.Series([False, False] + [True] * 2 + [False] * 4)
     exp_infection_counter = pd.Series([2] + [0] * 7).astype(np.int32)
+
     assert calc_infected.equals(exp_infected)
     assert calc_n_has_additionally_infected.astype(np.int32).equals(
         exp_infection_counter
     )
+    assert calc_missed_contacts is None
 
 
 @pytest.mark.integration
@@ -316,10 +214,10 @@ def test_calculate_infections_only_recurrent_one_immune(
 ):
     (
         states,
-        contacts,
+        recurrent_contacts,
         params,
         indexers,
-        group_probs,
+        assortative_matching_cum_probs,
         group_codes_info,
     ) = setup_households_w_one_infection
 
@@ -332,11 +230,12 @@ def test_calculate_infections_only_recurrent_one_immune(
         was_infected_by,
     ) = calculate_infections_by_contacts(
         states=states,
-        contacts=contacts,
+        recurrent_contacts=recurrent_contacts,
+        random_contacts=None,
         params=params,
         indexers=indexers,
-        group_cdfs=group_probs,
-        code_to_contact_model={0: "the_model"},
+        assortative_matching_cum_probs=assortative_matching_cum_probs,
+        contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
         seed=itertools.count(),
     )
@@ -347,66 +246,49 @@ def test_calculate_infections_only_recurrent_one_immune(
     assert calc_n_has_additionally_infected.astype(np.int32).equals(
         exp_infection_counter
     )
-
-
-def set_deterministic_context(m):
-    """Replace all randomness in the model with specified orders."""
-
-    @njit
-    def fake_choose_other_group(a, cdf):
-        """Deterministically switch between groups."""
-        return a[0]
-
-    m.setattr("sid.contacts.choose_other_group", fake_choose_other_group)
-
-    @njit
-    def fake_choose_j(a, weights):
-        """Deterministically switch between groups."""
-        return a[1]
-
-    m.setattr("sid.contacts.choose_other_individual", fake_choose_j)
+    assert calc_missed_contacts is None
 
 
 @pytest.mark.integration
-def test_calculate_infections_only_non_recurrent(
-    setup_households_w_one_infection, monkeypatch
-):
-    states, contacts, *_ = setup_households_w_one_infection
+def test_calculate_infections_only_non_recurrent(setup_households_w_one_infection):
+    states, random_contacts, *_ = setup_households_w_one_infection
 
-    contacts[0] = 1
+    random_contacts[0] = 1
 
     params = pd.DataFrame(
         columns=["value"],
-        data=1.0,
+        data=1,
         index=pd.MultiIndex.from_tuples([("infection_prob", "non_rec", "non_rec")]),
     )
-    indexers = {"non_rec": create_group_indexer(states, ["group_codes_non_rec"])}
-    group_probs = {"non_rec": np.array([[0.8, 1], [0.2, 1]])}
+    indexers = {"random": nb.typed.List()}
+    indexers["random"].append(create_group_indexer(states, ["group_codes_non_rec"]))
+    assortative_matching_cum_probs = nb.typed.List()
+    assortative_matching_cum_probs.append(np.array([[0.8, 1], [0.2, 1]]))
 
-    with monkeypatch.context() as m:
-        set_deterministic_context(m)
-        (
-            calc_infected,
-            calc_n_has_additionally_infected,
-            calc_missed_contacts,
-            was_infected_by,
-        ) = calculate_infections_by_contacts(
-            states=states,
-            contacts=contacts,
-            params=params,
-            indexers=indexers,
-            group_cdfs=group_probs,
-            code_to_contact_model={0: "the_model"},
-            group_codes_info={"non_rec": {"name": "group_codes_non_rec"}},
-            seed=itertools.count(),
-        )
+    (
+        calc_infected,
+        calc_n_has_additionally_infected,
+        calc_missed_contacts,
+        was_infected_by,
+    ) = calculate_infections_by_contacts(
+        states=states,
+        recurrent_contacts=None,
+        random_contacts=random_contacts,
+        params=params,
+        indexers=indexers,
+        assortative_matching_cum_probs=assortative_matching_cum_probs,
+        contact_models={"non_rec": {"is_recurrent": False}},
+        group_codes_info={"non_rec": {"name": "group_codes_non_rec"}},
+        seed=itertools.count(),
+    )
 
-    exp_infected = pd.Series([False, True, False, False, False, False, False, False])
+    exp_infected = pd.Series([False, False, True, False, False, False, False, False])
     exp_infection_counter = pd.Series([1] + [0] * 7).astype(np.int32)
     assert calc_infected.equals(exp_infected)
     assert calc_n_has_additionally_infected.astype(np.int32).equals(
         exp_infection_counter
     )
+    assert not np.any(calc_missed_contacts)
 
 
 # =====================================================================================
@@ -461,7 +343,7 @@ def test_calculate_contacts_no_policy(states_all_alive, contact_models):
         [[1, i < first_half] for i in range(len(states_all_alive))],
         dtype=DTYPE_N_CONTACTS,
     )
-    res = calculate_contacts(
+    recurrent_contacts, random_contacts = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
         states=states_all_alive,
@@ -469,7 +351,9 @@ def test_calculate_contacts_no_policy(states_all_alive, contact_models):
         date=date,
         seed=itertools.count(),
     )
-    np.testing.assert_array_equal(expected, res)
+
+    assert recurrent_contacts is None
+    assert (random_contacts == expected).all()
 
 
 @pytest.mark.integration
@@ -488,7 +372,7 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
     first_half = round(len(states_all_alive) / 2)
     expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
     expected[:first_half, 1] = 1
-    res = calculate_contacts(
+    recurrent_contacts, random_contacts = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
         states=states_all_alive,
@@ -496,7 +380,9 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
         date=date,
         seed=itertools.count(),
     )
-    np.testing.assert_array_equal(expected, res)
+
+    assert recurrent_contacts is None
+    assert (random_contacts == expected).all()
 
 
 @pytest.mark.integration
@@ -513,7 +399,7 @@ def test_calculate_contacts_policy_active(states_all_alive, contact_models):
     date = pd.Timestamp("2020-09-29")
     params = pd.DataFrame()
     expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
-    res = calculate_contacts(
+    recurrent_contacts, random_contacts = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
         states=states_all_alive,
@@ -521,7 +407,9 @@ def test_calculate_contacts_policy_active(states_all_alive, contact_models):
         date=date,
         seed=itertools.count(),
     )
-    np.testing.assert_array_equal(expected, res)
+
+    assert recurrent_contacts is None
+    assert (random_contacts == expected).all()
 
 
 @pytest.mark.integration
@@ -542,7 +430,7 @@ def test_calculate_contacts_policy_inactive_through_function(
     expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
     first_half = round(len(states_all_alive) / 2)
     expected[:first_half, 1] = 1
-    res = calculate_contacts(
+    recurrent_contacts, random_contacts = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
         states=states_all_alive,
@@ -550,7 +438,9 @@ def test_calculate_contacts_policy_inactive_through_function(
         date=date,
         seed=itertools.count(),
     )
-    np.testing.assert_array_equal(expected, res)
+
+    assert recurrent_contacts is None
+    assert (random_contacts == expected).all()
 
 
 @pytest.mark.integration
@@ -573,7 +463,7 @@ def test_calculate_contacts_policy_active_policy_func(states_all_alive, contact_
     params = pd.DataFrame()
     expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
     expected[2:4, 1] = 1
-    res = calculate_contacts(
+    recurrent_contacts, random_contacts = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
         states=states_all_alive,
@@ -581,7 +471,9 @@ def test_calculate_contacts_policy_active_policy_func(states_all_alive, contact_
         date=date,
         seed=itertools.count(),
     )
-    np.testing.assert_array_equal(expected, res)
+
+    assert recurrent_contacts is None
+    assert (random_contacts == expected).all()
 
 
 @pytest.fixture()
@@ -610,7 +502,7 @@ def test_calculate_contacts_with_dead(states_with_dead, contact_models):
         ],
         dtype=DTYPE_N_CONTACTS,
     )
-    res = calculate_contacts(
+    recurrent_contacts, random_contacts = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
         states=states_with_dead,
@@ -618,18 +510,19 @@ def test_calculate_contacts_with_dead(states_with_dead, contact_models):
         date=date,
         seed=itertools.count(),
     )
-    np.testing.assert_array_equal(expected, res)
+
+    assert recurrent_contacts is None
+    assert (random_contacts == expected).all()
 
 
 @pytest.mark.unit
 def test_reduce_contacts_with_infection_prob_one():
     choices = [0, 1, 2, 3, 4]
     weights = [0.5, 0.2, 0.1, 0.1, 0.1]
-    contacts = np.random.choice(choices, p=weights, size=(100, 10)).astype(int)
-    is_recurrent = np.array([True, False] * 5)
-    probs = np.full(10, 1)
+    contacts = np.random.choice(choices, p=weights, size=(100, 5)).astype(int)
+    probs = np.full(5, 1)
 
-    reduced = _reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, 1234)
+    reduced = _reduce_random_contacts_with_infection_probs(contacts, probs, 1234)
 
     assert_array_equal(reduced, contacts)
 
@@ -638,31 +531,26 @@ def test_reduce_contacts_with_infection_prob_one():
 def test_reduce_contacts_with_infection_prob_zero():
     choices = [0, 1, 2, 3, 4]
     weights = [0.5, 0.2, 0.1, 0.1, 0.1]
-    contacts = np.random.choice(choices, p=weights, size=(100, 10)).astype(int)
-    is_recurrent = np.array([True, False] * 5)
-    probs = np.full(10, 0)
+    contacts = np.random.choice(choices, p=weights, size=(100, 5)).astype(int)
+    probs = np.full(5, 0)
 
-    reduced = _reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, 1234)
+    reduced = _reduce_random_contacts_with_infection_probs(contacts, probs, 1234)
 
-    assert (reduced[:, ~is_recurrent] == 0).all()
-    assert_array_equal(reduced[:, is_recurrent], contacts[:, is_recurrent])
+    assert (reduced == 0).all()
 
 
 @pytest.mark.unit
 def test_reduce_contacts_approximately():
     choices = [0, 1, 2, 3, 4]
     weights = [0.5, 0.2, 0.1, 0.1, 0.1]
-    contacts = np.random.choice(choices, p=weights, size=(100_000, 10)).astype(int)
-    is_recurrent = np.array([True, False] * 5)
-    probs = np.arange(10) / 20
+    contacts = np.random.choice(choices, p=weights, size=(100_000, 5)).astype(int)
+    probs = np.arange(0, 10, 2) / 20
 
-    reduced = _reduce_contacts_with_infection_probs(contacts, is_recurrent, probs, 1234)
+    reduced = _reduce_random_contacts_with_infection_probs(contacts, probs, 1234)
 
-    expected_ratios = probs[~is_recurrent]
+    expected_ratios = probs
 
-    calculated_ratios = reduced[:, ~is_recurrent].sum(axis=0) / contacts[
-        :, ~is_recurrent
-    ].sum(axis=0)
+    calculated_ratios = reduced.sum(axis=0) / contacts.sum(axis=0)
 
     diff = calculated_ratios - expected_ratios
 

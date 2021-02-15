@@ -29,16 +29,13 @@ from sid.events import calculate_infections_by_events
 from sid.initial_conditions import (
     sample_initial_distribution_of_infections_and_immunity,
 )
-from sid.matching_probabilities import create_group_transition_probs
+from sid.matching_probabilities import create_cumulative_group_transition_probabilities
 from sid.parse_model import parse_duration
 from sid.parse_model import parse_initial_conditions
-from sid.parse_model import parse_share_known_cases
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
-from sid.testing_allocation import allocate_tests
-from sid.testing_allocation import update_pending_tests
-from sid.testing_demand import calculate_demand_for_tests
-from sid.testing_processing import process_tests
+from sid.shared import separate_contact_model_names
+from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
 from sid.validation import validate_initial_conditions
@@ -66,7 +63,6 @@ def get_simulate_func(
     path: Union[str, Path, None] = None,
     saved_columns: Optional[Dict[str, Union[bool, str, List[str]]]] = None,
     initial_conditions: Optional[Dict[str, Any]] = None,
-    share_known_cases: Optional[Union[float, pd.Series]] = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -153,13 +149,6 @@ def get_simulate_func(
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
               number of cases.
-        share_known_cases (Optional[Union[float, pd.Series]]): Share of known cases to
-            all cases. The argument is a float or a series with
-            :class:`pd.DatetimeIndex` which covers the whole simulation period and
-            yields the ratio of known infections to all infections.
-
-            This feature can be used instead of testing models which are hard to
-            calibrate to data.
 
     Returns:
         callable: Simulates dataset based on parameters.
@@ -209,9 +198,6 @@ def get_simulate_func(
 
     initial_conditions = parse_initial_conditions(initial_conditions, duration["start"])
     validate_initial_conditions(initial_conditions)
-    share_known_cases = parse_share_known_cases(
-        share_known_cases, duration, initial_conditions["burn_in_periods"]
-    )
 
     if _are_states_prepared(initial_states):
         if initial_conditions is not None:
@@ -228,13 +214,21 @@ def get_simulate_func(
             initial_states, params, next(startup_seed)
         )
         initial_states = sample_initial_distribution_of_infections_and_immunity(
-            initial_states, params, initial_conditions, share_known_cases, startup_seed
+            initial_states,
+            params,
+            initial_conditions,
+            testing_demand_models,
+            testing_allocation_models,
+            testing_processing_models,
+            startup_seed,
         )
 
     initial_states, group_codes_info = _create_group_codes_and_info(
         initial_states, assort_bys, contact_models
     )
-    indexers = _prepare_assortative_matching_indexers(initial_states, group_codes_info)
+    indexers = _prepare_assortative_matching_indexers(
+        initial_states, contact_models, group_codes_info
+    )
 
     cols_to_keep = _process_saved_columns(
         saved_columns, user_state_columns, group_codes_info, contact_models
@@ -256,7 +250,6 @@ def get_simulate_func(
         path=path,
         columns_to_keep=cols_to_keep,
         indexers=indexers,
-        share_known_cases=share_known_cases,
     )
     return sim_func
 
@@ -277,7 +270,6 @@ def _simulate(
     path,
     columns_to_keep,
     indexers,
-    share_known_cases,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -308,13 +300,6 @@ def _simulate(
             :class:`numpy.random.seed` right before the call.
         path (pathlib.Path): Path to the directory where the simulated data is stored.
         columns_to_keep (list): Columns of states that will be saved in each period.
-        share_known_cases (pandas.Series): Share of known cases to all cases. The
-            argument is a float or a series with :class:`pd.DatetimeIndex` which covers
-            the whole simulation period and yields the ratio of known infections to all
-            infections.
-
-            This feature can be used instead of testing models which are hard to
-            calibrate to data.
 
     Returns:
         result (dict): The simulation result which includes the following keys:
@@ -328,11 +313,12 @@ def _simulate(
     seed = np.random.randint(0, 1_000_000) if seed is None else seed
     seed = itertools.count(seed)
 
-    cum_probs = _prepare_assortative_matching_probabilities(
-        initial_states, assort_bys, params, contact_models, group_codes_info
+    assortative_matching_cum_probs = (
+        _prepare_assortative_matching_cumulative_probabilities(
+            initial_states, assort_bys, params, contact_models, group_codes_info
+        )
     )
 
-    code_to_contact_model = dict(enumerate(contact_models))
     states = initial_states
 
     if states.columns.isin(["date", "period"]).any():
@@ -347,7 +333,7 @@ def _simulate(
         states["date"] = date
         states["period"] = timestamp_to_sid_period(date)
 
-        contacts = calculate_contacts(
+        recurrent_contacts, random_contacts = calculate_contacts(
             contact_models=contact_models,
             contact_policies=contact_policies,
             states=states,
@@ -363,11 +349,12 @@ def _simulate(
             channel_infected_by_contact,
         ) = calculate_infections_by_contacts(
             states=states,
-            contacts=contacts,
+            recurrent_contacts=recurrent_contacts,
+            random_contacts=random_contacts,
             params=params,
             indexers=indexers,
-            group_cdfs=cum_probs,
-            code_to_contact_model=code_to_contact_model,
+            assortative_matching_cum_probs=assortative_matching_cum_probs,
+            contact_models=contact_models,
             group_codes_info=group_codes_info,
             seed=seed,
         )
@@ -376,36 +363,22 @@ def _simulate(
             channel_infected_by_event,
         ) = calculate_infections_by_events(states, params, events)
 
-        if testing_demand_models:
-            demands_test, channel_demands_test = calculate_demand_for_tests(
-                states,
-                testing_demand_models,
-                params,
-                date,
-                columns_to_keep,
-                seed,
-            )
-            allocated_tests = allocate_tests(
-                states, testing_allocation_models, demands_test, params, date
-            )
-
-            states = update_pending_tests(states, allocated_tests)
-
-            to_be_processed_tests = process_tests(
-                states, testing_processing_models, params, date
-            )
-        else:
-            demands_test = None
-            channel_demands_test = None
-            allocated_tests = None
-            to_be_processed_tests = None
+        states, channel_demands_test, to_be_processed_tests = perform_testing(
+            date=date,
+            states=states,
+            params=params,
+            testing_demand_models=testing_demand_models,
+            testing_allocation_models=testing_allocation_models,
+            testing_processing_models=testing_processing_models,
+            seed=seed,
+            columns_to_keep=columns_to_keep,
+        )
 
         states = update_states(
             states=states,
             newly_infected_contacts=newly_infected_contacts,
             newly_infected_events=newly_infected_events,
             params=params,
-            share_known_cases=share_known_cases[date],
             to_be_processed_tests=to_be_processed_tests,
             seed=seed,
         )
@@ -414,8 +387,9 @@ def _simulate(
             states=states,
             columns_to_keep=columns_to_keep,
             n_has_additionally_infected=n_has_additionally_infected,
-            indexers=indexers,
-            contacts=contacts,
+            contact_models=contact_models,
+            random_contacts=random_contacts,
+            recurrent_contacts=recurrent_contacts,
             channel_infected_by_contact=channel_infected_by_contact,
             channel_infected_by_event=channel_infected_by_event,
             channel_demands_test=channel_demands_test,
@@ -588,58 +562,89 @@ def _create_group_codes_names(
 
 def _prepare_assortative_matching_indexers(
     states: pd.DataFrame,
+    contact_models: Dict[str, Dict[str, Any]],
     group_codes_info: Dict[str, Dict[str, Any]],
 ) -> Dict[str, nb.typed.List]:
-    """Create indexers and first stage probabilities for assortative matching.
+    """Create indexers for matching individuals within contact models.
+
+    For each contact model, :func:`create_group_indexer` returns a Numba list where each
+    position contains a :class:`numpy.ndarray` with all the indices of individuals
+    belonging to the same group given by the index.
+
+    The indexer has one Numba list for recurrent and random models. Each list has one
+    entry per contact model which holds the result of :func:`create_group_indexer`.
 
     Args:
         states (pandas.DataFrame): see :ref:`states`.
+        contact_models (Dict[str, Dict[str, Any]]): The contact models.
         group_codes_info (Dict[str, Dict[str, Any]]): A dictionary where keys are names
           of contact models and values are dictionaries containing the name and the
           original codes of the assortative variables.
 
-    returns:
-        indexers (Dict[str, numba.typed.List]): The i_th entry of the lists are the
-            indices of the i_th group.
+    Returns:
+        indexers (Dict[str, numba.typed.List]): The indexer is a dictionary with one
+            entry for recurrent and random contact models. The values are Numba lists
+            containing Numba lists for each contact model. Each list holds indices for
+            each group in the contact model.
 
     """
-    indexers = {}
-    for model_name, info in group_codes_info.items():
-        indexers[model_name] = create_group_indexer(states, info["name"])
+    recurrent_models, random_models = separate_contact_model_names(contact_models)
+
+    indexers = {"recurrent": nb.typed.List(), "random": nb.typed.List()}
+    for cm in recurrent_models:
+        indexer = create_group_indexer(states, group_codes_info[cm]["name"])
+        indexers["recurrent"].append(indexer)
+    for cm in random_models:
+        indexer = create_group_indexer(states, group_codes_info[cm]["name"])
+        indexers["random"].append(indexer)
 
     return indexers
 
 
-def _prepare_assortative_matching_probabilities(
-    states, assort_bys, params, contact_models, group_codes_info
-):
-    """Create indexers and first stage probabilities for assortative matching.
+def _prepare_assortative_matching_cumulative_probabilities(
+    states: pd.DataFrame,
+    assort_bys: Dict[str, List[str]],
+    params: pd.DataFrame,
+    contact_models: Dict[str, Dict[str, Any]],
+    group_codes_info: Dict[str, Dict[str, Any]],
+) -> nb.typed.List:
+    """Create first stage probabilities for assortative matching with random contacts.
 
     Args:
-        states (pd.DataFrame): see :ref:`states`.
-        assort_bys (dict): Keys are names of contact models, values are lists with the
-            assort_by variables of the model.
-        params (pd.DataFrame): see :ref:`params`.
+        states (pandas.DataFrame): See :ref:`states`.
+        assort_bys (Dict[str, List[str]]): Keys are names of contact models, values are
+            lists with the assort_by variables of the model.
+        params (pandas.DataFrame): See :ref:`params`.
         contact_models (dict): see :ref:`contact_models`.
+        group_codes_info (Dict[str, Dict[str, Any]]): A dictionary where keys are names
+          of contact models and values are dictionaries containing the name and the
+          original codes of the assortative variables.
 
-    returns:
-        first_probs (dict): dict of arrays of shape n_group, n_groups with probabilities
-        for the first stage of sampling when matching contacts. probs[i, j] is the
-        cumulative probability that an individual from group i meets someone from
-        group j.
+    Returns:
+        probabilities (numba.typed.List): The list contains one entry for each random
+            contact model. Each entry holds a ``n_groups * n_groups`` transition matrix
+            where ``probs[i, j]`` is the cumulative probability that an individual from
+            group ``i`` meets someone from group ``j``.
 
     """
-    first_probs = {}
+    probabilities = nb.typed.List()
     for model_name, assort_by in assort_bys.items():
         if not contact_models[model_name]["is_recurrent"]:
-            first_probs[model_name] = create_group_transition_probs(
+            probs = create_cumulative_group_transition_probabilities(
                 states,
                 assort_by,
                 params,
                 model_name,
                 group_codes_info[model_name]["groups"],
             )
-    return first_probs
+            probabilities.append(probs)
+
+    # The nopython mode fails while calculating infections, if we leave the list empty
+    # or put a 1d array inside the list.
+    if len(probabilities) == 0:
+        probabilities.append(np.zeros((0, 0)))
+
+    return probabilities
 
 
 def _add_default_duration_to_models(
@@ -904,8 +909,9 @@ def _add_additional_information_to_states(
     states: pd.DataFrame,
     columns_to_keep: List[str],
     n_has_additionally_infected: Optional[pd.Series],
-    indexers: Optional[Dict[int, np.ndarray]],
-    contacts: Optional[np.ndarray],
+    contact_models: Optional[Dict[str, Dict[str, Any]]],
+    random_contacts: Optional[np.ndarray],
+    recurrent_contacts: Optional[np.ndarray],
     channel_infected_by_contact: Optional[pd.Series],
     channel_infected_by_event: Optional[pd.Series],
     channel_demands_test: Optional[pd.Series],
@@ -917,8 +923,7 @@ def _add_additional_information_to_states(
         columns_to_keep (List[str]): A list of columns names which should be kept.
         n_has_additionally_infected (Optional[pandas.Series]): Additionally infected
             persons by this individual.
-        indexers (dict): Dictionary with contact models as keys in the same order as the
-            contacts matrix.
+        contact_models (Optional[Dict[str, Dict[str, Any]]]): The contact models.
         contacts (numpy.ndarray): Matrix with number of contacts for each contact model.
         channel_infected_by_contact (pandas.Series): A categorical series containing the
             information which contact model lead to the infection.
@@ -929,10 +934,14 @@ def _add_additional_information_to_states(
         states (pandas.DataFrame): The states with additional information.
 
     """
-    if indexers is not None and contacts is not None:
-        for i, contact_model in enumerate(indexers):
-            if f"n_contacts_{contact_model}" in columns_to_keep:
-                states[f"n_contacts_{contact_model}"] = contacts[:, i]
+    if contact_models is not None:
+        recurrent_models, random_models = separate_contact_model_names(contact_models)
+        if recurrent_contacts is not None:
+            for i, cm in enumerate(recurrent_models):
+                states[f"n_contacts_{cm}"] = recurrent_contacts[:, i]
+        if random_contacts is not None:
+            for i, cm in enumerate(random_models):
+                states[f"n_contacts_{cm}"] = random_contacts[:, i]
 
     if (
         channel_infected_by_contact is not None

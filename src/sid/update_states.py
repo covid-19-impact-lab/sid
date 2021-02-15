@@ -15,7 +15,6 @@ def update_states(
     newly_infected_contacts: pd.Series,
     newly_infected_events: pd.Series,
     params: pd.DataFrame,
-    share_known_cases: Optional[float],
     to_be_processed_tests: Optional[pd.Series],
     seed: itertools.count,
 ):
@@ -30,7 +29,6 @@ def update_states(
         newly_infected_events (pandas.Series): Boolean series indicating individuals
             infected by events. There can be an overlap with infections by contacts.
         params (pandas.DataFrame): See :ref:`params`.
-        share_known_cases (Optional[float]): Share of known cases.
         to_be_processed_tests (pandas.Series): Tests which are going to be processed.
         seed (itertools.count): Seed counter to control randomness.
 
@@ -48,11 +46,6 @@ def update_states(
 
     # important: this has to be called after _kill_people_over_icu_limit!
     states["newly_deceased"] = states.eval(IS_NEWLY_DECEASED)
-
-    if share_known_cases is not None:
-        to_be_processed_tests = _compute_new_tests_with_share_known_cases(
-            states, share_known_cases
-        )
 
     if to_be_processed_tests is not None:
         states = _update_info_on_new_tests(states, to_be_processed_tests)
@@ -112,28 +105,6 @@ def _kill_people_over_icu_limit(states, params, seed):
         states.loc[to_kill, "cd_dead_true"] = 0
 
     return states
-
-
-def _compute_new_tests_with_share_known_cases(
-    states: pd.DataFrame, share_known_cases: float
-) -> pd.Series:
-    """Compute the new tests based on the share of known cases.
-
-    The share of known cases is based on newly infected individuals.
-
-    """
-    n_new_known_cases = int(states["newly_infected"].sum() * share_known_cases)
-
-    if n_new_known_cases > 0:
-        ilocs = np.arange(len(states))[states["newly_infected"]]
-        sampled_ilocs = np.random.choice(ilocs, size=n_new_known_cases, replace=False)
-    else:
-        sampled_ilocs = slice(0)
-
-    new_tests = pd.Series(index=states.index, data=False)
-    new_tests.iloc[sampled_ilocs] = True
-
-    return new_tests
 
 
 def _update_info_on_new_tests(
