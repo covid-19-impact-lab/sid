@@ -284,6 +284,7 @@ def test_skipping_factorization_of_assort_by_variable_works(
         ),
         (lambda *x: pd.Series([1]), [1], does_not_raise(), [1]),
         (lambda *x: np.ones(1), [1], does_not_raise(), [1]),
+        (lambda *x: np.array([1, 2]), [1, 1], does_not_raise(), [0.5, 1]),
     ],
 )
 def test_prepare_infection_probability_multiplier(model, states, expectation, expected):

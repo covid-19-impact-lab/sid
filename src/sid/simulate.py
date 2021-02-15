@@ -1005,4 +1005,18 @@ def _prepare_infection_probability_multiplier(
                 infection_probability_multiplier.to_numpy()
             )
 
+        # Make sure the highest multiplier is set to one so that random contacts only
+        # need to be reduced by the infection probability of the contact model.
+        infection_probability_multiplier = (
+            infection_probability_multiplier / infection_probability_multiplier.max()
+        )
+
+        if (
+            not (0 <= infection_probability_multiplier).all()
+            and (infection_probability_multiplier <= 1).all()
+        ):
+            raise ValueError(
+                "The infection probability multiplier needs to be between 0 and 1."
+            )
+
     return infection_probability_multiplier
