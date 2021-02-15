@@ -6,6 +6,7 @@ import shutil
 import warnings
 from pathlib import Path
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -63,6 +64,7 @@ def get_simulate_func(
     path: Union[str, Path, None] = None,
     saved_columns: Optional[Dict[str, Union[bool, str, List[str]]]] = None,
     initial_conditions: Optional[Dict[str, Any]] = None,
+    infection_probability_multiplier_model: Callable = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -149,9 +151,12 @@ def get_simulate_func(
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
               number of cases.
+        infection_probability_multiplier_model (Callable): A function which takes the
+            states and parameters and returns an infection probability multiplier for
+            each individual.
 
     Returns:
-        callable: Simulates dataset based on parameters.
+        Callable: Simulates dataset based on parameters.
 
     """
     startup_seed, simulation_seed = _generate_seeds(seed)
@@ -229,6 +234,9 @@ def get_simulate_func(
     indexers = _prepare_assortative_matching_indexers(
         initial_states, contact_models, group_codes_info
     )
+    infection_probability_multiplier = _prepare_infection_probability_multiplier(
+        infection_probability_multiplier_model, initial_states, params
+    )
 
     cols_to_keep = _process_saved_columns(
         saved_columns, user_state_columns, group_codes_info, contact_models
@@ -250,6 +258,7 @@ def get_simulate_func(
         path=path,
         columns_to_keep=cols_to_keep,
         indexers=indexers,
+        infection_probability_multiplier=infection_probability_multiplier,
     )
     return sim_func
 
@@ -270,6 +279,7 @@ def _simulate(
     path,
     columns_to_keep,
     indexers,
+    infection_probability_multiplier,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -300,6 +310,8 @@ def _simulate(
             :class:`numpy.random.seed` right before the call.
         path (pathlib.Path): Path to the directory where the simulated data is stored.
         columns_to_keep (list): Columns of states that will be saved in each period.
+        infection_probability_multiplier (np.ndarray): A multiplier which scales the
+            infection probability.
 
     Returns:
         result (dict): The simulation result which includes the following keys:
@@ -356,6 +368,7 @@ def _simulate(
             assortative_matching_cum_probs=assortative_matching_cum_probs,
             contact_models=contact_models,
             group_codes_info=group_codes_info,
+            infection_probability_multiplier=infection_probability_multiplier,
             seed=seed,
         )
         (
@@ -962,3 +975,31 @@ def _add_additional_information_to_states(
         states["n_has_infected"] += n_has_additionally_infected
 
     return states
+
+
+def _prepare_infection_probability_multiplier(
+    infection_probability_multiplier_model, initial_states, params
+):
+    """Prepare the multiplier for infection probabilities."""
+    if infection_probability_multiplier_model is None:
+        infection_probability_multiplier = np.ones(len(initial_states))
+    else:
+        infection_probability_multiplier = infection_probability_multiplier_model(
+            initial_states, params
+        )
+        if not isinstance(infection_probability_multiplier, (pd.Series, np.ndarray)):
+            raise ValueError(
+                "'infection_probability_multiplier_model' must return a pd.Series or a "
+                "np.ndarray."
+            )
+        elif len(infection_probability_multiplier) != len(initial_states):
+            raise ValueError(
+                "The 'infection_probability_multiplier' must be given for each "
+                "individual."
+            )
+        elif isinstance(infection_probability_multiplier, pd.Series):
+            infection_probability_multiplier = (
+                infection_probability_multiplier.to_numpy()
+            )
+
+    return infection_probability_multiplier

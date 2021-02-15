@@ -266,15 +266,15 @@ infectiousness period.
 Length of the Presymptomatic Stage
 ----------------------------------
 
-The presymptomatic stage is the time between the onset of infectiousness and the
-onset of symptoms. The corresponding countdown is called `cd_symptoms_true`.
+The presymptomatic stage is the time between the onset of infectiousness and the onset
+of symptoms. The corresponding countdown is called ``cd_symptoms_true``.
 
 As we used the incubation time (the time from infection to symptoms) to calculate the
-latency period, the length of `cd_symptoms_true` follows mechanically from the estimated
-number of days by which infectiousness precedes symptoms. In the case of COVID-19 we
-assume that the countdown is either 1 or 2 for symptomatic courses of the disease.
-This is in agreement with the composite inferred model on the infectiousness period by
-the `meta-analysis for the infectiousness period (figure 5)
+latency period, the length of ``cd_symptoms_true`` follows mechanically from the
+estimated number of days by which infectiousness precedes symptoms. In the case of
+COVID-19 we assume that the countdown is either 1 or 2 for symptomatic courses of the
+disease. This is in agreement with the composite inferred model on the infectiousness
+period by the `meta-analysis for the infectiousness period (figure 5)
 <https://bmjopen.bmj.com/content/bmjopen/10/8/e039856.full.pdf>`_.
 
 However, a significant share of infected and infectious individuals never develop

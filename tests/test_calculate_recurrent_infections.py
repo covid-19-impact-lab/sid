@@ -19,6 +19,7 @@ def test_recurrent_contact_infects_susceptibles_and_leaves_other_group_untouched
     infection_probabilities = np.array([1])
     infected = np.array([False, False, False, False])
     infection_counter = np.zeros(4, dtype=np.int_)
+    infection_probability_multiplier = np.ones(len(recurrent_contacts))
 
     (
         infected,
@@ -32,6 +33,7 @@ def test_recurrent_contact_infects_susceptibles_and_leaves_other_group_untouched
         group_codes,
         indexers,
         infection_probabilities,
+        infection_probability_multiplier,
         infected,
         infection_counter,
         0,
@@ -59,6 +61,7 @@ def test_infections_occur_not_in_other_recurrent_group():
     infection_probabilities = np.array([1])
     infected = np.array([False, True, False, False])
     infection_counter = np.zeros(4, dtype=np.int_)
+    infection_probability_multiplier = np.ones(len(recurrent_contacts))
 
     (
         infected,
@@ -72,6 +75,7 @@ def test_infections_occur_not_in_other_recurrent_group():
         group_codes,
         indexers,
         infection_probabilities,
+        infection_probability_multiplier,
         infected,
         infection_counter,
         0,

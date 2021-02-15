@@ -59,7 +59,7 @@ def visualize_simulation_results(
         if bg_var == "general":
             title = "Rates in the General Population"
         else:
-            title = f"Rates According to {_nice_str(bg_var)}"  # noqa
+            title = f"Rates According to {_nice_str(bg_var)}"
 
         rate_plots = _create_rate_plots(rates[bg_var], colors, title)
 
@@ -210,7 +210,7 @@ def _create_rate_plots(rates, colors, title):
         for bg_val in bg_values:
             plot_title = f"{_nice_str(var)} {title}"
             if bg_val != "general":
-                plot_title += f": {bg_val}"  # noqa
+                plot_title += f": {bg_val}"
             p = _plot_rates(
                 rates=rates[var][bg_val],
                 title=plot_title,

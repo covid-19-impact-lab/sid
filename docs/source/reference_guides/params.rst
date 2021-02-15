@@ -4,7 +4,7 @@
 ==========
 
 ``params`` is a DataFrame that contains all parameters that quantify how the disease
-spreads in the `"value"` column. It can also contain parameters for the contact models
+spreads in the ``"value"`` column. It can also contain parameters for the contact models
 such as the degree of assortativeness by a certain variable. Putting those parameters
 into a DataFrame, allows us to optimize over them using `estimagic
 <https://estimagic.readthedocs.io/en/latest/>`_. Make sure to read about the basic
