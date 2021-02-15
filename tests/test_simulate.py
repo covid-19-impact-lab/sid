@@ -288,5 +288,5 @@ def test_skipping_factorization_of_assort_by_variable_works(
 )
 def test_prepare_infection_probability_multiplier(model, states, expectation, expected):
     with expectation:
-        result = _prepare_infection_probability_multiplier(model, states, None)
+        result = _prepare_infection_probability_multiplier(model, states, None, 0)
         assert (result == expected).all()

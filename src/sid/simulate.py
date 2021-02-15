@@ -235,7 +235,10 @@ def get_simulate_func(
         initial_states, contact_models, group_codes_info
     )
     infection_probability_multiplier = _prepare_infection_probability_multiplier(
-        infection_probability_multiplier_model, initial_states, params
+        infection_probability_multiplier_model,
+        initial_states,
+        params,
+        next(startup_seed),
     )
 
     cols_to_keep = _process_saved_columns(
@@ -978,14 +981,14 @@ def _add_additional_information_to_states(
 
 
 def _prepare_infection_probability_multiplier(
-    infection_probability_multiplier_model, initial_states, params
+    infection_probability_multiplier_model, initial_states, params, seed
 ):
     """Prepare the multiplier for infection probabilities."""
     if infection_probability_multiplier_model is None:
         infection_probability_multiplier = np.ones(len(initial_states))
     else:
         infection_probability_multiplier = infection_probability_multiplier_model(
-            initial_states, params
+            initial_states, params, seed
         )
         if not isinstance(infection_probability_multiplier, (pd.Series, np.ndarray)):
             raise ValueError(
