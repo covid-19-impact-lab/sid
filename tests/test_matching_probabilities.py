@@ -5,7 +5,7 @@ from pandas.testing import assert_frame_equal
 from sid.matching_probabilities import _create_transition_matrix_from_own_prob
 from sid.matching_probabilities import _einsum_kronecker_product
 from sid.matching_probabilities import _join_transition_matrices
-from sid.matching_probabilities import create_group_transition_probs
+from sid.matching_probabilities import create_cumulative_group_transition_probabilities
 from sid.shared import factorize_assortative_variables
 
 
@@ -47,7 +47,9 @@ def test_join_transition_matrices():
         ([], np.array([[1]])),
     ],
 )
-def test_create_group_transition_probs(initial_states, assort_by, params, expected):
+def test_create_cumulative_group_transition_probabilities(
+    initial_states, assort_by, params, expected
+):
     # append assortative matching parameters
     assort_index = pd.MultiIndex.from_tuples(
         [
@@ -61,7 +63,7 @@ def test_create_group_transition_probs(initial_states, assort_by, params, expect
 
     _, groups = factorize_assortative_variables(initial_states, assort_by, False)
 
-    transition_matrix = create_group_transition_probs(
+    transition_matrix = create_cumulative_group_transition_probabilities(
         states=initial_states,
         assort_by=assort_by,
         params=params,

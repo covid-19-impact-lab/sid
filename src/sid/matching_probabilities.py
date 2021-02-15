@@ -5,7 +5,9 @@ import numpy as np
 import pandas as pd
 
 
-def create_group_transition_probs(states, assort_by, params, model_name, groups):
+def create_cumulative_group_transition_probabilities(
+    states, assort_by, params, model_name, groups
+):
     """Create a transition matrix for groups.
 
     Args:
