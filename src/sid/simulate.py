@@ -988,9 +988,31 @@ def _add_additional_information_to_states(
 
 
 def _prepare_infection_probability_multiplier(
-    infection_probability_multiplier_model, initial_states, params, seed
-):
-    """Prepare the multiplier for infection probabilities."""
+    infection_probability_multiplier_model: Optional[Callable],
+    initial_states: pd.DataFrame,
+    params: pd.DataFrame,
+    seed: int,
+) -> np.ndarray:
+    """Prepare the multiplier for infection probabilities.
+
+    The multiplier defines individual susceptibility which can be used to let infection
+    probabilities vary by age.
+
+    If not multiplier is given, all individuals have the same susceptibility. Otherwise,
+    a custom function generates multipliers for the infection probability for each
+    individual.
+
+    Args:
+        infection_probability_multiplier_model (Optional[Callable]): The custom function
+            which computes individual multipliers with states, parameters and a seed.
+        initial_states (pandas.DataFrame): The initial states.
+        params (pandas.DataFrame): The parameters.
+        seed (int): An integer which can be used by the user for reproducibility.
+
+    Returns: infection_probability_multiplier (numpy.ndarray): An array with a
+        multiplier for each individual between 0 and 1.
+
+    """
     if infection_probability_multiplier_model is None:
         infection_probability_multiplier = np.ones(len(initial_states))
     else:

@@ -240,7 +240,9 @@ def _reduce_random_contacts_with_infection_probs(
     """Reduce the number of random contacts stochastically.
 
     The remaining random contacts have the interpretation that they would lead to an
-    infection if one person is susceptible and one is infectious.
+    infection if one person is infectious and the other person is susceptible and has
+    the highest susceptibility in the population according to the
+    ``infection_probability_multiplier``.
 
     The copy is necessary as we need the original random contacts for debugging.
 
