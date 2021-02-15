@@ -409,6 +409,7 @@ def _simulate(
             channel_infected_by_contact=channel_infected_by_contact,
             channel_infected_by_event=channel_infected_by_event,
             channel_demands_test=channel_demands_test,
+            infection_probability_multiplier=infection_probability_multiplier,
         )
 
         _dump_periodic_states(states, columns_to_keep, path, date)
@@ -924,13 +925,14 @@ def _are_states_prepared(states: pd.DataFrame) -> bool:
 def _add_additional_information_to_states(
     states: pd.DataFrame,
     columns_to_keep: List[str],
-    n_has_additionally_infected: Optional[pd.Series],
-    contact_models: Optional[Dict[str, Dict[str, Any]]],
-    random_contacts: Optional[np.ndarray],
-    recurrent_contacts: Optional[np.ndarray],
-    channel_infected_by_contact: Optional[pd.Series],
-    channel_infected_by_event: Optional[pd.Series],
-    channel_demands_test: Optional[pd.Series],
+    n_has_additionally_infected: pd.Series,
+    contact_models: Dict[str, Dict[str, Any]],
+    random_contacts: np.ndarray,
+    recurrent_contacts: np.ndarray,
+    channel_infected_by_contact: pd.Series,
+    channel_infected_by_event: pd.Series,
+    channel_demands_test: pd.Series,
+    infection_probability_multiplier: np.ndarray,
 ):
     """Add additional but optional information to states.
 
@@ -945,6 +947,8 @@ def _add_additional_information_to_states(
             information which contact model lead to the infection.
         channel_infected_by_event (pandas.Series): A categorical series containing the
             information which event model lead to the infection.
+        infection_probability_multiplier (numpy.ndarray): An array containing infection
+            probability multiplier for each individual.
 
     Returns:
         states (pandas.DataFrame): The states with additional information.
@@ -976,6 +980,9 @@ def _add_additional_information_to_states(
 
     if n_has_additionally_infected is not None:
         states["n_has_infected"] += n_has_additionally_infected
+
+    if "infection_probability_multiplier" in columns_to_keep:
+        states["infection_probability_multiplier"] = infection_probability_multiplier
 
     return states
 
