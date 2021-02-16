@@ -32,10 +32,10 @@ variable.
 - ``ever_infected``: Set to True when an infection takes place, stays True forever.
 - ``immune``: Set to True when an infection takes place, gets a countdown.
 - ``immune``: Set to True when an infection takes place, gets a countdown.
-- ``infectious``: After an infection, `infectious_countdown` is triggered with a random
-  time.
-- ``infectious``: After an infection, `infectious_countdown` is triggered with a random
-  time.
+- ``infectious``: After an infection, ``infectious_countdown`` is triggered with a
+  random time.
+- ``infectious``: After an infection, ``infectious_countdown`` is triggered with a
+  random time.
 - ``received_test_result``: Whether an individual just received a test result. Exists as
   ``True`` only internally in :func:`updates_states` at the end of simulating a period
   when a countdown for a receiving a test result has inspired. Affects ``knows_immune``
