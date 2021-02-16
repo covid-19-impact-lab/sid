@@ -234,12 +234,6 @@ def get_simulate_func(
     indexers = _prepare_assortative_matching_indexers(
         initial_states, contact_models, group_codes_info
     )
-    infection_probability_multiplier = _prepare_infection_probability_multiplier(
-        infection_probability_multiplier_model,
-        initial_states,
-        params,
-        next(startup_seed),
-    )
 
     cols_to_keep = _process_saved_columns(
         saved_columns, user_state_columns, group_codes_info, contact_models
@@ -261,7 +255,7 @@ def get_simulate_func(
         path=path,
         columns_to_keep=cols_to_keep,
         indexers=indexers,
-        infection_probability_multiplier=infection_probability_multiplier,
+        infection_probability_multiplier_model=infection_probability_multiplier_model,
     )
     return sim_func
 
@@ -282,7 +276,7 @@ def _simulate(
     path,
     columns_to_keep,
     indexers,
-    infection_probability_multiplier,
+    infection_probability_multiplier_model,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -313,8 +307,9 @@ def _simulate(
             :class:`numpy.random.seed` right before the call.
         path (pathlib.Path): Path to the directory where the simulated data is stored.
         columns_to_keep (list): Columns of states that will be saved in each period.
-        infection_probability_multiplier (np.ndarray): A multiplier which scales the
-            infection probability.
+        infection_probability_multiplier_model (Callable): A function which takes the
+            states and parameters and returns an infection probability multiplier for
+            each individual.
 
     Returns:
         result (dict): The simulation result which includes the following keys:
@@ -332,6 +327,13 @@ def _simulate(
         _prepare_assortative_matching_cumulative_probabilities(
             initial_states, assort_bys, params, contact_models, group_codes_info
         )
+    )
+
+    infection_probability_multiplier = _prepare_infection_probability_multiplier(
+        infection_probability_multiplier_model,
+        initial_states,
+        params,
+        next(seed),
     )
 
     states = initial_states
