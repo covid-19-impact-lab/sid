@@ -191,18 +191,25 @@ def get_simulate_func(
 
     contact_policies = _add_default_duration_to_models(contact_policies, duration)
     contact_policies = _add_defaults_to_policy_dict(contact_policies)
-    testing_demand_models = _add_default_duration_to_models(
-        testing_demand_models, duration
-    )
-    testing_allocation_models = _add_default_duration_to_models(
-        testing_allocation_models, duration
-    )
-    testing_processing_models = _add_default_duration_to_models(
-        testing_processing_models, duration
-    )
 
     initial_conditions = parse_initial_conditions(initial_conditions, duration["start"])
     validate_initial_conditions(initial_conditions)
+
+    # Testing models are used in the initial conditions and should be activated during
+    # the burn-in phase if the starting date is not defined.
+    default_duration_testing = {
+        "start": initial_conditions["burn_in_periods"][0],
+        "end": duration["end"],
+    }
+    testing_demand_models = _add_default_duration_to_models(
+        testing_demand_models, default_duration_testing
+    )
+    testing_allocation_models = _add_default_duration_to_models(
+        testing_allocation_models, default_duration_testing
+    )
+    testing_processing_models = _add_default_duration_to_models(
+        testing_processing_models, default_duration_testing
+    )
 
     if _are_states_prepared(initial_states):
         if initial_conditions is not None:
