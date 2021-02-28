@@ -33,6 +33,7 @@ from sid.initial_conditions import (
 from sid.matching_probabilities import create_cumulative_group_transition_probabilities
 from sid.parse_model import parse_duration
 from sid.parse_model import parse_initial_conditions
+from sid.parse_model import parse_virus_strains
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
 from sid.shared import separate_contact_model_names
@@ -192,6 +193,7 @@ def get_simulate_func(
     contact_models = _sort_contact_models(contact_models)
     assort_bys = _process_assort_bys(contact_models)
     duration = parse_duration(duration)
+    virus_strains = parse_virus_strains(virus_strains, params)
 
     contact_policies = _add_default_duration_to_models(contact_policies, duration)
     contact_policies = _add_defaults_to_policy_dict(contact_policies)
@@ -749,6 +751,7 @@ def _process_initial_states(states: pd.DataFrame, assort_bys: Dict[str, List[str
 
     states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
     states["pending_test_date"] = pd.NaT
+    states["virus_strain"] = -1
 
     return states
 

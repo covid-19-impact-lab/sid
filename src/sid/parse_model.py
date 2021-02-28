@@ -3,9 +3,11 @@ import warnings
 from collections.abc import Iterable
 from typing import Any
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Union
 
+import numpy as np
 import pandas as pd
 from sid.config import INITIAL_CONDITIONS
 
@@ -99,6 +101,10 @@ def parse_initial_conditions(
 def parse_virus_strains(virus_strains: Optional[List[str]], params: pd.DataFrame):
     """Parse the information of the different infectiousness for each virus strain.
 
+    The multipliers are scaled between 0 and 1 such that random contacts only need to be
+    reduced with the infection probabilities in
+    :func:`sid.contacts._reduce_random_contacts_with_infection_probs`.
+
     Args:
         virus_strains (Optional[List[str]]): A list of names indicating the different
             virus strains used in the model. Their different infectiousness is looked up
@@ -106,7 +112,35 @@ def parse_virus_strains(virus_strains: Optional[List[str]], params: pd.DataFrame
         params (pandas.DataFrame): The params DataFrame.
 
     Returns:
+        virus_strains (Dict[str, Any]): A dictionary with two keys.
 
+        - ``"names"`` holds the sorted names of the virus strains.
+        - ``"multipliers"`` holds the multipliers for the contagiousness of the viruses
+          scaled between 0 and 1.
 
     """
-    pass
+    if virus_strains is None:
+        virus_strains = {"names": ["base_strain"], "multipliers": np.array([1])}
+
+    elif isinstance(virus_strains, list):
+        if len(virus_strains) == 0:
+            raise ValueError("The list of 'virus_strains' cannot be empty.")
+
+        sorted_strains = sorted(virus_strains)
+        multipliers = np.array(
+            [
+                params.loc[("virus_strain", name, "multiplier"), "value"]
+                for name in sorted_strains
+            ]
+        )
+        multipliers = multipliers / multipliers.max()
+
+        if any(multipliers < 0):
+            raise ValueError("Multipliers of 'virus_strains' cannot be <0.")
+
+        virus_strains = {"names": sorted_strains, "multipliers": multipliers}
+
+    else:
+        raise ValueError("'virus_strains' is not None and not a list.")
+
+    return virus_strains
