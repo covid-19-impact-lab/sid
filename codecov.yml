@@ -14,4 +14,4 @@ ignore:
   - ".tox/**/*"
   - "setup.py"
   - "versioneer.py"
-  - "src/_pytask/_version.py"
+  - "src/sid/_version.py"
