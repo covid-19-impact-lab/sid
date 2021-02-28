@@ -9,9 +9,11 @@
 import os
 import sys
 
-import sid
 
 sys.path.insert(0, os.path.abspath("../../src"))
+
+
+import sid  # noqa: E402
 
 
 # -- Project information -----------------------------------------------------

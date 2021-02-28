@@ -1,9 +1,9 @@
-@techreport{Gabler2020,
-  title={
-    People Meet People: A Microlevel Approach to Predicting the Effect of Policies on
-    the Spread of COVID-19
+@article{Gabler2020,
+  Title = {
+    People Meet People: A Microlevel Approach to Predicting the Effect of Policies
+    on the Spread of COVID-19
   },
-  author={Gabler, Janos and Raabe, Tobias and R{\"o}hrl, Klara},
-  year={2020},
-  institution={Institute of Labor Economics (IZA)}
+  Author = {Gabler, Janos and Raabe, Tobias and R{\"o}hrl, Klara},
+  Year = {2020},
+  Publisher = {IZA Discussion Paper}
 }
