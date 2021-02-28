@@ -9,6 +9,8 @@
 import os
 import sys
 
+import sid
+
 sys.path.insert(0, os.path.abspath("../../src"))
 
 
@@ -17,8 +19,8 @@ sys.path.insert(0, os.path.abspath("../../src"))
 project = "sid"
 copyright = "2020, Janos Gabler, Tobias Raabe, Klara Röhrl"  # noqa: A001
 author = "Janos Gabler, Tobias Raabe, Klara Röhrl"
-release = "0.0.2"
-
+version = sid.__version__
+release = version
 
 # -- General configuration ---------------------------------------------------
 

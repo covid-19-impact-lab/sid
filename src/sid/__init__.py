@@ -11,6 +11,12 @@ from sid.time import get_date
 from sid.time import sid_period_to_timestamp
 from sid.time import timestamp_to_sid_period
 
+from ._version import get_versions
+
+
+__version__ = get_versions()["version"]
+del get_versions
+
 
 __all__ = [
     "sample_initial_infections",
@@ -24,7 +30,6 @@ __all__ = [
     "sid_period_to_timestamp",
     "timestamp_to_sid_period",
 ]
-__version__ = "0.0.2"
 
 
 logger = logging.getLogger("sid")
