@@ -9,3 +9,9 @@ coverage:
     patch:
       default:
         threshold: 0%
+
+ignore:
+  - ".tox/**/*"
+  - "setup.py"
+  - "versioneer.py"
+  - "src/_pytask/_version.py"
