@@ -103,6 +103,7 @@ def calculate_infections_by_contacts(
     assortative_matching_cum_probs: nb.typed.List,
     contact_models: Dict[str, Dict[str, Any]],
     group_codes_info: Dict[str, Dict[str, Any]],
+    infection_probability_multiplier: np.ndarray,
     seed: itertools.count,
 ) -> Tuple[pd.Series, pd.Series, pd.DataFrame]:
     """Calculate infections from contacts.
@@ -130,6 +131,8 @@ def calculate_infections_by_contacts(
         contact_models (Dict[str, Dict[str, Any]]): The contact models.
         group_codes_info (Dict[str, Dict[str, Any]]): The name of the group code column
             for each contact model.
+        infection_probability_multiplier (np.ndarray): A multiplier which scales the
+            infection probability.
         seed (itertools.count): Seed counter to control randomness.
 
     Returns:
@@ -179,6 +182,7 @@ def calculate_infections_by_contacts(
             group_codes_recurrent,
             indexers["recurrent"],
             infection_probabilities_recurrent,
+            infection_probability_multiplier,
             infected,
             infection_counter,
             next(seed),
@@ -205,6 +209,7 @@ def calculate_infections_by_contacts(
             group_codes_random,
             assortative_matching_cum_probs,
             indexers["random"],
+            infection_probability_multiplier,
             infected,
             infection_counter,
             next(seed),
@@ -235,7 +240,9 @@ def _reduce_random_contacts_with_infection_probs(
     """Reduce the number of random contacts stochastically.
 
     The remaining random contacts have the interpretation that they would lead to an
-    infection if one person is susceptible and one is infectious.
+    infection if one person is infectious and the other person is susceptible and has
+    the highest susceptibility in the population according to the
+    ``infection_probability_multiplier``.
 
     The copy is necessary as we need the original random contacts for debugging.
 
@@ -274,6 +281,7 @@ def _calculate_infections_by_recurrent_contacts(
     group_codes: np.ndarray,
     indexers: nb.typed.List,
     infection_probs: np.ndarray,
+    infection_probability_multiplier: np.ndarray,
     infected: np.ndarray,
     infection_counter: np.ndarray,
     seed: int,
@@ -294,6 +302,8 @@ def _calculate_infections_by_recurrent_contacts(
             model.
         infection_probs (numpy.ndarray): An array containing the infection probabilities
             for each recurrent contact model.
+        infection_probability_multiplier (np.ndarray): A multiplier which scales the
+            infection probability.
         infected (numpy.ndarray): An array indicating newly infected individuals.
         infection_counter (numpy.ndarray): An array counting infection caused by an
             individual.
@@ -331,7 +341,9 @@ def _calculate_infections_by_recurrent_contacts(
                     # the case i == j is skipped by the next if condition because it
                     # never happens that i is infectious but not immune
                     if not immune[j] and recurrent_contacts[j, cm] > 0:
-                        is_infection = boolean_choice(prob)
+                        # j is infected depending on its own susceptibility.
+                        multiplier = infection_probability_multiplier[j]
+                        is_infection = boolean_choice(prob * multiplier)
                         if is_infection:
                             infection_counter[i] += 1
                             infected[j] = 1
@@ -349,6 +361,7 @@ def _calculate_infections_by_random_contacts(
     group_codes: np.ndarray,
     assortative_matching_cum_probs: nb.typed.List,
     indexers: nb.typed.List,
+    infection_probability_multiplier: np.ndarray,
     infected: np.ndarray,
     infection_counter: np.ndarray,
     seed: int,
@@ -370,6 +383,8 @@ def _calculate_infections_by_random_contacts(
         indexers (numba.typed.List): Nested typed list. The i_th entry of the inner
             lists are the indices of the i_th group. There is one inner list per contact
             model.
+        infection_probability_multiplier (np.ndarray): A multiplier which scales the
+            infection probability.
         infected (numpy.ndarray): An array indicating newly infected individuals.
         infection_counter (numpy.ndarray): An array counting infection caused by an
             individual.
@@ -393,7 +408,7 @@ def _calculate_infections_by_random_contacts(
     # Loop over all individual-contact_model combinations
     for i in range(n_obs):
         for cm in range(n_contact_models):
-            # get the probabilities for meeting another group which depend on the
+            # get the probabilities for meeting another group which depends on the
             # individual's group.
             group_i = group_codes[i, cm]
             group_i_cdf = assortative_matching_cum_probs[cm][group_i]
@@ -418,16 +433,24 @@ def _calculate_infections_by_random_contacts(
                     random_contacts[j, cm] -= 1
 
                     if infectious[i] and not immune[j]:
-                        infection_counter[i] += 1
-                        infected[j] = 1
-                        immune[j] = True
-                        was_infected_by[j] = cm
+                        is_infection = boolean_choice(
+                            infection_probability_multiplier[j]
+                        )
+                        if is_infection:
+                            infection_counter[i] += 1
+                            infected[j] = 1
+                            immune[j] = True
+                            was_infected_by[j] = cm
 
                     elif infectious[j] and not immune[i]:
-                        infection_counter[j] += 1
-                        infected[i] = 1
-                        immune[i] = True
-                        was_infected_by[i] = cm
+                        is_infection = boolean_choice(
+                            infection_probability_multiplier[i]
+                        )
+                        if is_infection:
+                            infection_counter[j] += 1
+                            infected[i] = 1
+                            immune[i] = True
+                            was_infected_by[i] = cm
 
     missed = random_contacts
 

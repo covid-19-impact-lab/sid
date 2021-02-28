@@ -24,6 +24,7 @@ all releases are available on `Anaconda.org
 - :gh:`75` passes sid's seed to the testing models.
 - :gh:`76` removes ``share_known_cases`` which should now be implemented with testing
   models.
+- :gh:`79` implements a multiplier for infection probabilities.
 
 
 0.0.1 - 2021-01-05

@@ -70,6 +70,8 @@ def setup_households_w_one_infection():
 
     group_codes_info = {"households": {"name": "group_codes_households"}}
 
+    infection_probability_multiplier = np.ones(len(states))
+
     return (
         states,
         contacts,
@@ -77,6 +79,7 @@ def setup_households_w_one_infection():
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
+        infection_probability_multiplier,
     )
 
 
@@ -91,6 +94,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
+        infection_probability_multiplier,
     ) = setup_households_w_one_infection
 
     (
@@ -107,6 +111,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
+        infection_probability_multiplier=infection_probability_multiplier,
         seed=itertools.count(),
     )
 
@@ -134,6 +139,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
+        infection_probability_multiplier,
     ) = setup_households_w_one_infection
 
     recurrent_contacts[0] = 0
@@ -152,6 +158,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
+        infection_probability_multiplier=infection_probability_multiplier,
         seed=itertools.count(),
     )
 
@@ -176,6 +183,7 @@ def test_calculate_infections_only_recurrent_one_skips(
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
+        infection_probability_multiplier,
     ) = setup_households_w_one_infection
 
     # 2nd person does not participate in household meeting
@@ -195,6 +203,7 @@ def test_calculate_infections_only_recurrent_one_skips(
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
+        infection_probability_multiplier=infection_probability_multiplier,
         seed=itertools.count(),
     )
 
@@ -219,6 +228,7 @@ def test_calculate_infections_only_recurrent_one_immune(
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
+        infection_probability_multiplier,
     ) = setup_households_w_one_infection
 
     states.loc[1, "immune"] = True
@@ -237,6 +247,7 @@ def test_calculate_infections_only_recurrent_one_immune(
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
+        infection_probability_multiplier=infection_probability_multiplier,
         seed=itertools.count(),
     )
 
@@ -251,7 +262,12 @@ def test_calculate_infections_only_recurrent_one_immune(
 
 @pytest.mark.integration
 def test_calculate_infections_only_non_recurrent(setup_households_w_one_infection):
-    states, random_contacts, *_ = setup_households_w_one_infection
+    (
+        states,
+        random_contacts,
+        *_,
+        infection_probability_multiplier,
+    ) = setup_households_w_one_infection
 
     random_contacts[0] = 1
 
@@ -279,6 +295,7 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"non_rec": {"is_recurrent": False}},
         group_codes_info={"non_rec": {"name": "group_codes_non_rec"}},
+        infection_probability_multiplier=infection_probability_multiplier,
         seed=itertools.count(),
     )
 
