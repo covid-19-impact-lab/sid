@@ -4,9 +4,21 @@ channels:
 dependencies:
   - python >= 3.6
 
+  # Sphinx dependencies.
   - ipython
   - sphinx
   - sphinx-copybutton
   - sphinx-autoapi
   - nbsphinx
   - pydata-sphinx-theme
+
+  # Package dependencies.
+  - bokeh
+  - dask
+  - fastparquet
+  - numba >=0.48
+  - numpy
+  - pandas >=1
+  - python-snappy
+  - seaborn
+  - tqdm

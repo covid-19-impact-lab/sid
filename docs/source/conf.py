@@ -8,6 +8,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 import os
 import sys
+from datetime import datetime
 
 
 sys.path.insert(0, os.path.abspath("../../src"))
@@ -19,7 +20,8 @@ import sid  # noqa: E402
 # -- Project information -----------------------------------------------------
 
 project = "sid"
-copyright = "2020, Janos Gabler, Tobias Raabe, Klara Röhrl"  # noqa: A001
+year = datetime.now().year
+copyright = f"2020-{year}, Janos Gabler, Tobias Raabe, Klara Röhrl"  # noqa: A001
 author = "Janos Gabler, Tobias Raabe, Klara Röhrl"
 version = sid.__version__
 release = version
