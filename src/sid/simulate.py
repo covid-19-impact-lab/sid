@@ -64,7 +64,8 @@ def get_simulate_func(
     path: Union[str, Path, None] = None,
     saved_columns: Optional[Dict[str, Union[bool, str, List[str]]]] = None,
     initial_conditions: Optional[Dict[str, Any]] = None,
-    infection_probability_multiplier_model: Callable = None,
+    infection_probability_multiplier_model: Optional[Callable] = None,
+    virus_strains: Optional[List[str]] = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -151,9 +152,12 @@ def get_simulate_func(
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
               number of cases.
-        infection_probability_multiplier_model (Callable): A function which takes the
-            states and parameters and returns an infection probability multiplier for
-            each individual.
+        infection_probability_multiplier_model (Optional[Callable]): A function which
+            takes the states and parameters and returns an infection probability
+            multiplier for each individual.
+        virus_strains (Optional[List[str]]): A list of names indicating the different
+            virus strains used in the model. Their different infectiousness is looked up
+            in the params DataFrame. By default, only one virus strain is used.
 
     Returns:
         Callable: Simulates dataset based on parameters.

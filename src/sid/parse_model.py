@@ -3,6 +3,7 @@ import warnings
 from collections.abc import Iterable
 from typing import Any
 from typing import Dict
+from typing import Optional
 from typing import Union
 
 import pandas as pd
@@ -93,3 +94,19 @@ def parse_initial_conditions(
         )
 
     return ic
+
+
+def parse_virus_strains(virus_strains: Optional[List[str]], params: pd.DataFrame):
+    """Parse the information of the different infectiousness for each virus strain.
+
+    Args:
+        virus_strains (Optional[List[str]]): A list of names indicating the different
+            virus strains used in the model. Their different infectiousness is looked up
+            in the params DataFrame. By default, only one virus strain is used.
+        params (pandas.DataFrame): The params DataFrame.
+
+    Returns:
+
+
+    """
+    pass
