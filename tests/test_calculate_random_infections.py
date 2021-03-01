@@ -17,7 +17,6 @@ def test_random_contact_infects_susceptibles():
     indexers = nb.typed.List()
     indexers.append(sub_indexers)
 
-    infected = np.array([False, False, False])
     infection_counter = np.zeros(3, dtype=np.int_)
     infection_probability_multiplier = np.ones(len(random_contacts))
 
@@ -25,7 +24,7 @@ def test_random_contact_infects_susceptibles():
     assortative_matching_cum_probs.append(np.array([0.8, 0.2, 1, 0]).reshape(2, 2))
 
     (
-        infected,
+        newly_infected,
         infection_counter,
         immune,
         missed,
@@ -38,12 +37,11 @@ def test_random_contact_infects_susceptibles():
         assortative_matching_cum_probs,
         indexers,
         infection_probability_multiplier,
-        infected,
         infection_counter,
         0,
     )
 
-    assert (infected == [False, True, True]).all()
+    assert (newly_infected == [False, True, True]).all()
     assert (infection_counter == [2, 0, 0]).all()
     assert (immune == [True, True, True]).all()
     assert (missed == 0).all()
@@ -64,7 +62,6 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
     indexers = nb.typed.List()
     indexers.append(sub_indexers)
 
-    infected = np.array([False, False, False, False, False])
     infection_counter = np.zeros(5, dtype=np.int_)
     infection_probability_multiplier = np.ones(len(random_contacts))
 
@@ -72,7 +69,7 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
     assortative_matching_cum_probs.append(np.array([0.5, 0.5, 0.5, 0.5]).reshape(2, 2))
 
     (
-        infected,
+        newly_infected,
         infection_counter,
         immune,
         missed,
@@ -85,12 +82,11 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
         assortative_matching_cum_probs,
         indexers,
         infection_probability_multiplier,
-        infected,
         infection_counter,
         0,
     )
 
-    assert (infected == [False, False, False, False, False]).all()
+    assert (newly_infected == [False, False, False, False, False]).all()
     assert (infection_counter == [0, 0, 0, 0, 0]).all()
     assert (immune == [True, True, False, True, False]).all()
     assert (missed[[0, 1, 3], :] > 0).all()
