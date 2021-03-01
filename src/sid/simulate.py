@@ -168,11 +168,13 @@ def get_simulate_func(
 
     events = {} if events is None else events
     contact_policies = {} if contact_policies is None else contact_policies
-    if testing_demand_models is None:
+    if (
+        testing_demand_models is None
+        or testing_allocation_models is None
+        or testing_processing_models is None
+    ):
         testing_demand_models = {}
-    if testing_allocation_models is None:
         testing_allocation_models = {}
-    if testing_processing_models is None:
         testing_processing_models = {}
 
     initial_states = initial_states.copy(deep=True)
