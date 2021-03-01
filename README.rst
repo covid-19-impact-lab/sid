@@ -108,7 +108,7 @@ If you rely on sid for your own research, please cite it with
 
 .. code-block::
 
-    @article{gabler2020people,
+    @article{Gabler2020,
       Title = {
         People Meet People: A Microlevel Approach to Predicting the Effect of Policies
         on the Spread of COVID-19
