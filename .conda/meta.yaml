@@ -12,6 +12,8 @@ source:
 build:
   noarch: python
   number: 0
+  skip: true  # [py<36]
+  script: {{ PYTHON }} setup.py install --single-version-externally-managed --record record.txt
 
 requirements:
   build:
@@ -20,11 +22,11 @@ requirements:
     - setuptools
 
   run:
-    - python >=3.6,<3.9
-    - setuptools
+    - python
+
     - bokeh
     - dask
-    - fastparquet <0.5
+    - fastparquet
     - numba >=0.48
     - numpy
     - pandas >=1
@@ -49,6 +51,7 @@ test:
 about:
   home: https://github.com/covid-19-impact-lab/sid
   license: MIT
+  license_file: LICENSE
   summary: Simulate the spread of COVID-19 with different policies.
   doc_url: https://sid-dev.readthedocs.io/
   dev_url: https://github.com/covid-19-impact-lab/sid

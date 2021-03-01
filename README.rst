@@ -34,13 +34,12 @@ sid
 Features
 --------
 
-sid is a simulation-based model for infectious diseases like COVID-19. It combines
-features of a prototypical SEIR (Susceptible-Exposed-Infected-Recovered) model and an
-agent-based simulation model.
+sid is a agent-based simulation-based model for infectious diseases like COVID-19.
 
-sid's focus is on predicting the effects of policies on the spread of an infectious
-disease. To accomplish this task it is built to capture important aspects of human
-contacts. In particular, sid has the following features:
+sid's focus is on predicting the effects of non-pharmaceutical interventions on the
+spread of an infectious disease. To accomplish this task it is built to capture
+important aspects of contacts between people. In particular, sid has the following
+features:
 
 1. At the core of the model, people meet people based on a matching algorithm. We
    distinguish various types of contacts. Currently, these are households, leisure
@@ -100,3 +99,21 @@ sid has been featured in some publications which are listed here:
 - Gabler, J., Raabe, T., Röhrl, K., & Gaudecker, H. M. V. (2021). `Der Effekt von
   Heimarbeit auf die Entwicklung der Covid-19-Pandemie in Deutschland
   <http://ftp.iza.org/sp100.pdf>`_ (No. 100). Institute of Labor Economics (IZA).
+
+
+Citation
+--------
+
+If you rely on sid for your own research, please cite it with
+
+.. code-block::
+
+    @article{Gabler2020,
+      Title = {
+        People Meet People: A Microlevel Approach to Predicting the Effect of Policies
+        on the Spread of COVID-19
+      },
+      Author = {Gabler, Janos and Raabe, Tobias and R{\"o}hrl, Klara},
+      Year = {2020},
+      Publisher = {IZA Discussion Paper}
+    }

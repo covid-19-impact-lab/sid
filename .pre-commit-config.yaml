@@ -86,7 +86,11 @@ repos:
     hooks:
     -   id: codespell
         exclude: \.ipynb
-        args: [--ignore-words-list, effekt]
+        args: [-L effekt, -L unparseable]
+-   repo: https://github.com/mgedmin/check-manifest
+    rev: "0.46"
+    hooks:
+    -   id: check-manifest
 -   repo: meta
     hooks:
     -   id: check-hooks-apply
