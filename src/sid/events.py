@@ -5,7 +5,7 @@ from sid.virus_strains import combine_first_factorized_infections
 from sid.virus_strains import factorize_boolean_or_categorical_infections
 
 
-def calculate_infections_by_events(states, params, events, virus_strains):
+def calculate_infections_by_events(states, params, events, seed, virus_strains):
     """Apply events to states and return indicator for infections.
 
     Each event is evaluated which yields a collection of series with indicators for
@@ -15,6 +15,7 @@ def calculate_infections_by_events(states, params, events, virus_strains):
         states (pandas.DataFrame): See :ref:`states`.
         params (pandas.DataFrame): See :ref:`params`.
         events (dict): Dictionary of events which cause infections.
+        seed
 
     Returns:
         newly_infected_events (pandas.Series): Series marking individuals who have been
@@ -31,7 +32,7 @@ def calculate_infections_by_events(states, params, events, virus_strains):
         loc = event.get("loc", params.index)
         func = event["model"]
 
-        categorical_infections = func(states, params.loc[loc])
+        categorical_infections = func(states, params.loc[loc], next(seed))
 
         factorized_infections = factorize_boolean_or_categorical_infections(
             categorical_infections, virus_strains

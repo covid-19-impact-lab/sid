@@ -28,7 +28,8 @@ all releases are available on `Anaconda.org
 - :gh:`79` implements a multiplier for infection probabilities.
 - :gh:`81` sets the default start date for testing models to the first burn-in period of
   the initial conditions.
-- :gh:`83` does some clean up in the matching algorithm.
+- :gh:`84` does some clean up in the matching algorithm.
+- :gh:`85` adds seeds to events.
 
 
 0.0.1 - 2021-01-05

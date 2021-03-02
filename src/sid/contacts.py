@@ -194,7 +194,7 @@ def calculate_infections_by_contacts(
         )
     else:
         was_infected_by_recurrent = None
-        newly_infected_recurrent = np.full(len(states), -1)
+        newly_infected_recurrent = np.full(len(states), -1, dtype=DTYPE_VIRUS_STRAIN)
 
     if random_models:
         random_contacts = _reduce_random_contacts_with_infection_probs(
@@ -227,7 +227,7 @@ def calculate_infections_by_contacts(
     else:
         missed_contacts = None
         was_infected_by_random = None
-        newly_infected_random = np.full(len(states), -1)
+        newly_infected_random = np.full(len(states), -1, dtype=DTYPE_VIRUS_STRAIN)
 
     was_infected_by = _consolidate_reason_of_infection(
         was_infected_by_recurrent, was_infected_by_random, contact_models
