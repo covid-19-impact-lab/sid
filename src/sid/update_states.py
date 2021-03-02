@@ -1,4 +1,6 @@
 import itertools
+from typing import Any
+from typing import Dict
 from typing import Optional
 
 import numpy as np
@@ -15,6 +17,7 @@ def update_states(
     newly_infected_contacts: pd.Series,
     newly_infected_events: pd.Series,
     params: pd.DataFrame,
+    virus_strains: Dict[str, Any],
     to_be_processed_tests: Optional[pd.Series],
     seed: itertools.count,
 ):
@@ -39,7 +42,7 @@ def update_states(
     states = _update_countdowns(states)
 
     states = _update_info_on_newly_infected(
-        states, newly_infected_contacts, newly_infected_events
+        states, newly_infected_contacts, newly_infected_events, virus_strains
     )
 
     states = _kill_people_over_icu_limit(states, params, next(seed))
@@ -71,10 +74,23 @@ def _update_countdowns(states):
 
 
 def _update_info_on_newly_infected(
-    states, newly_infected_contacts, newly_infected_events
+    states, newly_infected_contacts, newly_infected_events, virus_strains
 ):
     # Update states with new infections and add corresponding countdowns.
-    states["newly_infected"] = newly_infected_contacts | newly_infected_events
+    states["newly_infected"] = (newly_infected_contacts >= 0) | (
+        newly_infected_events >= 0
+    )
+
+    virus_strain = newly_infected_events.copy()
+    is_contact_infection = newly_infected_contacts >= 0
+    virus_strain[is_contact_infection] = newly_infected_contacts[is_contact_infection]
+    states["_virus_strain"] = virus_strain
+    newly_virus_strain = (
+        pd.Categorical(virus_strain)
+        .rename_categories(["not_infected"] + virus_strains["names"])
+        .remove_categories("not_infected")
+    )
+    states["virus_strain"] = states["virus_strain"].fillna(newly_virus_strain)
 
     locs = states["newly_infected"]
     states.loc[states["newly_infected"], "immune"] = True

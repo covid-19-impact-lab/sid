@@ -20,6 +20,7 @@ import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
+from sid.config import DTYPE_VIRUS_STRAIN
 from sid.config import POLICIES
 from sid.config import SAVED_COLUMNS
 from sid.contacts import calculate_contacts
@@ -200,7 +201,9 @@ def get_simulate_func(
     contact_policies = _add_default_duration_to_models(contact_policies, duration)
     contact_policies = _add_defaults_to_policy_dict(contact_policies)
 
-    initial_conditions = parse_initial_conditions(initial_conditions, duration["start"])
+    initial_conditions = parse_initial_conditions(
+        initial_conditions, duration["start"], virus_strains
+    )
     validate_initial_conditions(initial_conditions)
 
     # Testing models are used in the initial conditions and should be activated during
@@ -240,6 +243,7 @@ def get_simulate_func(
             testing_demand_models,
             testing_allocation_models,
             testing_processing_models,
+            virus_strains,
             startup_seed,
         )
 
@@ -271,6 +275,7 @@ def get_simulate_func(
         columns_to_keep=cols_to_keep,
         indexers=indexers,
         infection_probability_multiplier_model=infection_probability_multiplier_model,
+        virus_strains=virus_strains,
     )
     return sim_func
 
@@ -292,6 +297,7 @@ def _simulate(
     columns_to_keep,
     indexers,
     infection_probability_multiplier_model,
+    virus_strains,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -325,6 +331,8 @@ def _simulate(
         infection_probability_multiplier_model (Callable): A function which takes the
             states and parameters and returns an infection probability multiplier for
             each individual.
+        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
+            ``"multipliers"``.
 
     Returns:
         result (dict): The simulation result which includes the following keys:
@@ -389,6 +397,7 @@ def _simulate(
             contact_models=contact_models,
             group_codes_info=group_codes_info,
             infection_probability_multiplier=infection_probability_multiplier,
+            virus_strains_multipliers=virus_strains["multipliers"],
             seed=seed,
         )
         (
@@ -753,7 +762,7 @@ def _process_initial_states(states: pd.DataFrame, assort_bys: Dict[str, List[str
 
     states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
     states["pending_test_date"] = pd.NaT
-    states["virus_strain"] = -1
+    states["_virus_strain"] = DTYPE_VIRUS_STRAIN(-1)
 
     return states
 

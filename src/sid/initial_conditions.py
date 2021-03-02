@@ -129,6 +129,7 @@ def sample_initial_distribution_of_infections_and_immunity(
     testing_demand_models: Dict[str, Dict[str, Any]],
     testing_allocation_models: Dict[str, Dict[str, Any]],
     testing_processing_models: Dict[str, Dict[str, Any]],
+    virus_strains: Dict[str, Any],
     seed: itertools.count,
 ):
     """Sample the initial distribution of infections and immunity.
@@ -235,6 +236,7 @@ def sample_initial_distribution_of_infections_and_immunity(
             newly_infected_events=spread_out_infections[burn_in_date],
             params=params,
             to_be_processed_tests=to_be_processed_tests,
+            virus_strains=virus_strains,
             seed=seed,
         )
 

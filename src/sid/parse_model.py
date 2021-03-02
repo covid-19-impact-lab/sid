@@ -9,6 +9,7 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
+from sid.config import DTYPE_VIRUS_STRAIN
 from sid.config import INITIAL_CONDITIONS
 
 
@@ -51,7 +52,9 @@ def parse_duration(duration: Union[Dict[str, Any], None]) -> Dict[str, Any]:
 
 
 def parse_initial_conditions(
-    ic: Dict[str, Any], start_date_simulation: pd.Timestamp
+    ic: Dict[str, Any],
+    start_date_simulation: pd.Timestamp,
+    virus_strains: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Parse the initial conditions."""
     ic = {**INITIAL_CONDITIONS} if ic is None else {**INITIAL_CONDITIONS, **ic}
@@ -71,6 +74,26 @@ def parse_initial_conditions(
             ) from e
         else:
             ic["burn_in_periods"] = ic["initial_infections"].columns.sort_values()
+
+        if len(virus_strains) == 1 and all(ic["initial_infections"].dtypes == np.bool_):
+            for date in ic["initial_infections"].columns:
+                ic["initial_infections"][
+                    date
+                ] = _convert_boolean_initial_infections_to_factorized_array(
+                    ic["initial_infections"][date]
+                )
+
+        elif (ic["initial_infections"].dtypes == "category").all() and all(
+            ic["initial_infections"].iloc[:, 0].dtype
+            == ic["initial_infections"][col].dtype
+            for col in ic["initial_infections"].columns
+        ):
+            for date in ic["initial_infections"].columns:
+                values, _ = pd.factorize(ic["initial_infections"][date], sort=True)
+                ic["initial_infections"][date] = values.astype(DTYPE_VIRUS_STRAIN)
+
+        else:
+            raise ValueError("'initial_infections' have mixed dtypes.")
 
     if isinstance(ic["burn_in_periods"], int):
         if ic["burn_in_periods"] == 0:
@@ -144,3 +167,9 @@ def parse_virus_strains(virus_strains: Optional[List[str]], params: pd.DataFrame
         raise ValueError("'virus_strains' is not None and not a list.")
 
     return virus_strains
+
+
+def _convert_boolean_initial_infections_to_factorized_array(s):
+    arr = np.full(len(s), -1, dtype=np.int8)
+    arr[s] = 0
+    return arr
