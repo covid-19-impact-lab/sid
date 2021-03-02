@@ -20,6 +20,9 @@ def test_recurrent_contact_infects_susceptibles_and_leaves_other_group_untouched
     infection_counter = np.zeros(4, dtype=np.int_)
     infection_probability_multiplier = np.ones(len(recurrent_contacts))
 
+    virus_strain = np.array([0, -1, -1, -1])
+    virus_strains_multipliers = np.array([1])
+
     (
         newly_infected,
         infection_counter,
@@ -29,15 +32,17 @@ def test_recurrent_contact_infects_susceptibles_and_leaves_other_group_untouched
         recurrent_contacts,
         infectious,
         immune,
+        virus_strain,
         group_codes,
         indexers,
         infection_probabilities,
         infection_probability_multiplier,
+        virus_strains_multipliers,
         infection_counter,
         0,
     )
 
-    assert (newly_infected == [False, True, False, False]).all()
+    assert (newly_infected == [-1, 0, -1, -1]).all()
     assert (infection_counter == [1, 0, 0, 0]).all()
     assert (immune == [True, True, False, False]).all()
     assert (was_infected == [-1, 0, -1, -1]).all()
@@ -60,6 +65,9 @@ def test_infections_occur_not_in_other_recurrent_group():
     infection_counter = np.zeros(4, dtype=np.int_)
     infection_probability_multiplier = np.ones(len(recurrent_contacts))
 
+    virus_strain = np.array([0, -1, -1])
+    virus_strains_multipliers = np.array([1])
+
     (
         newly_infected,
         infection_counter,
@@ -69,15 +77,17 @@ def test_infections_occur_not_in_other_recurrent_group():
         recurrent_contacts,
         infectious,
         immune,
+        virus_strain,
         group_codes,
         indexers,
         infection_probabilities,
         infection_probability_multiplier,
+        virus_strains_multipliers,
         infection_counter,
         0,
     )
 
-    assert (newly_infected == [False, True, False, False]).all()
+    assert (newly_infected == [-1, 0, -1, -1]).all()
     assert (infection_counter == [1, 0, 0, 0]).all()
     assert (immune == [True, True, False, False]).all()
     assert (was_infected == [-1, 0, -1, -1]).all()
@@ -101,6 +111,9 @@ def test_infections_can_be_scaled_with_multiplier():
     infection_counter = np.zeros(n_individuals, dtype=np.int_)
     infection_probability_multiplier = np.full(n_individuals, 0.5)
 
+    virus_strain = np.array([0] + [-1] * (n_individuals - 1))
+    virus_strains_multipliers = np.array([1])
+
     (
         newly_infected,
         infection_counter,
@@ -110,14 +123,16 @@ def test_infections_can_be_scaled_with_multiplier():
         recurrent_contacts,
         infectious,
         immune,
+        virus_strain,
         group_codes,
         indexers,
         infection_probabilities,
         infection_probability_multiplier,
+        virus_strains_multipliers,
         infection_counter,
         0,
     )
 
-    assert np.isclose(newly_infected.sum(), n_individuals / 2, atol=1e2)
+    assert np.isclose((newly_infected == 0).sum(), n_individuals / 2, atol=1e2)
     assert np.isclose(infection_counter[0], n_individuals / 2, atol=1e2)
     assert np.isclose(immune.sum(), n_individuals / 2, atol=1e2)

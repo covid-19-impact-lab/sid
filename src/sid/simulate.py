@@ -231,7 +231,9 @@ def get_simulate_func(
         validate_prepared_initial_states(initial_states, duration)
     else:
         validate_initial_states(initial_states)
-        initial_states = _process_initial_states(initial_states, assort_bys)
+        initial_states = _process_initial_states(
+            initial_states, assort_bys, virus_strains
+        )
         initial_states = draw_course_of_disease(
             initial_states, params, next(startup_seed)
         )
@@ -396,13 +398,13 @@ def _simulate(
             contact_models=contact_models,
             group_codes_info=group_codes_info,
             infection_probability_multiplier=infection_probability_multiplier,
-            virus_strains_multipliers=virus_strains["multipliers"],
+            virus_strains=virus_strains,
             seed=seed,
         )
         (
             newly_infected_events,
             channel_infected_by_event,
-        ) = calculate_infections_by_events(states, params, events, seed)
+        ) = calculate_infections_by_events(states, params, events, virus_strains, seed)
 
         states, channel_demands_test, to_be_processed_tests = perform_testing(
             date=date,
@@ -421,6 +423,7 @@ def _simulate(
             newly_infected_events=newly_infected_events,
             params=params,
             to_be_processed_tests=to_be_processed_tests,
+            virus_strains=virus_strains,
             seed=seed,
         )
 

@@ -16,6 +16,7 @@ from sid.shared import boolean_choice
 from sid.shared import separate_contact_model_names
 from sid.validation import validate_return_is_series_or_ndarray
 from sid.virus_strains import combine_first_factorized_infections
+from sid.virus_strains import factorize_categorical_infections
 
 
 def calculate_contacts(
@@ -105,7 +106,7 @@ def calculate_infections_by_contacts(
     contact_models: Dict[str, Dict[str, Any]],
     group_codes_info: Dict[str, Dict[str, Any]],
     infection_probability_multiplier: np.ndarray,
-    virus_strains_multipliers: np.ndarray,
+    virus_strains: Dict[str, Any],
     seed: itertools.count,
 ) -> Tuple[pd.Series, pd.Series, pd.DataFrame]:
     """Calculate infections from contacts.
@@ -135,8 +136,7 @@ def calculate_infections_by_contacts(
             for each contact model.
         infection_probability_multiplier (np.ndarray): A multiplier which scales the
             infection probability.
-        virus_strains_multipliers (np.ndarray): An array containing multipliers between
-            0 and 1 for the contagiousness of each virus variant.
+        virus_strains
         seed (itertools.count): Seed counter to control randomness.
 
     Returns:
@@ -153,7 +153,9 @@ def calculate_infections_by_contacts(
     states = states.copy()
     infectious = states["infectious"].to_numpy(copy=True)
     immune = states["immune"].to_numpy(copy=True)
-    virus_strain = states["_virus_strain"].to_numpy(copy=True)
+    virus_strain, _ = factorize_categorical_infections(
+        states["virus_strain"], virus_strains["names"]
+    )
 
     recurrent_models, random_models = separate_contact_model_names(contact_models)
 
@@ -188,7 +190,7 @@ def calculate_infections_by_contacts(
             indexers["recurrent"],
             infection_probabilities_recurrent,
             infection_probability_multiplier,
-            virus_strains_multipliers,
+            virus_strains["multipliers"],
             infection_counter,
             next(seed),
         )
@@ -216,7 +218,7 @@ def calculate_infections_by_contacts(
             assortative_matching_cum_probs,
             indexers["random"],
             infection_probability_multiplier,
-            virus_strains_multipliers,
+            virus_strains["multipliers"],
             infection_counter,
             next(seed),
         )

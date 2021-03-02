@@ -1,5 +1,6 @@
 from typing import Any
 from typing import Dict
+from typing import List
 from typing import Tuple
 from typing import Union
 
@@ -20,7 +21,7 @@ def combine_first_factorized_infections(
 def categorize_factorized_infections(
     factorized_infections: Union[pd.Series, np.ndarray], virus_strains: Dict[str, Any]
 ) -> pd.Series:
-    return (
+    return pd.Series(
         pd.Categorical(
             factorized_infections, categories=range(-1, len(virus_strains["names"]))
         )
@@ -56,7 +57,9 @@ def factorize_boolean_or_categorical_infections(infections, virus_strains):
     if infections.dtype == np.bool:
         values, categories = _factorize_boolean_infections(infections)
     elif infections.dtype == "category":
-        values, categories = _factorize_categorical_infections(infections)
+        values, categories = factorize_categorical_infections(
+            infections, virus_strains["names"]
+        )
     else:
         raise ValueError(
             "Unknown dtype of infections. Can only handle 'bool' and 'category'"
@@ -80,8 +83,11 @@ def _factorize_boolean_infections(
     return values, categories
 
 
-def _factorize_categorical_infections(virus_strain: pd.Series) -> Tuple[np.ndarray]:
+def factorize_categorical_infections(
+    virus_strain: pd.Series, names: List[str]
+) -> Tuple[np.ndarray]:
     """Factorize a categorical variable indicating virus strains."""
+    virus_strain = virus_strain.cat.reorder_categories(names)
     values, categories = pd.factorize(virus_strain, sort=True)
     values = values.astype(DTYPE_VIRUS_STRAIN)
-    return values, categories
+    return values, categories.categories
