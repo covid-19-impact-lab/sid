@@ -2,7 +2,7 @@
 import pandas as pd
 
 
-def calculate_infections_by_events(states, params, events):
+def calculate_infections_by_events(states, params, events, seed):
     """Apply events to states and return indicator for infections.
 
     Each event is evaluated which yields a collection of series with indicators for
@@ -12,6 +12,7 @@ def calculate_infections_by_events(states, params, events):
         states (pandas.DataFrame): See :ref:`states`.
         params (pandas.DataFrame): See :ref:`params`.
         events (dict): Dictionary of events which cause infections.
+        seed
 
     Returns:
         newly_infected_events (pandas.Series): Series marking individuals who have been
@@ -26,7 +27,7 @@ def calculate_infections_by_events(states, params, events):
         loc = event.get("loc", params.index)
         func = event["model"]
 
-        s = func(states, params.loc[loc])
+        s = func(states, params.loc[loc], next(seed))
         infected_by_event = infected_by_event | s
         channel_infected_by_event.loc[s & channel_infected_by_event.eq(-1)] = i
 

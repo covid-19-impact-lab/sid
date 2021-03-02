@@ -386,7 +386,7 @@ def _simulate(
         (
             newly_infected_events,
             channel_infected_by_event,
-        ) = calculate_infections_by_events(states, params, events)
+        ) = calculate_infections_by_events(states, params, events, seed)
 
         states, channel_demands_test, to_be_processed_tests = perform_testing(
             date=date,
