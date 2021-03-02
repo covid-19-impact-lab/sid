@@ -17,12 +17,11 @@ def test_recurrent_contact_infects_susceptibles_and_leaves_other_group_untouched
     indexers.append(sub_indexers)
 
     infection_probabilities = np.array([1])
-    infected = np.array([False, False, False, False])
     infection_counter = np.zeros(4, dtype=np.int_)
     infection_probability_multiplier = np.ones(len(recurrent_contacts))
 
     (
-        infected,
+        newly_infected,
         infection_counter,
         immune,
         was_infected,
@@ -34,12 +33,11 @@ def test_recurrent_contact_infects_susceptibles_and_leaves_other_group_untouched
         indexers,
         infection_probabilities,
         infection_probability_multiplier,
-        infected,
         infection_counter,
         0,
     )
 
-    assert (infected == [False, True, False, False]).all()
+    assert (newly_infected == [False, True, False, False]).all()
     assert (infection_counter == [1, 0, 0, 0]).all()
     assert (immune == [True, True, False, False]).all()
     assert (was_infected == [-1, 0, -1, -1]).all()
@@ -59,12 +57,11 @@ def test_infections_occur_not_in_other_recurrent_group():
     indexers.append(sub_indexers)
 
     infection_probabilities = np.array([1])
-    infected = np.array([False, False, False, False])
     infection_counter = np.zeros(4, dtype=np.int_)
     infection_probability_multiplier = np.ones(len(recurrent_contacts))
 
     (
-        infected,
+        newly_infected,
         infection_counter,
         immune,
         was_infected,
@@ -76,12 +73,11 @@ def test_infections_occur_not_in_other_recurrent_group():
         indexers,
         infection_probabilities,
         infection_probability_multiplier,
-        infected,
         infection_counter,
         0,
     )
 
-    assert (infected == [False, True, False, False]).all()
+    assert (newly_infected == [False, True, False, False]).all()
     assert (infection_counter == [1, 0, 0, 0]).all()
     assert (immune == [True, True, False, False]).all()
     assert (was_infected == [-1, 0, -1, -1]).all()
@@ -102,12 +98,11 @@ def test_infections_can_be_scaled_with_multiplier():
     indexers.append(sub_indexers)
 
     infection_probabilities = np.array([1])
-    infected = np.full(n_individuals, False)
     infection_counter = np.zeros(n_individuals, dtype=np.int_)
     infection_probability_multiplier = np.full(n_individuals, 0.5)
 
     (
-        infected,
+        newly_infected,
         infection_counter,
         immune,
         was_infected,
@@ -119,11 +114,10 @@ def test_infections_can_be_scaled_with_multiplier():
         indexers,
         infection_probabilities,
         infection_probability_multiplier,
-        infected,
         infection_counter,
         0,
     )
 
-    assert np.isclose(infected.sum(), n_individuals / 2, atol=1e2)
+    assert np.isclose(newly_infected.sum(), n_individuals / 2, atol=1e2)
     assert np.isclose(infection_counter[0], n_individuals / 2, atol=1e2)
     assert np.isclose(immune.sum(), n_individuals / 2, atol=1e2)

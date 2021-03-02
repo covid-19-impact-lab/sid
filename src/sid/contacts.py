@@ -166,12 +166,11 @@ def calculate_infections_by_contacts(
         [params.loc[("infection_prob", cm, cm), "value"] for cm in random_models]
     )
 
-    infected = np.zeros(len(states), dtype=DTYPE_INFECTED)
     infection_counter = np.zeros(len(states), dtype=DTYPE_INFECTION_COUNTER)
 
     if recurrent_models:
         (
-            infected_recurrent,
+            newly_infected_recurrent,
             infection_counter,
             immune,
             was_infected_by_recurrent,
@@ -183,13 +182,12 @@ def calculate_infections_by_contacts(
             indexers["recurrent"],
             infection_probabilities_recurrent,
             infection_probability_multiplier,
-            infected,
             infection_counter,
             next(seed),
         )
     else:
         was_infected_by_recurrent = None
-        infected_recurrent = np.full(len(states), False)
+        newly_infected_recurrent = np.full(len(states), False)
 
     if random_models:
         random_contacts = _reduce_random_contacts_with_infection_probs(
@@ -197,7 +195,7 @@ def calculate_infections_by_contacts(
         )
 
         (
-            infected_random,
+            newly_infected_random,
             infection_counter,
             immune,
             missed,
@@ -210,7 +208,6 @@ def calculate_infections_by_contacts(
             assortative_matching_cum_probs,
             indexers["random"],
             infection_probability_multiplier,
-            infected,
             infection_counter,
             next(seed),
         )
@@ -221,16 +218,18 @@ def calculate_infections_by_contacts(
     else:
         missed_contacts = None
         was_infected_by_random = None
-        infected_random = np.full(len(states), False)
+        newly_infected_random = np.full(len(states), False)
 
     was_infected_by = _consolidate_reason_of_infection(
         was_infected_by_recurrent, was_infected_by_random, contact_models
     )
     was_infected_by.index = states.index
     n_has_additionally_infected = pd.Series(infection_counter, index=states.index)
-    infected = pd.Series(infected_recurrent | infected_random, index=states.index)
+    newly_infected = pd.Series(
+        newly_infected_recurrent | newly_infected_random, index=states.index
+    )
 
-    return infected, n_has_additionally_infected, missed_contacts, was_infected_by
+    return newly_infected, n_has_additionally_infected, missed_contacts, was_infected_by
 
 
 @nb.njit
@@ -282,7 +281,6 @@ def _calculate_infections_by_recurrent_contacts(
     indexers: nb.typed.List,
     infection_probs: np.ndarray,
     infection_probability_multiplier: np.ndarray,
-    infected: np.ndarray,
     infection_counter: np.ndarray,
     seed: int,
 ) -> Tuple[np.ndarray]:
@@ -304,7 +302,6 @@ def _calculate_infections_by_recurrent_contacts(
             for each recurrent contact model.
         infection_probability_multiplier (np.ndarray): A multiplier which scales the
             infection probability.
-        infected (numpy.ndarray): An array indicating newly infected individuals.
         infection_counter (numpy.ndarray): An array counting infection caused by an
             individual.
         seed (int): Seed value to control randomness.
@@ -312,8 +309,8 @@ def _calculate_infections_by_recurrent_contacts(
     Returns:
         (tuple) Tuple containing
 
-        - infected (numpy.ndarray): 1d boolean array that is True for individuals who
-          got newly infected.
+        - newly_infected (numpy.ndarray): Boolean array that is True for individuals
+          who got newly infected.
         - infection_counter (numpy.ndarray): 1d integer array
         - immune (numpy.ndarray): 1-D boolean array that indicates if a person is
           immune.
@@ -324,7 +321,8 @@ def _calculate_infections_by_recurrent_contacts(
     np.random.seed(seed)
 
     n_individuals, n_recurrent_contact_models = recurrent_contacts.shape
-    was_infected_by = np.full(len(infectious), -1, dtype=np.int16)
+    was_infected_by = np.full(n_individuals, -1, dtype=np.int16)
+    newly_infected = np.zeros(n_individuals, dtype=DTYPE_INFECTED)
 
     for i in range(n_individuals):
         for cm in range(n_recurrent_contact_models):
@@ -346,11 +344,11 @@ def _calculate_infections_by_recurrent_contacts(
                         is_infection = boolean_choice(prob * multiplier)
                         if is_infection:
                             infection_counter[i] += 1
-                            infected[j] = 1
+                            newly_infected[j] = True
                             immune[j] = True
                             was_infected_by[j] = cm
 
-    return infected, infection_counter, immune, was_infected_by
+    return newly_infected, infection_counter, immune, was_infected_by
 
 
 @nb.njit
@@ -362,7 +360,6 @@ def _calculate_infections_by_random_contacts(
     assortative_matching_cum_probs: nb.typed.List,
     indexers: nb.typed.List,
     infection_probability_multiplier: np.ndarray,
-    infected: np.ndarray,
     infection_counter: np.ndarray,
     seed: int,
 ) -> Tuple[np.ndarray]:
@@ -385,7 +382,6 @@ def _calculate_infections_by_random_contacts(
             model.
         infection_probability_multiplier (np.ndarray): A multiplier which scales the
             infection probability.
-        infected (numpy.ndarray): An array indicating newly infected individuals.
         infection_counter (numpy.ndarray): An array counting infection caused by an
             individual.
         seed (int): Seed value to control randomness.
@@ -393,7 +389,7 @@ def _calculate_infections_by_random_contacts(
     Returns:
         (tuple) Tuple containing
 
-        - infected (numpy.ndarray): Indicates newly infected individuals.
+        - newly_infected (numpy.ndarray): Indicates newly infected individuals.
         - infection_counter (numpy.ndarray): Counts the number of infected individuals.
         - immune (numpy.ndarray): Indicates immune individuals.
         - missed (numpy.ndarray): Matrix which contains unmatched random contacts.
@@ -401,13 +397,14 @@ def _calculate_infections_by_random_contacts(
     """
     np.random.seed(seed)
 
+    n_individuals, n_random_contact_models = random_contacts.shape
     groups_list = [np.arange(len(gp)) for gp in assortative_matching_cum_probs]
-    was_infected_by = np.full(len(infectious), -1, dtype=np.int16)
+    was_infected_by = np.full(n_individuals, -1, dtype=np.int16)
+    newly_infected = np.zeros(n_individuals, dtype=DTYPE_INFECTED)
 
-    n_obs, n_contact_models = random_contacts.shape
     # Loop over all individual-contact_model combinations
-    for i in range(n_obs):
-        for cm in range(n_contact_models):
+    for i in range(n_individuals):
+        for cm in range(n_random_contact_models):
             # get the probabilities for meeting another group which depends on the
             # individual's group.
             group_i = group_codes[i, cm]
@@ -438,7 +435,7 @@ def _calculate_infections_by_random_contacts(
                         )
                         if is_infection:
                             infection_counter[i] += 1
-                            infected[j] = 1
+                            newly_infected[j] = True
                             immune[j] = True
                             was_infected_by[j] = cm
 
@@ -448,13 +445,13 @@ def _calculate_infections_by_random_contacts(
                         )
                         if is_infection:
                             infection_counter[j] += 1
-                            infected[i] = 1
+                            newly_infected[i] = True
                             immune[i] = True
                             was_infected_by[i] = cm
 
     missed = random_contacts
 
-    return infected, infection_counter, immune, missed, was_infected_by
+    return newly_infected, infection_counter, immune, missed, was_infected_by
 
 
 @nb.njit

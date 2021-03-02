@@ -21,10 +21,14 @@ all releases are available on `Anaconda.org
   factorization such that it is only done once.
 - :gh:`71` separates recurrent from random contacts and how infections are calculated
   for each type of contact.
+- :gh:`72` allows sid to be packaged on PyPI and adds versioneer.
 - :gh:`75` passes sid's seed to the testing models.
 - :gh:`76` removes ``share_known_cases`` which should now be implemented with testing
   models.
 - :gh:`79` implements a multiplier for infection probabilities.
+- :gh:`81` sets the default start date for testing models to the first burn-in period of
+  the initial conditions.
+- :gh:`83` does some clean up in the matching algorithm.
 
 
 0.0.1 - 2021-01-05
