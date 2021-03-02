@@ -9,8 +9,8 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
-from sid.config import DTYPE_VIRUS_STRAIN
 from sid.config import INITIAL_CONDITIONS
+from sid.virus_strains import factorize_multiple_boolean_or_categorical_infections
 
 
 def parse_duration(duration: Union[Dict[str, Any], None]) -> Dict[str, Any]:
@@ -75,25 +75,9 @@ def parse_initial_conditions(
         else:
             ic["burn_in_periods"] = ic["initial_infections"].columns.sort_values()
 
-        if len(virus_strains) == 1 and all(ic["initial_infections"].dtypes == np.bool_):
-            for date in ic["initial_infections"].columns:
-                ic["initial_infections"][
-                    date
-                ] = _convert_boolean_initial_infections_to_factorized_array(
-                    ic["initial_infections"][date]
-                )
-
-        elif (ic["initial_infections"].dtypes == "category").all() and all(
-            ic["initial_infections"].iloc[:, 0].dtype
-            == ic["initial_infections"][col].dtype
-            for col in ic["initial_infections"].columns
-        ):
-            for date in ic["initial_infections"].columns:
-                values, _ = pd.factorize(ic["initial_infections"][date], sort=True)
-                ic["initial_infections"][date] = values.astype(DTYPE_VIRUS_STRAIN)
-
-        else:
-            raise ValueError("'initial_infections' have mixed dtypes.")
+        ic["initial_infections"] = factorize_multiple_boolean_or_categorical_infections(
+            ic["initial_infections"], virus_strains
+        )
 
     if isinstance(ic["burn_in_periods"], int):
         if ic["burn_in_periods"] == 0:

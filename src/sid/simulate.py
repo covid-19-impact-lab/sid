@@ -20,7 +20,6 @@ import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_INFECTION_COUNTER
-from sid.config import DTYPE_VIRUS_STRAIN
 from sid.config import POLICIES
 from sid.config import SAVED_COLUMNS
 from sid.contacts import calculate_contacts
@@ -726,7 +725,11 @@ def _add_defaults_to_policy_dict(policies):
     return policies
 
 
-def _process_initial_states(states: pd.DataFrame, assort_bys: Dict[str, List[str]]):
+def _process_initial_states(
+    states: pd.DataFrame,
+    assort_bys: Dict[str, List[str]],
+    virus_strains: Dict[str, Any],
+) -> pd.DataFrame:
     """Process the initial states given by the user.
 
     Args:
@@ -762,7 +765,9 @@ def _process_initial_states(states: pd.DataFrame, assort_bys: Dict[str, List[str
 
     states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
     states["pending_test_date"] = pd.NaT
-    states["_virus_strain"] = DTYPE_VIRUS_STRAIN(-1)
+    states["virus_strain"] = pd.Categorical(
+        [pd.NA] * len(states), categories=virus_strains["names"]
+    )
 
     return states
 

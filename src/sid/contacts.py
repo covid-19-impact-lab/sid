@@ -15,6 +15,7 @@ from sid.config import DTYPE_VIRUS_STRAIN
 from sid.shared import boolean_choice
 from sid.shared import separate_contact_model_names
 from sid.validation import validate_return_is_series_or_ndarray
+from sid.virus_strains import combine_first_factorized_infections
 
 
 def calculate_contacts(
@@ -233,20 +234,11 @@ def calculate_infections_by_contacts(
     )
     was_infected_by.index = states.index
     n_has_additionally_infected = pd.Series(infection_counter, index=states.index)
-    newly_infected = _merge_factorized_newly_infected(
-        newly_infected_recurrent, newly_infected_random, states.index
+    newly_infected = combine_first_factorized_infections(
+        newly_infected_recurrent, newly_infected_random
     )
 
     return newly_infected, n_has_additionally_infected, missed_contacts, was_infected_by
-
-
-def _merge_factorized_newly_infected(
-    newly_infected_recurrent, newly_infected_random, index
-):
-    newly_infected = newly_infected_random.copy()
-    is_rec_infection = newly_infected_recurrent >= 0
-    newly_infected[is_rec_infection] = newly_infected_recurrent[is_rec_infection]
-    return pd.Series(newly_infected, index=index)
 
 
 @nb.njit

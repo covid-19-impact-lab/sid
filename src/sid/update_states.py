@@ -10,6 +10,8 @@ from sid.config import KNOWS_INFECTIOUS
 from sid.config import RECEIVES_POSITIVE_TEST
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.countdowns import COUNTDOWNS
+from sid.virus_strains import categorize_factorized_infections
+from sid.virus_strains import combine_first_factorized_infections
 
 
 def update_states(
@@ -81,14 +83,11 @@ def _update_info_on_newly_infected(
         newly_infected_events >= 0
     )
 
-    virus_strain = newly_infected_events.copy()
-    is_contact_infection = newly_infected_contacts >= 0
-    virus_strain[is_contact_infection] = newly_infected_contacts[is_contact_infection]
-    states["_virus_strain"] = virus_strain
-    newly_virus_strain = (
-        pd.Categorical(virus_strain)
-        .rename_categories(["not_infected"] + virus_strains["names"])
-        .remove_categories("not_infected")
+    combined_newly_infected = combine_first_factorized_infections(
+        newly_infected_contacts, newly_infected_events
+    )
+    newly_virus_strain = categorize_factorized_infections(
+        combined_newly_infected, virus_strains
     )
     states["virus_strain"] = states["virus_strain"].fillna(newly_virus_strain)
 
