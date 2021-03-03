@@ -18,6 +18,12 @@ from sid.simulate import _add_default_duration_to_models
 from sid.simulate import _process_initial_states
 
 
+pytestmark = pytest.mark.xfail(
+    reason="Default when initial infections are not a DataFrame has not been "
+    "implemented."
+)
+
+
 @pytest.mark.unit
 def test_scale_up_initial_infections_without_assort_by():
     states = pd.DataFrame(index=pd.RangeIndex(100_000))

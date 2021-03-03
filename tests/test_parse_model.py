@@ -55,57 +55,72 @@ def test_parse_duration(duration, expectation, expected):
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    ("initial_conditions", "start_date_simulation", "expectation", "expected"),
+    (
+        "initial_conditions",
+        "start_date_simulation",
+        "virus_strains",
+        "expectation",
+        "expected",
+    ),
     [
         (
             None,
             pd.Timestamp("2020-01-02"),
+            {"names": ["base_strain"], "multipliers": np.ones(1)},
             does_not_raise(),
             {**INITIAL_CONDITIONS},
         ),
         (
             {"assort_by": ["region"]},
             pd.Timestamp("2020-01-02"),
+            {"names": ["base_strain"], "multipliers": np.ones(1)},
             does_not_raise(),
             {**INITIAL_CONDITIONS, "assort_by": ["region"]},
         ),
         (
             {"assort_by": "region"},
             pd.Timestamp("2020-01-02"),
+            {"names": ["base_strain"], "multipliers": np.ones(1)},
             does_not_raise(),
             {**INITIAL_CONDITIONS, "assort_by": ["region"]},
         ),
         (
             {"growth_rate": 0},
             pd.Timestamp("2020-01-02"),
+            {"names": ["base_strain"], "multipliers": np.ones(1)},
             pytest.raises(ValueError, match="'growth_rate' must be greater than or"),
             None,
         ),
         (
             {"burn_in_periods": 0},
             pd.Timestamp("2020-01-02"),
+            {"names": ["base_strain"], "multipliers": np.ones(1)},
             pytest.raises(ValueError, match="'burn_in_periods' must be greater or"),
             None,
         ),
         (
             {"burn_in_periods": 2.0},
             pd.Timestamp("2020-01-02"),
+            {"names": ["base_strain"], "multipliers": np.ones(1)},
             pytest.raises(ValueError, match="'burn_in_periods' must be an integer"),
             None,
         ),
         (
             {"initial_infections": None},
             pd.Timestamp("2020-01-02"),
+            {"names": ["base_strain"], "multipliers": np.ones(1)},
             pytest.raises(ValueError, match="'initial_infections' must be a"),
             None,
         ),
     ],
 )
 def test_parse_initial_conditions(
-    initial_conditions, start_date_simulation, expectation, expected
+    initial_conditions, start_date_simulation, virus_strains, expectation, expected
 ):
     with expectation:
-        result = parse_initial_conditions(initial_conditions, start_date_simulation)
+        result = parse_initial_conditions(
+            initial_conditions, start_date_simulation, virus_strains
+        )
         validate_initial_conditions(result)
         expected["burn_in_periods"] = pd.DatetimeIndex([pd.Timestamp("2020-01-01")])
         assert result == expected

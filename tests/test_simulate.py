@@ -45,10 +45,12 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
 def test_check_assort_by_are_categoricals(initial_states):
     assort_bys = _process_assort_bys(CONTACT_MODELS)
 
-    _ = _process_initial_states(initial_states, assort_bys)
+    virus_strains = {"names": ["base_strain"], "multipliers": np.ones(1)}
+
+    _ = _process_initial_states(initial_states, assort_bys, virus_strains)
 
     initial_states = initial_states.astype(str)
-    processed = _process_initial_states(initial_states, assort_bys)
+    processed = _process_initial_states(initial_states, assort_bys, virus_strains)
     for var in ["age_group", "region"]:
         assert is_categorical_dtype(processed[var].dtype)
 

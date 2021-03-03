@@ -49,4 +49,6 @@ def calculate_infections_by_events(states, params, events, virus_strains, seed):
         index=states.index,
     ).cat.rename_categories(codes_to_event)
 
+    infected_by_event = pd.Series(infected_by_event, index=states.index)
+
     return infected_by_event, channel_infected_by_event

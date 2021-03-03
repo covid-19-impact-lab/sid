@@ -236,9 +236,11 @@ def calculate_infections_by_contacts(
     )
     was_infected_by.index = states.index
     n_has_additionally_infected = pd.Series(infection_counter, index=states.index)
-    newly_infected = combine_first_factorized_infections(
+
+    combined_newly_infected = combine_first_factorized_infections(
         newly_infected_recurrent, newly_infected_random
     )
+    newly_infected = pd.Series(combined_newly_infected, index=states.index)
 
     return newly_infected, n_has_additionally_infected, missed_contacts, was_infected_by
 
