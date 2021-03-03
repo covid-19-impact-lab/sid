@@ -1,5 +1,6 @@
 import numba as nb
 import numpy as np
+import pytest
 from sid.contacts import _calculate_infections_by_recurrent_contacts
 
 
@@ -136,3 +137,8 @@ def test_infections_can_be_scaled_with_multiplier():
     assert np.isclose((newly_infected == 0).sum(), n_individuals / 2, atol=1e2)
     assert np.isclose(infection_counter[0], n_individuals / 2, atol=1e2)
     assert np.isclose(immune.sum(), n_individuals / 2, atol=1e2)
+
+
+@pytest.mark.xfail
+def test_multiple_virus_strains_spread_in_different_recurrent_groups():
+    pass

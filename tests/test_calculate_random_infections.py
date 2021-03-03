@@ -1,5 +1,6 @@
 import numba as nb
 import numpy as np
+import pytest
 from sid.contacts import _calculate_infections_by_random_contacts
 
 
@@ -102,3 +103,8 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
     assert (missed[[0, 1, 3], :] > 0).all()
     assert (missed[[2, 4]] == 0).all()
     assert (was_infected == [-1, -1, -1, -1, -1]).all()
+
+
+@pytest.mark.xfail
+def test_multiple_virus_strains_spread_in_different_random_groups():
+    pass
