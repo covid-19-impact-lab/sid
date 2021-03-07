@@ -71,7 +71,7 @@ def setup_households_w_one_infection():
 
     group_codes_info = {"households": {"name": "group_codes_households"}}
 
-    infection_probability_multiplier = np.ones(len(states))
+    susceptibility_factor = np.ones(len(states))
 
     virus_strains = {"names": ["base_strain"], "multipliers": np.ones(1)}
 
@@ -82,7 +82,7 @@ def setup_households_w_one_infection():
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
-        infection_probability_multiplier,
+        susceptibility_factor,
         virus_strains,
     )
 
@@ -98,7 +98,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
-        infection_probability_multiplier,
+        susceptibility_factor,
         virus_strains,
     ) = setup_households_w_one_infection
 
@@ -116,7 +116,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
-        infection_probability_multiplier=infection_probability_multiplier,
+        susceptibility_factor=susceptibility_factor,
         virus_strains=virus_strains,
         seed=itertools.count(),
     )
@@ -145,7 +145,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
-        infection_probability_multiplier,
+        susceptibility_factor,
         virus_strains,
     ) = setup_households_w_one_infection
 
@@ -165,7 +165,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
-        infection_probability_multiplier=infection_probability_multiplier,
+        susceptibility_factor=susceptibility_factor,
         virus_strains=virus_strains,
         seed=itertools.count(),
     )
@@ -191,7 +191,7 @@ def test_calculate_infections_only_recurrent_one_skips(
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
-        infection_probability_multiplier,
+        susceptibility_factor,
         virus_strains,
     ) = setup_households_w_one_infection
 
@@ -212,7 +212,7 @@ def test_calculate_infections_only_recurrent_one_skips(
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
-        infection_probability_multiplier=infection_probability_multiplier,
+        susceptibility_factor=susceptibility_factor,
         virus_strains=virus_strains,
         seed=itertools.count(),
     )
@@ -238,7 +238,7 @@ def test_calculate_infections_only_recurrent_one_immune(
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
-        infection_probability_multiplier,
+        susceptibility_factor,
         virus_strains,
     ) = setup_households_w_one_infection
 
@@ -258,7 +258,7 @@ def test_calculate_infections_only_recurrent_one_immune(
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
-        infection_probability_multiplier=infection_probability_multiplier,
+        susceptibility_factor=susceptibility_factor,
         virus_strains=virus_strains,
         seed=itertools.count(),
     )
@@ -278,7 +278,7 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
         states,
         random_contacts,
         *_,
-        infection_probability_multiplier,
+        susceptibility_factor,
         virus_strains,
     ) = setup_households_w_one_infection
 
@@ -308,7 +308,7 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"non_rec": {"is_recurrent": False}},
         group_codes_info={"non_rec": {"name": "group_codes_non_rec"}},
-        infection_probability_multiplier=infection_probability_multiplier,
+        susceptibility_factor=susceptibility_factor,
         virus_strains=virus_strains,
         seed=itertools.count(),
     )

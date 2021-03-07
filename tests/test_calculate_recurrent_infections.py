@@ -18,7 +18,7 @@ def test_recurrent_contact_infects_susceptibles_and_leaves_other_group_untouched
 
     infection_probabilities = np.array([1])
     infection_counter = np.zeros(4, dtype=np.int_)
-    infection_probability_multiplier = np.ones(len(recurrent_contacts))
+    susceptibility_factor = np.ones(len(recurrent_contacts))
 
     virus_strain = np.array([0, -1, -1, -1])
     virus_strains_multipliers = np.array([1])
@@ -36,7 +36,7 @@ def test_recurrent_contact_infects_susceptibles_and_leaves_other_group_untouched
         group_codes,
         indexers,
         infection_probabilities,
-        infection_probability_multiplier,
+        susceptibility_factor,
         virus_strains_multipliers,
         infection_counter,
         0,
@@ -63,7 +63,7 @@ def test_infections_occur_not_in_other_recurrent_group():
 
     infection_probabilities = np.array([1])
     infection_counter = np.zeros(4, dtype=np.int_)
-    infection_probability_multiplier = np.ones(len(recurrent_contacts))
+    susceptibility_factor = np.ones(len(recurrent_contacts))
 
     virus_strain = np.array([0, -1, -1])
     virus_strains_multipliers = np.array([1])
@@ -81,7 +81,7 @@ def test_infections_occur_not_in_other_recurrent_group():
         group_codes,
         indexers,
         infection_probabilities,
-        infection_probability_multiplier,
+        susceptibility_factor,
         virus_strains_multipliers,
         infection_counter,
         0,
@@ -109,7 +109,7 @@ def test_infections_can_be_scaled_with_multiplier():
 
     infection_probabilities = np.array([1])
     infection_counter = np.zeros(n_individuals, dtype=np.int_)
-    infection_probability_multiplier = np.full(n_individuals, 0.5)
+    susceptibility_factor = np.full(n_individuals, 0.5)
 
     virus_strain = np.array([0] + [-1] * (n_individuals - 1))
     virus_strains_multipliers = np.array([1])
@@ -127,7 +127,7 @@ def test_infections_can_be_scaled_with_multiplier():
         group_codes,
         indexers,
         infection_probabilities,
-        infection_probability_multiplier,
+        susceptibility_factor,
         virus_strains_multipliers,
         infection_counter,
         0,
@@ -153,7 +153,7 @@ def test_multiple_virus_strains_spread_in_different_recurrent_groups():
 
     infection_probabilities = np.array([1])
     infection_counter = np.zeros(4, dtype=np.int_)
-    infection_probability_multiplier = np.ones(len(recurrent_contacts))
+    susceptibility_factor = np.ones(len(recurrent_contacts))
 
     virus_strain = np.array([0, -1, 1, -1])
     virus_strains_multipliers = np.array([1, 1])
@@ -171,7 +171,7 @@ def test_multiple_virus_strains_spread_in_different_recurrent_groups():
         group_codes,
         indexers,
         infection_probabilities,
-        infection_probability_multiplier,
+        susceptibility_factor,
         virus_strains_multipliers,
         infection_counter,
         0,

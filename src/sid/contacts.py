@@ -105,7 +105,7 @@ def calculate_infections_by_contacts(
     assortative_matching_cum_probs: nb.typed.List,
     contact_models: Dict[str, Dict[str, Any]],
     group_codes_info: Dict[str, Dict[str, Any]],
-    infection_probability_multiplier: np.ndarray,
+    susceptibility_factor: np.ndarray,
     virus_strains: Dict[str, Any],
     seed: itertools.count,
 ) -> Tuple[pd.Series, pd.Series, pd.DataFrame]:
@@ -134,8 +134,8 @@ def calculate_infections_by_contacts(
         contact_models (Dict[str, Dict[str, Any]]): The contact models.
         group_codes_info (Dict[str, Dict[str, Any]]): The name of the group code column
             for each contact model.
-        infection_probability_multiplier (np.ndarray): A multiplier which scales the
-            infection probability.
+        susceptibility_factor (np.ndarray): A multiplier which scales the infection
+            probability.
         virus_strains
         seed (itertools.count): Seed counter to control randomness.
 
@@ -189,7 +189,7 @@ def calculate_infections_by_contacts(
             group_codes_recurrent,
             indexers["recurrent"],
             infection_probabilities_recurrent,
-            infection_probability_multiplier,
+            susceptibility_factor,
             virus_strains["multipliers"],
             infection_counter,
             next(seed),
@@ -217,7 +217,7 @@ def calculate_infections_by_contacts(
             group_codes_random,
             assortative_matching_cum_probs,
             indexers["random"],
-            infection_probability_multiplier,
+            susceptibility_factor,
             virus_strains["multipliers"],
             infection_counter,
             next(seed),
@@ -254,7 +254,7 @@ def _reduce_random_contacts_with_infection_probs(
     The remaining random contacts have the interpretation that they would lead to an
     infection if one person is infectious and the other person is susceptible, the
     person has the highest susceptibility in the population according to the
-    ``infection_probability_multiplier``, and the infected person is affected by the
+    ``susceptibility_factor``, and the infected person is affected by the
     most contagious virus strain according to the ``virus_strain``.
 
     The copy is necessary as we need the original random contacts for debugging.
@@ -295,7 +295,7 @@ def _calculate_infections_by_recurrent_contacts(
     group_codes: np.ndarray,
     indexers: nb.typed.List,
     infection_probs: np.ndarray,
-    infection_probability_multiplier: np.ndarray,
+    susceptibility_factor: np.ndarray,
     virus_strains_multipliers: np.ndarray,
     infection_counter: np.ndarray,
     seed: int,
@@ -317,8 +317,8 @@ def _calculate_infections_by_recurrent_contacts(
             model.
         infection_probs (numpy.ndarray): An array containing the infection probabilities
             for each recurrent contact model.
-        infection_probability_multiplier (np.ndarray): A multiplier which scales the
-            infection probability.
+        susceptibility_factor (np.ndarray): A multiplier which scales the infection
+            probability.
         virus_strains_multiplier
         infection_counter (numpy.ndarray): An array counting infection caused by an
             individual.
@@ -360,9 +360,8 @@ def _calculate_infections_by_recurrent_contacts(
                         # j is infected depending on its own susceptibility.
                         virus_strain_i = virus_strain[i]
                         virus_multiplier_i = virus_strains_multipliers[virus_strain_i]
-                        multiplier = infection_probability_multiplier[j]
                         is_infection = boolean_choice(
-                            prob * multiplier * virus_multiplier_i
+                            prob * susceptibility_factor[j] * virus_multiplier_i
                         )
                         if is_infection:
                             infection_counter[i] += 1
@@ -382,7 +381,7 @@ def _calculate_infections_by_random_contacts(
     group_codes: np.ndarray,
     assortative_matching_cum_probs: nb.typed.List,
     indexers: nb.typed.List,
-    infection_probability_multiplier: np.ndarray,
+    susceptibility_factor: np.ndarray,
     virus_strains_multipliers: np.ndarray,
     infection_counter: np.ndarray,
     seed: int,
@@ -405,8 +404,8 @@ def _calculate_infections_by_random_contacts(
         indexers (numba.typed.List): Nested typed list. The i_th entry of the inner
             lists are the indices of the i_th group. There is one inner list per contact
             model.
-        infection_probability_multiplier (np.ndarray): A multiplier which scales the
-            infection probability.
+        susceptibility_factor (np.ndarray): A multiplier which scales the infection
+            probability.
         virus_strains_multipliers
         infection_counter (numpy.ndarray): An array counting infection caused by an
             individual.
@@ -459,7 +458,7 @@ def _calculate_infections_by_random_contacts(
                         virus_strain_i = virus_strain[i]
                         virus_multiplier_i = virus_strains_multipliers[virus_strain_i]
                         is_infection = boolean_choice(
-                            infection_probability_multiplier[j] * virus_multiplier_i
+                            susceptibility_factor[j] * virus_multiplier_i
                         )
                         if is_infection:
                             infection_counter[i] += 1
@@ -471,7 +470,7 @@ def _calculate_infections_by_random_contacts(
                         virus_strain_j = virus_strain[j]
                         virus_multiplier_j = virus_strains_multipliers[virus_strain_j]
                         is_infection = boolean_choice(
-                            infection_probability_multiplier[i] * virus_multiplier_j
+                            susceptibility_factor[i] * virus_multiplier_j
                         )
                         if is_infection:
                             infection_counter[j] += 1
