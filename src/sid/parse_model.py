@@ -1,4 +1,5 @@
 """This module contains the code the parse input data."""
+import copy
 import warnings
 from collections.abc import Iterable
 from typing import Any
@@ -9,6 +10,7 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
+from sid.config import DEFAULT_VIRUS_STRAINS
 from sid.config import INITIAL_CONDITIONS
 from sid.virus_strains import factorize_multiple_boolean_or_categorical_infections
 
@@ -78,10 +80,23 @@ def parse_initial_conditions(
         ic["initial_infections"] = factorize_multiple_boolean_or_categorical_infections(
             ic["initial_infections"], virus_strains
         )
+    elif not (
+        isinstance(ic["initial_infections"], pd.Series)
+        or (isinstance(ic["initial_infections"], int) and ic["initial_infections"] >= 0)
+        or (
+            isinstance(ic["initial_infections"], float)
+            and 0 <= ic["initial_infections"] <= 1
+        )
+    ):
+        raise ValueError(
+            "'initial_infections' must be a pd.DataFrame, pd.Series, int or float "
+            "between 0 and 1."
+        )
 
     if isinstance(ic["burn_in_periods"], int):
         if ic["burn_in_periods"] == 0:
             raise ValueError("'burn_in_periods' must be greater or equal than 1.")
+
         start = start_date_simulation - pd.Timedelta(ic["burn_in_periods"], unit="d")
         ic["burn_in_periods"] = pd.date_range(start, start_date_simulation)[:-1]
 
@@ -89,6 +104,7 @@ def parse_initial_conditions(
         n_burn_in_periods = len(ic["burn_in_periods"])
         start = start_date_simulation - pd.Timedelta(n_burn_in_periods, unit="d")
         expected = pd.date_range(start, start_date_simulation)[:-1]
+
         if not (ic["burn_in_periods"] == expected).all():
             raise ValueError(
                 f"Expected 'burn_in_periods' {expected}, but got "
@@ -107,11 +123,27 @@ def parse_initial_conditions(
             name: 1 / len(virus_strains["names"]) for name in virus_strains["names"]
         }
     elif isinstance(ic["virus_shares"], (dict, pd.Series)):
-        ic["virus_share"] = {
+        ic["virus_shares"] = {
             name: ic["virus_shares"][name] for name in virus_strains["names"]
         }
+
+        total_shares = sum(ic["virus_shares"].values())
+        if total_shares != 1:
+            warnings.warn(
+                "The 'virus_shares' do not sum up to one. The shares are normalized."
+            )
+            ic["virus_shares"] = {
+                name: share / total_shares for name, share in ic["virus_shares"].items()
+            }
+
     else:
-        raise ValueError("'virus_shares' must be a dict or a pd.Series.")
+        raise ValueError(
+            "'virus_shares' must be a dict or a pd.Series which maps the names of "
+            "virus strains to their shares among the initial infections."
+        )
+
+    if not ic["growth_rate"] >= 1:
+        raise ValueError("'growth_rate' must be greater than or equal to 1.")
 
     return ic
 
@@ -138,7 +170,7 @@ def parse_virus_strains(virus_strains: Optional[List[str]], params: pd.DataFrame
 
     """
     if virus_strains is None:
-        virus_strains = {"names": ["base_strain"], "multipliers": np.array([1])}
+        virus_strains = copy.deepcopy(DEFAULT_VIRUS_STRAINS)
 
     elif isinstance(virus_strains, list):
         if len(virus_strains) == 0:

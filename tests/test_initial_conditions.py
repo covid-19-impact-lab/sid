@@ -4,6 +4,7 @@ from contextlib import ExitStack as does_not_raise  # noqa: N813
 import numpy as np
 import pandas as pd
 import pytest
+from sid.config import DEFAULT_VIRUS_STRAINS
 from sid.initial_conditions import _scale_up_initial_infections
 from sid.initial_conditions import _scale_up_initial_infections_numba
 from sid.initial_conditions import _spread_out_initial_infections
@@ -16,12 +17,6 @@ from sid.parse_model import parse_initial_conditions
 from sid.pathogenesis import draw_course_of_disease
 from sid.simulate import _add_default_duration_to_models
 from sid.simulate import _process_initial_states
-
-
-pytestmark = pytest.mark.xfail(
-    reason="Default when initial infections are not a DataFrame has not been "
-    "implemented."
-)
 
 
 @pytest.mark.unit
@@ -186,14 +181,23 @@ def test_scale_and_spread_initial_infections(
     initial_states, params, initial_conditions, seed, expectation, expected
 ):
     with expectation:
-        initial_states = _process_initial_states(initial_states, {"a": []})
+        initial_states = _process_initial_states(
+            initial_states, {"a": []}, DEFAULT_VIRUS_STRAINS
+        )
         initial_states = draw_course_of_disease(initial_states, params, 0)
         initial_conditions = parse_initial_conditions(
-            initial_conditions, pd.Timestamp("2020-01-01")
+            initial_conditions, pd.Timestamp("2020-01-01"), DEFAULT_VIRUS_STRAINS
         )
 
         result = sample_initial_distribution_of_infections_and_immunity(
-            initial_states, params, initial_conditions, {}, {}, {}, seed
+            initial_states,
+            params,
+            initial_conditions,
+            {},
+            {},
+            {},
+            DEFAULT_VIRUS_STRAINS,
+            seed,
         )
         assert result["ever_infected"].equals(expected)
 
@@ -289,10 +293,12 @@ def test_scale_and_spread_initial_infections_w_testing_models(initial_states, pa
         "initial_infections": 70_000,
     }
 
-    initial_states = _process_initial_states(initial_states, {"a": []})
+    initial_states = _process_initial_states(
+        initial_states, {"a": []}, DEFAULT_VIRUS_STRAINS
+    )
     initial_states = draw_course_of_disease(initial_states, params, 0)
     initial_conditions = parse_initial_conditions(
-        initial_conditions, pd.Timestamp("2020-01-04")
+        initial_conditions, pd.Timestamp("2020-01-04"), DEFAULT_VIRUS_STRAINS
     )
 
     df = sample_initial_distribution_of_infections_and_immunity(
@@ -302,6 +308,7 @@ def test_scale_and_spread_initial_infections_w_testing_models(initial_states, pa
         testing_demand_models=testing_demand_models,
         testing_allocation_models=testing_allocation_models,
         testing_processing_models=testing_processing_models,
+        virus_strains=DEFAULT_VIRUS_STRAINS,
         seed=itertools.count(),
     )
 

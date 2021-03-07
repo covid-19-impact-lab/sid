@@ -40,7 +40,6 @@ from sid.shared import separate_contact_model_names
 from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
-from sid.validation import validate_initial_conditions
 from sid.validation import validate_initial_states
 from sid.validation import validate_models
 from sid.validation import validate_params
@@ -206,7 +205,6 @@ def get_simulate_func(
     initial_conditions = parse_initial_conditions(
         initial_conditions, duration["start"], virus_strains
     )
-    validate_initial_conditions(initial_conditions)
 
     # Testing models are used in the initial conditions and should be activated during
     # the burn-in phase if the starting date is not defined.

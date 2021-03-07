@@ -66,8 +66,12 @@ INITIAL_CONDITIONS = {
     "known_cases_multiplier": 1,
     "initial_infections": 0.01,
     "initial_immunity": None,
-    "virus_shares": None,
+    "virus_shares": {"base_strain": 1},
 }
+
+
+DEFAULT_VIRUS_STRAINS = {"names": ["base_strain"], "multipliers": np.array([1])}
+
 
 POLICIES = {"is_active": lambda states: True}  # noqa: U100
 

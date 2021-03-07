@@ -6,7 +6,6 @@ import pytest
 from sid.config import INITIAL_CONDITIONS
 from sid.parse_model import parse_duration
 from sid.parse_model import parse_initial_conditions
-from sid.validation import validate_initial_conditions
 
 
 @pytest.mark.unit
@@ -121,6 +120,5 @@ def test_parse_initial_conditions(
         result = parse_initial_conditions(
             initial_conditions, start_date_simulation, virus_strains
         )
-        validate_initial_conditions(result)
         expected["burn_in_periods"] = pd.DatetimeIndex([pd.Timestamp("2020-01-01")])
         assert result == expected
