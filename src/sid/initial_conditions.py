@@ -184,6 +184,9 @@ def sample_initial_distribution_of_infections_and_immunity(
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
               number of cases.
+            - ``virus_shares`` (Union[dict, pandas.Series]): A mapping between the names
+              of the virus strains and their share among newly infected individuals in
+              each burn-in period.
         seed (itertools.count): The seed counter.
 
     Returns:
@@ -212,8 +215,13 @@ def sample_initial_distribution_of_infections_and_immunity(
             seed=next(seed),
         )
 
+        spread_out_virus_strains = _sample_virus_strains_for_infections(
+            spread_out_infections,
+            initial_conditions["virus_shares"],
+        )
+
     else:
-        spread_out_infections = initial_conditions["initial_infections"]
+        spread_out_virus_strains = initial_conditions["initial_infections"]
 
     for burn_in_date in initial_conditions["burn_in_periods"]:
 
@@ -232,8 +240,8 @@ def sample_initial_distribution_of_infections_and_immunity(
 
         states = update_states(
             states=states,
-            newly_infected_contacts=spread_out_infections[burn_in_date],
-            newly_infected_events=spread_out_infections[burn_in_date],
+            newly_infected_contacts=spread_out_virus_strains[burn_in_date],
+            newly_infected_events=spread_out_virus_strains[burn_in_date],
             params=params,
             to_be_processed_tests=to_be_processed_tests,
             virus_strains=virus_strains,
@@ -374,6 +382,10 @@ def _spread_out_initial_infections(
     )
 
     return spread_infections
+
+
+def _sample_virus_strains_for_infections():
+    pass
 
 
 def _integrate_immune_individuals(

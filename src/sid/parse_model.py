@@ -102,6 +102,17 @@ def parse_initial_conditions(
             f"with pd.to_datetime, but got {ic['burn_in_periods']} instead."
         )
 
+    if ic["virus_shares"] is None:
+        ic["virus_shares"] = {
+            name: 1 / len(virus_strains["names"]) for name in virus_strains["names"]
+        }
+    elif isinstance(ic["virus_shares"], (dict, pd.Series)):
+        ic["virus_share"] = {
+            name: ic["virus_shares"][name] for name in virus_strains["names"]
+        }
+    else:
+        raise ValueError("'virus_shares' must be a dict or a pd.Series.")
+
     return ic
 
 

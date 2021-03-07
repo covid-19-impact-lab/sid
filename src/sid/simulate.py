@@ -153,6 +153,9 @@ def get_simulate_func(
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
               number of cases.
+            - ``virus_shares`` (Union[dict, pandas.Series]): A mapping between the names
+              of the virus strains and their share among newly infected individuals in
+              each burn-in period.
         infection_probability_multiplier_model (Optional[Callable]): A function which
             takes the states and parameters and returns an infection probability
             multiplier for each individual.
