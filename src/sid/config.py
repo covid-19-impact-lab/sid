@@ -38,6 +38,8 @@ DTYPE_VIRUS_STRAIN = np.int8
 DTYPE_INFECTION_COUNTER = np.uint16
 DTYPE_N_CONTACTS = np.uint16
 DTYPE_SID_PERIOD = np.int16
+DTYPE_VIRUS_STRAIN_CODES = np.int8
+DTYPE_CONTACT_MODEL_CODES = np.int8
 
 INDEX_NAMES = ["category", "subcategory", "name"]
 

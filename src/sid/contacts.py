@@ -8,6 +8,7 @@ import numba as nb
 import numpy as np
 import pandas as pd
 from numba.typed import List as NumbaList
+from sid.config import DTYPE_CONTACT_MODEL_CODES
 from sid.config import DTYPE_INDEX
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_N_CONTACTS
@@ -339,7 +340,7 @@ def _calculate_infections_by_recurrent_contacts(
     np.random.seed(seed)
 
     n_individuals, n_recurrent_contact_models = recurrent_contacts.shape
-    was_infected_by = np.full(n_individuals, -1, dtype=np.int16)
+    was_infected_by = np.full(n_individuals, -1, dtype=DTYPE_CONTACT_MODEL_CODES)
     newly_infected = np.full(n_individuals, -1, dtype=DTYPE_VIRUS_STRAIN)
 
     for i in range(n_individuals):
@@ -424,7 +425,7 @@ def _calculate_infections_by_random_contacts(
 
     n_individuals, n_random_contact_models = random_contacts.shape
     groups_list = [np.arange(len(gp)) for gp in assortative_matching_cum_probs]
-    was_infected_by = np.full(n_individuals, -1, dtype=np.int16)
+    was_infected_by = np.full(n_individuals, -1, dtype=DTYPE_CONTACT_MODEL_CODES)
     newly_infected = np.full(n_individuals, -1, dtype=DTYPE_VIRUS_STRAIN)
 
     # Loop over all individual-contact_model combinations
