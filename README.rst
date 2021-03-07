@@ -3,27 +3,39 @@ sid
 
 .. start-badges
 
-.. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/version.svg
-    :target: https://anaconda.org/covid-19-impact-lab/sid
+.. image:: https://img.shields.io/pypi/v/sid-dev?color=blue
+    :alt: PyPI
+    :target: https://pypi.org/project/sid-dev
 
-.. image:: https://anaconda.org/covid-19-impact-lab/sid/badges/platforms.svg
-    :target: https://anaconda.org/covid-19-impact-lab/sid
+.. image:: https://img.shields.io/pypi/pyversions/sid-dev
+    :alt: PyPI - Python Version
+    :target: https://pypi.org/project/sid-dev
+
+.. image:: https://img.shields.io/conda/vn/conda-forge/sid-dev.svg
+    :target: https://anaconda.org/conda-forge/sid-dev
+
+.. image:: https://img.shields.io/conda/pn/conda-forge/sid-dev.svg
+    :target: https://anaconda.org/conda-forge/sid-dev
+
+.. image:: https://img.shields.io/pypi/l/sid-dev
+    :alt: PyPI - License
+    :target: https://pypi.org/project/sid-dev
 
 .. image:: https://readthedocs.org/projects/sid-dev/badge/?version=latest
     :target: https://sid-dev.readthedocs.io/en/latest
 
+.. image:: https://img.shields.io/github/workflow/status/covid-19-impact-lab/sid/Continuous%20Integration%20Workflow/main
+   :target: https://github.com/covid-19-impact-lab/sid/actions?query=branch%3Amain
+
 .. image:: https://codecov.io/gh/covid-19-impact-lab/sid/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/covid-19-impact-lab/sid
-
-.. image:: https://img.shields.io/badge/License-MIT-yellow.svg
-    :target: https://opensource.org/licenses/MIT
-
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://github.com/psf/black
 
 .. image:: https://results.pre-commit.ci/badge/github/covid-19-impact-lab/sid/main.svg
     :target: https://results.pre-commit.ci/latest/github/covid-19-impact-lab/sid/main
     :alt: pre-commit.ci status
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/psf/black
 
 .. image:: https://sid-dev.readthedocs.io/en/latest/_static/images/interrogate_badge.svg
     :target: https://github.com/econchick/interrogate

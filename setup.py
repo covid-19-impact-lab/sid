@@ -17,14 +17,14 @@ README = Path("README.rst").read_text()
 
 
 setup(
-    name="sid",
+    name="sid-dev",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     description=DESCRIPTION,
     long_description=DESCRIPTION + "\n\n" + README,
     long_description_content_type="text/x-rst",
     license="MIT",
-    author="Gabler, Raabe, Röhrl",
+    author="Janos Gabler, Tobias Raabe, Klara Röhrl",
     author_email="janos.gabler@gmail.com",
     url=PROJECT_URLS["Github"],
     project_urls=PROJECT_URLS,
