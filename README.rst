@@ -79,11 +79,16 @@ More information can be found in the `discussion paper
 Installation
 ------------
 
-sid is available as a conda package and can be installed with
+sid is available on `PyPI <https://pypi.org/project/sid-dev>`_ and on `Anaconda.org
+<https://anaconda.org/conda-forge/sid-dev>`_ and can be installed with
 
 .. code-block:: bash
 
-    $ conda install -c covid-19-impact-lab sid
+    $ pip install sid-dev
+
+    # or
+
+    $ conda install -c conda-forge sid-dev
 
 .. end-installation
 
