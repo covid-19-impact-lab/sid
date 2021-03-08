@@ -73,7 +73,7 @@ def setup_households_w_one_infection():
 
     susceptibility_factor = np.ones(len(states))
 
-    virus_strains = {"names": ["base_strain"], "multipliers": np.ones(1)}
+    virus_strains = {"names": ["base_strain"], "factors": np.ones(1)}
 
     return (
         states,

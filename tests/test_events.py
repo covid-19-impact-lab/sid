@@ -16,7 +16,7 @@ def event_infect_n(states, params, seed, i):  # noqa: U100
 
 @pytest.mark.integration
 def test_no_events_combined_with_infections_by_contact(initial_states, params):
-    virus_strains = {"names": ["base_strain"], "multipliers": np.ones(1)}
+    virus_strains = {"names": ["base_strain"], "factors": np.ones(1)}
 
     infections_by_events, was_infected_by_event = calculate_infections_by_events(
         initial_states, params, {}, virus_strains, itertools.count()
@@ -33,7 +33,7 @@ def test_calculate_infections_by_events(initial_states, params):
         "infect_second": {"model": functools.partial(event_infect_n, i=1)},
     }
 
-    virus_strains = {"names": ["base_strain"], "multipliers": np.ones(1)}
+    virus_strains = {"names": ["base_strain"], "factors": np.ones(1)}
 
     infections, was_infected_by_event = calculate_infections_by_events(
         initial_states, params, events, virus_strains, itertools.count()

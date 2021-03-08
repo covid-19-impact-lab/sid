@@ -96,4 +96,7 @@ def factorize_categorical_infections(
             "Infections do not align with the passed virus strains:\n\n"
             f"virus_strains: {names}\ninfections: {virus_strain.cat.categories}"
         ) from e
-    return virus_strain.cat.codes, virus_strain.cat.categories
+    return (
+        virus_strain.cat.codes.to_numpy(DTYPE_VIRUS_STRAIN),
+        virus_strain.cat.categories,
+    )
