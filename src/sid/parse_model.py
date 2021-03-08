@@ -13,7 +13,7 @@ import pandas as pd
 from sid.config import DEFAULT_VIRUS_STRAINS
 from sid.config import DTYPE_VIRUS_STRAIN_CODES
 from sid.config import INITIAL_CONDITIONS
-from sid.virus_strains import factorize_multiple_boolean_or_categorical_infections
+from sid.virus_strains import factorize_initial_infections
 
 
 def parse_duration(duration: Union[Dict[str, Any], None]) -> Dict[str, Any]:
@@ -78,7 +78,7 @@ def parse_initial_conditions(
         else:
             ic["burn_in_periods"] = ic["initial_infections"].columns.sort_values()
 
-        ic["initial_infections"] = factorize_multiple_boolean_or_categorical_infections(
+        ic["initial_infections"] = factorize_initial_infections(
             ic["initial_infections"], virus_strains
         )
     elif not (

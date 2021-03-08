@@ -1,3 +1,4 @@
+import copy
 from typing import Any
 from typing import Dict
 from typing import List
@@ -13,7 +14,7 @@ def combine_first_factorized_infections(
     first: Union[pd.Series, np.ndarray], second: Union[pd.Series, np.ndarray]
 ) -> Union[pd.Series, np.ndarray]:
     """Combine factorized infections where the first has precedence."""
-    combined = second.copy()
+    combined = copy.deepcopy(second)
     combined[first >= 0] = first[first >= 0]
     return combined
 
@@ -31,7 +32,7 @@ def categorize_factorized_infections(
     )
 
 
-def factorize_multiple_boolean_or_categorical_infections(
+def factorize_initial_infections(
     infections: pd.DataFrame, virus_strains: Dict[str, Any]
 ) -> pd.DataFrame:
     """Factorize multiple boolean or categorical infections."""
