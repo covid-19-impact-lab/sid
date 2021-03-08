@@ -11,7 +11,6 @@ from typing import Union
 import numpy as np
 import pandas as pd
 from sid.config import DEFAULT_VIRUS_STRAINS
-from sid.config import DTYPE_VIRUS_STRAIN_CODES
 from sid.config import INITIAL_CONDITIONS
 from sid.virus_strains import factorize_initial_infections
 
@@ -195,9 +194,3 @@ def parse_virus_strains(virus_strains: Optional[List[str]], params: pd.DataFrame
         raise ValueError("'virus_strains' is not 'None' and not a list.")
 
     return virus_strains
-
-
-def _convert_boolean_initial_infections_to_factorized_array(s):
-    arr = np.full(len(s), -1, dtype=DTYPE_VIRUS_STRAIN_CODES)
-    arr[s] = 0
-    return arr

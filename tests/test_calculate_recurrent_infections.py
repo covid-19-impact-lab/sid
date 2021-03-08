@@ -1,8 +1,10 @@
 import numba as nb
 import numpy as np
+import pytest
 from sid.contacts import _calculate_infections_by_recurrent_contacts
 
 
+@pytest.mark.unit
 def test_recurrent_contact_infects_susceptibles_and_leaves_other_group_untouched():
     recurrent_contacts = np.array([True, True, False, True]).reshape(-1, 1)
     infectious = np.array([True, False, False, False])
@@ -48,6 +50,7 @@ def test_recurrent_contact_infects_susceptibles_and_leaves_other_group_untouched
     assert (was_infected == [-1, 0, -1, -1]).all()
 
 
+@pytest.mark.unit
 def test_infections_occur_not_in_other_recurrent_group():
     recurrent_contacts = np.array([True, True, True, True]).reshape(-1, 1)
     infectious = np.array([True, False, False, False])
@@ -138,6 +141,7 @@ def test_infections_can_be_scaled_with_multiplier():
     assert np.isclose(immune.sum(), n_individuals / 2, atol=1e2)
 
 
+@pytest.mark.unit
 def test_multiple_virus_strains_spread_in_different_recurrent_groups():
     recurrent_contacts = np.array([True, True, True, True]).reshape(-1, 1)
     infectious = np.array([True, False, True, False])

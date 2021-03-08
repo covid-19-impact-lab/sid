@@ -1,4 +1,3 @@
-import copy
 from typing import Any
 from typing import Dict
 from typing import List
@@ -11,10 +10,10 @@ from sid.config import DTYPE_VIRUS_STRAIN
 
 
 def combine_first_factorized_infections(
-    first: Union[pd.Series, np.ndarray], second: Union[pd.Series, np.ndarray]
-) -> Union[pd.Series, np.ndarray]:
+    first: np.ndarray, second: np.ndarray
+) -> np.ndarray:
     """Combine factorized infections where the first has precedence."""
-    combined = copy.deepcopy(second)
+    combined = second.copy()
     combined[first >= 0] = first[first >= 0]
     return combined
 

@@ -248,6 +248,7 @@ def test_create_initial_immunity(immunity, infected_or_immune, expectation, expe
             assert out == expected
 
 
+@pytest.mark.integration
 def test_scale_and_spread_initial_infections_w_testing_models(initial_states, params):
     """Testing models can be used to replicate the share_known_cases.
 

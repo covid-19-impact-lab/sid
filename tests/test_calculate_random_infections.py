@@ -1,8 +1,10 @@
 import numba as nb
 import numpy as np
+import pytest
 from sid.contacts import _calculate_infections_by_random_contacts
 
 
+@pytest.mark.unit
 def test_random_contact_infects_susceptibles():
     """Individual infects random contacts within its and across groups."""
     random_contacts = np.array([2, 1, 1]).reshape(-1, 1)
@@ -53,6 +55,7 @@ def test_random_contact_infects_susceptibles():
     assert (was_infected == [-1, 0, 0]).all()
 
 
+@pytest.mark.unit
 def test_random_contact_immune_and_people_without_contacts_are_not_infected():
     """Infections do not occur for immune random contacts and those without contacts."""
     random_contacts = np.array([10, 10, 0, 10, 0]).reshape(-1, 1)
@@ -104,6 +107,7 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
     assert (was_infected == [-1, -1, -1, -1, -1]).all()
 
 
+@pytest.mark.unit
 def test_multiple_virus_strains_spread_in_different_random_groups():
     random_contacts = np.array([1, 1, 1, 1]).reshape(-1, 1)
     infectious = np.array([True, False, True, False])

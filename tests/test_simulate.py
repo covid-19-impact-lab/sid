@@ -268,6 +268,7 @@ def test_skipping_factorization_of_assort_by_variable_works(
     assert "group_codes_households" not in last_states
 
 
+@pytest.mark.unit
 @pytest.mark.parametrize(
     "model, states, expectation, expected",
     [

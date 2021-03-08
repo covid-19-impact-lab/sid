@@ -7,6 +7,7 @@ from sid.virus_strains import factorize_boolean_or_categorical_infections
 from sid.virus_strains import factorize_categorical_infections
 
 
+@pytest.mark.unit
 @pytest.mark.parametrize(
     "virus_strain, names, expectation, expected_values, expected_categories",
     [
@@ -50,6 +51,7 @@ def test_factorize_categorical_infections(
         assert (categories == expected_categories).all()
 
 
+@pytest.mark.unit
 @pytest.mark.parametrize(
     "infected, names, expectation, expected_values, expected_categories",
     [
@@ -100,6 +102,7 @@ def test_factorize_boolean_infections(
         assert (categories == expected_categories).all()
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     "infections, virus_strains, expectation, expected_values",
     [
