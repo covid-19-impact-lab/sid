@@ -69,21 +69,29 @@ def test_parse_duration(duration, expectation, expected):
             pd.Timestamp("2020-01-02"),
             {"names": ["base_strain"], "factors": np.ones(1)},
             does_not_raise(),
-            {**INITIAL_CONDITIONS},
+            {**INITIAL_CONDITIONS, "virus_shares": {"base_strain": 1.0}},
         ),
         (
             {"assort_by": ["region"]},
             pd.Timestamp("2020-01-02"),
             {"names": ["base_strain"], "factors": np.ones(1)},
             does_not_raise(),
-            {**INITIAL_CONDITIONS, "assort_by": ["region"]},
+            {
+                **INITIAL_CONDITIONS,
+                "assort_by": ["region"],
+                "virus_shares": {"base_strain": 1.0},
+            },
         ),
         (
             {"assort_by": "region"},
             pd.Timestamp("2020-01-02"),
             {"names": ["base_strain"], "factors": np.ones(1)},
             does_not_raise(),
-            {**INITIAL_CONDITIONS, "assort_by": ["region"]},
+            {
+                **INITIAL_CONDITIONS,
+                "assort_by": ["region"],
+                "virus_shares": {"base_strain": 1.0},
+            },
         ),
         (
             {"growth_rate": 0},
