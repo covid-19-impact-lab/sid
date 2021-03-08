@@ -1,11 +1,12 @@
 import functools
+import itertools
 
 import pandas as pd
 import pytest
 from sid.events import calculate_infections_by_events
 
 
-def event_infect_n(states, params, i):  # noqa: U100
+def event_infect_n(states, params, seed, i):  # noqa: U100
     s = pd.Series(index=states.index, data=False)
     s.iloc[i] = True
 
@@ -15,7 +16,7 @@ def event_infect_n(states, params, i):  # noqa: U100
 @pytest.mark.integration
 def test_no_events_combined_with_infections_by_contact(initial_states, params):
     infections_by_events, was_infected_by_event = calculate_infections_by_events(
-        initial_states, params, {}
+        initial_states, params, {}, itertools.count()
     )
 
     assert not infections_by_events.any()
@@ -30,7 +31,7 @@ def test_calculate_infections_by_events(initial_states, params):
     }
 
     infections, was_infected_by_event = calculate_infections_by_events(
-        initial_states, params, events
+        initial_states, params, events, itertools.count()
     )
 
     expected = pd.Series(data=False, index=initial_states.index)

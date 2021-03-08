@@ -46,16 +46,20 @@ This key is optional.
 ``"model"``
 ^^^^^^^^^^^
 
-A model is a function which receives ``states`` and ``params`` and returns a boolean
-series where new infections are marked with ``True``. The new infections per day from
-contacts and multiple events are merged with a logical OR.
+A model is a function which receives ``states``, ``params``, and a ``seed`` and returns
+a boolean series where new infections are marked with ``True``. The new infections per
+day from contacts and multiple events are merged with a logical OR.
 
 .. code-block:: python
+
+    import numpy as np
+    import pandas as pd
 
     from sid import get_date
 
 
-    def carnival_session(states, params):
+    def carnival_session(states, params, seed):
+        np.random.seed(seed)
         date = get_date(states)  # Helper to get the current date from states.
         date_of_carnival_session = pd.Timestamp("2020-02-15")
 
