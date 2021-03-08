@@ -178,18 +178,18 @@ def parse_virus_strains(virus_strains: Optional[List[str]], params: pd.DataFrame
             raise ValueError("The list of 'virus_strains' cannot be empty.")
 
         sorted_strains = sorted(virus_strains)
-        multipliers = np.array(
+        factors = np.array(
             [
                 params.loc[("virus_strain", name, "factor"), "value"]
                 for name in sorted_strains
             ]
         )
-        multipliers = multipliers / multipliers.max()
+        factors = factors / factors.max()
 
-        if any(multipliers < 0):
+        if any(factors < 0):
             raise ValueError("Factors of 'virus_strains' cannot be smaller than 0.")
 
-        virus_strains = {"names": sorted_strains, "multipliers": multipliers}
+        virus_strains = {"names": sorted_strains, "factors": factors}
 
     else:
         raise ValueError("'virus_strains' is not 'None' and not a list.")

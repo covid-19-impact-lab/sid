@@ -24,7 +24,7 @@ def test_random_contact_infects_susceptibles():
     assortative_matching_cum_probs.append(np.array([0.8, 0.2, 1, 0]).reshape(2, 2))
 
     virus_strain = np.array([0, -1, -1])
-    virus_strains_multipliers = np.array([1])
+    contagiousness_factor = np.array([1])
 
     (
         newly_infected,
@@ -41,7 +41,7 @@ def test_random_contact_infects_susceptibles():
         assortative_matching_cum_probs,
         indexers,
         susceptibility_factor,
-        virus_strains_multipliers,
+        contagiousness_factor,
         infection_counter,
         0,
     )
@@ -74,7 +74,7 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
     assortative_matching_cum_probs.append(np.array([0.5, 0.5, 0.5, 0.5]).reshape(2, 2))
 
     virus_strain = np.array([0, -1, -1, -1, -1])
-    virus_strains_multipliers = np.array([1])
+    contagiousness_factor = np.array([1])
 
     (
         newly_infected,
@@ -91,7 +91,7 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
         assortative_matching_cum_probs,
         indexers,
         susceptibility_factor,
-        virus_strains_multipliers,
+        contagiousness_factor,
         infection_counter,
         0,
     )
@@ -124,7 +124,7 @@ def test_multiple_virus_strains_spread_in_different_random_groups():
     assortative_matching_cum_probs.append(np.array([1, 0, 0, 1]).reshape(2, 2))
 
     virus_strain = np.array([0, -1, 1, -1])
-    virus_strains_multipliers = np.array([1, 1])
+    contagiousness_factor = np.array([1, 1])
 
     (
         newly_infected,
@@ -141,7 +141,7 @@ def test_multiple_virus_strains_spread_in_different_random_groups():
         assortative_matching_cum_probs,
         indexers,
         susceptibility_factor,
-        virus_strains_multipliers,
+        contagiousness_factor,
         infection_counter,
         0,
     )

@@ -21,7 +21,7 @@ def test_recurrent_contact_infects_susceptibles_and_leaves_other_group_untouched
     susceptibility_factor = np.ones(len(recurrent_contacts))
 
     virus_strain = np.array([0, -1, -1, -1])
-    virus_strains_multipliers = np.array([1])
+    contagiousness_factor = np.array([1])
 
     (
         newly_infected,
@@ -37,7 +37,7 @@ def test_recurrent_contact_infects_susceptibles_and_leaves_other_group_untouched
         indexers,
         infection_probabilities,
         susceptibility_factor,
-        virus_strains_multipliers,
+        contagiousness_factor,
         infection_counter,
         0,
     )
@@ -66,7 +66,7 @@ def test_infections_occur_not_in_other_recurrent_group():
     susceptibility_factor = np.ones(len(recurrent_contacts))
 
     virus_strain = np.array([0, -1, -1])
-    virus_strains_multipliers = np.array([1])
+    contagiousness_factor = np.array([1])
 
     (
         newly_infected,
@@ -82,7 +82,7 @@ def test_infections_occur_not_in_other_recurrent_group():
         indexers,
         infection_probabilities,
         susceptibility_factor,
-        virus_strains_multipliers,
+        contagiousness_factor,
         infection_counter,
         0,
     )
@@ -112,7 +112,7 @@ def test_infections_can_be_scaled_with_multiplier():
     susceptibility_factor = np.full(n_individuals, 0.5)
 
     virus_strain = np.array([0] + [-1] * (n_individuals - 1))
-    virus_strains_multipliers = np.array([1])
+    contagiousness_factor = np.array([1])
 
     (
         newly_infected,
@@ -128,7 +128,7 @@ def test_infections_can_be_scaled_with_multiplier():
         indexers,
         infection_probabilities,
         susceptibility_factor,
-        virus_strains_multipliers,
+        contagiousness_factor,
         infection_counter,
         0,
     )
@@ -156,7 +156,7 @@ def test_multiple_virus_strains_spread_in_different_recurrent_groups():
     susceptibility_factor = np.ones(len(recurrent_contacts))
 
     virus_strain = np.array([0, -1, 1, -1])
-    virus_strains_multipliers = np.array([1, 1])
+    contagiousness_factor = np.array([1, 1])
 
     (
         newly_infected,
@@ -172,7 +172,7 @@ def test_multiple_virus_strains_spread_in_different_recurrent_groups():
         indexers,
         infection_probabilities,
         susceptibility_factor,
-        virus_strains_multipliers,
+        contagiousness_factor,
         infection_counter,
         0,
     )

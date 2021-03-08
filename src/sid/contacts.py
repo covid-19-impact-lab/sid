@@ -299,7 +299,7 @@ def _calculate_infections_by_recurrent_contacts(
     indexers: nb.typed.List,
     infection_probs: np.ndarray,
     susceptibility_factor: np.ndarray,
-    virus_strains_multipliers: np.ndarray,
+    contagiousness_factor: np.ndarray,
     infection_counter: np.ndarray,
     seed: int,
 ) -> Tuple[np.ndarray]:
@@ -355,17 +355,21 @@ def _calculate_infections_by_recurrent_contacts(
             if group_i >= 0 and infectious[i] and recurrent_contacts[i, cm] > 0:
                 others = indexers[cm][group_i]
                 # extract infection probability into a variable for faster access
-                prob = infection_probs[cm]
+                base_probability = infection_probs[cm]
                 for j in others:
                     # the case i == j is skipped by the next if condition because it
                     # never happens that i is infectious but not immune
                     if not immune[j] and recurrent_contacts[j, cm] > 0:
                         # j is infected depending on its own susceptibility.
                         virus_strain_i = virus_strain[i]
-                        virus_multiplier_i = virus_strains_multipliers[virus_strain_i]
-                        is_infection = boolean_choice(
-                            prob * susceptibility_factor[j] * virus_multiplier_i
+                        contagiousness_factor_i = contagiousness_factor[virus_strain_i]
+                        individual_infection_risk = (
+                            base_probability
+                            * susceptibility_factor[j]
+                            * contagiousness_factor_i
                         )
+
+                        is_infection = boolean_choice(individual_infection_risk)
                         if is_infection:
                             infection_counter[i] += 1
                             newly_infected[j] = virus_strain_i
@@ -385,7 +389,7 @@ def _calculate_infections_by_random_contacts(
     assortative_matching_cum_probs: nb.typed.List,
     indexers: nb.typed.List,
     susceptibility_factor: np.ndarray,
-    virus_strains_multipliers: np.ndarray,
+    contagiousness_factor: np.ndarray,
     infection_counter: np.ndarray,
     seed: int,
 ) -> Tuple[np.ndarray]:
@@ -409,7 +413,7 @@ def _calculate_infections_by_random_contacts(
             model.
         susceptibility_factor (np.ndarray): A multiplier which scales the infection
             probability.
-        virus_strains_multipliers
+        contagiousness_factor
         infection_counter (numpy.ndarray): An array counting infection caused by an
             individual.
         seed (int): Seed value to control randomness.
@@ -459,9 +463,13 @@ def _calculate_infections_by_random_contacts(
 
                     if infectious[i] and not immune[j]:
                         virus_strain_i = virus_strain[i]
-                        virus_multiplier_i = virus_strains_multipliers[virus_strain_i]
+                        contagiousness_factor_i = contagiousness_factor[virus_strain_i]
+                        adjusted_individual_infection_risk_j = (
+                            susceptibility_factor[j] * contagiousness_factor_i
+                        )
+
                         is_infection = boolean_choice(
-                            susceptibility_factor[j] * virus_multiplier_i
+                            adjusted_individual_infection_risk_j
                         )
                         if is_infection:
                             infection_counter[i] += 1
@@ -471,9 +479,13 @@ def _calculate_infections_by_random_contacts(
 
                     elif infectious[j] and not immune[i]:
                         virus_strain_j = virus_strain[j]
-                        virus_multiplier_j = virus_strains_multipliers[virus_strain_j]
+                        contagiousness_factor_j = contagiousness_factor[virus_strain_j]
+                        adjusted_individual_infection_risk_i = (
+                            susceptibility_factor[i] * contagiousness_factor_j
+                        )
+
                         is_infection = boolean_choice(
-                            susceptibility_factor[i] * virus_multiplier_j
+                            adjusted_individual_infection_risk_i
                         )
                         if is_infection:
                             infection_counter[j] += 1
