@@ -68,7 +68,7 @@ INITIAL_CONDITIONS = {
     "known_cases_multiplier": 1,
     "initial_infections": 0.01,
     "initial_immunity": None,
-    "virus_shares": {"base_strain": 1},
+    "virus_shares": None,
 }
 
 
