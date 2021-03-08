@@ -30,6 +30,8 @@ all releases are available on `Anaconda.org
   the initial conditions.
 - :gh:`84` does some clean up in the matching algorithm.
 - :gh:`85` adds seeds to events.
+- :gh:`86` renames the package such that it is published on PyPI and Anaconda as
+  sid-dev.
 
 
 0.0.1 - 2021-01-05
