@@ -15,6 +15,7 @@ from typing import Union
 import numba as nb
 import numpy as np
 import pandas as pd
+from sid.config import DTYPE_VIRUS_STRAIN
 from sid.contacts import boolean_choice
 from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
@@ -129,6 +130,7 @@ def sample_initial_distribution_of_infections_and_immunity(
     testing_demand_models: Dict[str, Dict[str, Any]],
     testing_allocation_models: Dict[str, Dict[str, Any]],
     testing_processing_models: Dict[str, Dict[str, Any]],
+    virus_strains: Dict[str, Any],
     seed: itertools.count,
 ):
     """Sample the initial distribution of infections and immunity.
@@ -183,6 +185,12 @@ def sample_initial_distribution_of_infections_and_immunity(
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
               number of cases.
+            - ``virus_shares`` (Union[dict, pandas.Series]): A mapping between the names
+              of the virus strains and their share among newly infected individuals in
+              each burn-in period.
+        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
+            ``"factors"`` holding the different contagiousness factors of multiple
+            viruses.
         seed (itertools.count): The seed counter.
 
     Returns:
@@ -211,8 +219,13 @@ def sample_initial_distribution_of_infections_and_immunity(
             seed=next(seed),
         )
 
+        spread_out_virus_strains = _sample_factorized_virus_strains_for_infections(
+            spread_out_infections,
+            initial_conditions["virus_shares"],
+        )
+
     else:
-        spread_out_infections = initial_conditions["initial_infections"]
+        spread_out_virus_strains = initial_conditions["initial_infections"]
 
     for burn_in_date in initial_conditions["burn_in_periods"]:
 
@@ -231,10 +244,11 @@ def sample_initial_distribution_of_infections_and_immunity(
 
         states = update_states(
             states=states,
-            newly_infected_contacts=spread_out_infections[burn_in_date],
-            newly_infected_events=spread_out_infections[burn_in_date],
+            newly_infected_contacts=spread_out_virus_strains[burn_in_date],
+            newly_infected_events=spread_out_virus_strains[burn_in_date],
             params=params,
             to_be_processed_tests=to_be_processed_tests,
+            virus_strains=virus_strains,
             seed=seed,
         )
 
@@ -372,6 +386,34 @@ def _spread_out_initial_infections(
     )
 
     return spread_infections
+
+
+def _sample_factorized_virus_strains_for_infections(
+    spread_out_infections: pd.DataFrame,
+    virus_shares: Dict[str, Any],
+) -> pd.DataFrame:
+    """Convert boolean infections to factorized virus strains."""
+    spread_out_virus_strains = pd.DataFrame(
+        data=-1,
+        index=spread_out_infections.index,
+        columns=spread_out_infections.columns,
+        dtype=DTYPE_VIRUS_STRAIN,
+    )
+
+    virus_strain_factors = list(range(len(virus_shares)))
+    probabilities = list(virus_shares.values())
+
+    for column in spread_out_infections.columns:
+        n_infected = spread_out_infections[column].sum()
+        if 1 <= n_infected:
+            sampled_virus_strains = np.random.choice(
+                virus_strain_factors, p=probabilities, size=n_infected
+            )
+            spread_out_virus_strains.loc[
+                spread_out_infections[column], column
+            ] = sampled_virus_strains
+
+    return spread_out_virus_strains
 
 
 def _integrate_immune_individuals(

@@ -8,13 +8,16 @@ import numba as nb
 import numpy as np
 import pandas as pd
 from numba.typed import List as NumbaList
+from sid.config import DTYPE_CONTACT_MODEL_CODES
 from sid.config import DTYPE_INDEX
-from sid.config import DTYPE_INFECTED
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_N_CONTACTS
+from sid.config import DTYPE_VIRUS_STRAIN
 from sid.shared import boolean_choice
 from sid.shared import separate_contact_model_names
 from sid.validation import validate_return_is_series_or_ndarray
+from sid.virus_strains import combine_first_factorized_infections
+from sid.virus_strains import factorize_categorical_infections
 
 
 def calculate_contacts(
@@ -103,7 +106,8 @@ def calculate_infections_by_contacts(
     assortative_matching_cum_probs: nb.typed.List,
     contact_models: Dict[str, Dict[str, Any]],
     group_codes_info: Dict[str, Dict[str, Any]],
-    infection_probability_multiplier: np.ndarray,
+    susceptibility_factor: np.ndarray,
+    virus_strains: Dict[str, Any],
     seed: itertools.count,
 ) -> Tuple[pd.Series, pd.Series, pd.DataFrame]:
     """Calculate infections from contacts.
@@ -131,8 +135,11 @@ def calculate_infections_by_contacts(
         contact_models (Dict[str, Dict[str, Any]]): The contact models.
         group_codes_info (Dict[str, Dict[str, Any]]): The name of the group code column
             for each contact model.
-        infection_probability_multiplier (np.ndarray): A multiplier which scales the
-            infection probability.
+        susceptibility_factor (np.ndarray): A multiplier which scales the infection
+            probability.
+        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
+            ``"factors"`` holding the different contagiousness factors of multiple
+            viruses.
         seed (itertools.count): Seed counter to control randomness.
 
     Returns:
@@ -149,6 +156,9 @@ def calculate_infections_by_contacts(
     states = states.copy()
     infectious = states["infectious"].to_numpy(copy=True)
     immune = states["immune"].to_numpy(copy=True)
+    virus_strain, _ = factorize_categorical_infections(
+        states["virus_strain"], virus_strains["names"]
+    )
 
     recurrent_models, random_models = separate_contact_model_names(contact_models)
 
@@ -178,16 +188,18 @@ def calculate_infections_by_contacts(
             recurrent_contacts,
             infectious,
             immune,
+            virus_strain,
             group_codes_recurrent,
             indexers["recurrent"],
             infection_probabilities_recurrent,
-            infection_probability_multiplier,
+            susceptibility_factor,
+            virus_strains["factors"],
             infection_counter,
             next(seed),
         )
     else:
         was_infected_by_recurrent = None
-        newly_infected_recurrent = np.full(len(states), False)
+        newly_infected_recurrent = np.full(len(states), -1, dtype=DTYPE_VIRUS_STRAIN)
 
     if random_models:
         random_contacts = _reduce_random_contacts_with_infection_probs(
@@ -204,10 +216,12 @@ def calculate_infections_by_contacts(
             random_contacts,
             infectious,
             immune,
+            virus_strain,
             group_codes_random,
             assortative_matching_cum_probs,
             indexers["random"],
-            infection_probability_multiplier,
+            susceptibility_factor,
+            virus_strains["factors"],
             infection_counter,
             next(seed),
         )
@@ -218,16 +232,18 @@ def calculate_infections_by_contacts(
     else:
         missed_contacts = None
         was_infected_by_random = None
-        newly_infected_random = np.full(len(states), False)
+        newly_infected_random = np.full(len(states), -1, dtype=DTYPE_VIRUS_STRAIN)
 
     was_infected_by = _consolidate_reason_of_infection(
         was_infected_by_recurrent, was_infected_by_random, contact_models
     )
     was_infected_by.index = states.index
     n_has_additionally_infected = pd.Series(infection_counter, index=states.index)
-    newly_infected = pd.Series(
-        newly_infected_recurrent | newly_infected_random, index=states.index
+
+    combined_newly_infected = combine_first_factorized_infections(
+        newly_infected_recurrent, newly_infected_random
     )
+    newly_infected = pd.Series(combined_newly_infected, index=states.index)
 
     return newly_infected, n_has_additionally_infected, missed_contacts, was_infected_by
 
@@ -239,9 +255,10 @@ def _reduce_random_contacts_with_infection_probs(
     """Reduce the number of random contacts stochastically.
 
     The remaining random contacts have the interpretation that they would lead to an
-    infection if one person is infectious and the other person is susceptible and has
-    the highest susceptibility in the population according to the
-    ``infection_probability_multiplier``.
+    infection if one person is infectious and the other person is susceptible, the
+    person has the highest susceptibility in the population according to the
+    ``susceptibility_factor``, and the infected person is affected by the
+    most contagious virus strain according to the ``virus_strain``.
 
     The copy is necessary as we need the original random contacts for debugging.
 
@@ -277,10 +294,12 @@ def _calculate_infections_by_recurrent_contacts(
     recurrent_contacts: np.ndarray,
     infectious: np.ndarray,
     immune: np.ndarray,
+    virus_strain: np.ndarray,
     group_codes: np.ndarray,
     indexers: nb.typed.List,
     infection_probs: np.ndarray,
-    infection_probability_multiplier: np.ndarray,
+    susceptibility_factor: np.ndarray,
+    contagiousness_factor: np.ndarray,
     infection_counter: np.ndarray,
     seed: int,
 ) -> Tuple[np.ndarray]:
@@ -293,6 +312,7 @@ def _calculate_infections_by_recurrent_contacts(
         infectious (numpy.ndarray): 1d boolean array that indicates if a person is
             infectious. This is not directly changed after an infection.
         immune (numpy.ndarray): 1d boolean array that indicates if a person is immune.
+        virus_strain (numpy.ndarray)
         group_codes (numpy.ndarray): 2d integer array with the index of the group used
             in the first stage of matching.
         indexers (numba.typed.List): Nested typed list. The i_th entry of the inner
@@ -300,8 +320,9 @@ def _calculate_infections_by_recurrent_contacts(
             model.
         infection_probs (numpy.ndarray): An array containing the infection probabilities
             for each recurrent contact model.
-        infection_probability_multiplier (np.ndarray): A multiplier which scales the
-            infection probability.
+        susceptibility_factor (np.ndarray): A multiplier which scales the infection
+            probability.
+        virus_strains_multiplier
         infection_counter (numpy.ndarray): An array counting infection caused by an
             individual.
         seed (int): Seed value to control randomness.
@@ -321,8 +342,8 @@ def _calculate_infections_by_recurrent_contacts(
     np.random.seed(seed)
 
     n_individuals, n_recurrent_contact_models = recurrent_contacts.shape
-    was_infected_by = np.full(n_individuals, -1, dtype=np.int16)
-    newly_infected = np.zeros(n_individuals, dtype=DTYPE_INFECTED)
+    was_infected_by = np.full(n_individuals, -1, dtype=DTYPE_CONTACT_MODEL_CODES)
+    newly_infected = np.full(n_individuals, -1, dtype=DTYPE_VIRUS_STRAIN)
 
     for i in range(n_individuals):
         for cm in range(n_recurrent_contact_models):
@@ -334,17 +355,24 @@ def _calculate_infections_by_recurrent_contacts(
             if group_i >= 0 and infectious[i] and recurrent_contacts[i, cm] > 0:
                 others = indexers[cm][group_i]
                 # extract infection probability into a variable for faster access
-                prob = infection_probs[cm]
+                base_probability = infection_probs[cm]
                 for j in others:
                     # the case i == j is skipped by the next if condition because it
                     # never happens that i is infectious but not immune
                     if not immune[j] and recurrent_contacts[j, cm] > 0:
                         # j is infected depending on its own susceptibility.
-                        multiplier = infection_probability_multiplier[j]
-                        is_infection = boolean_choice(prob * multiplier)
+                        virus_strain_i = virus_strain[i]
+                        contagiousness_factor_i = contagiousness_factor[virus_strain_i]
+                        individual_infection_risk = (
+                            base_probability
+                            * susceptibility_factor[j]
+                            * contagiousness_factor_i
+                        )
+
+                        is_infection = boolean_choice(individual_infection_risk)
                         if is_infection:
                             infection_counter[i] += 1
-                            newly_infected[j] = True
+                            newly_infected[j] = virus_strain_i
                             immune[j] = True
                             was_infected_by[j] = cm
 
@@ -356,10 +384,12 @@ def _calculate_infections_by_random_contacts(
     random_contacts: np.ndarray,
     infectious: np.ndarray,
     immune: np.ndarray,
+    virus_strain: np.ndarray,
     group_codes: np.ndarray,
     assortative_matching_cum_probs: nb.typed.List,
     indexers: nb.typed.List,
-    infection_probability_multiplier: np.ndarray,
+    susceptibility_factor: np.ndarray,
+    contagiousness_factor: np.ndarray,
     infection_counter: np.ndarray,
     seed: int,
 ) -> Tuple[np.ndarray]:
@@ -372,6 +402,7 @@ def _calculate_infections_by_random_contacts(
         infectious (numpy.ndarray): 1d boolean array that indicates if a person is
             infectious. This is not directly changed after an infection.
         immune (numpy.ndarray): 1d boolean array that indicates if a person is immune.
+        virus_strain
         group_codes (numpy.ndarray): 2d integer array with the index of the group used
             in the first stage of matching.
         assortative_matching_cum_probs (numba.typed.List): List of arrays of shape
@@ -380,8 +411,9 @@ def _calculate_infections_by_random_contacts(
         indexers (numba.typed.List): Nested typed list. The i_th entry of the inner
             lists are the indices of the i_th group. There is one inner list per contact
             model.
-        infection_probability_multiplier (np.ndarray): A multiplier which scales the
-            infection probability.
+        susceptibility_factor (np.ndarray): A multiplier which scales the infection
+            probability.
+        contagiousness_factor
         infection_counter (numpy.ndarray): An array counting infection caused by an
             individual.
         seed (int): Seed value to control randomness.
@@ -399,8 +431,8 @@ def _calculate_infections_by_random_contacts(
 
     n_individuals, n_random_contact_models = random_contacts.shape
     groups_list = [np.arange(len(gp)) for gp in assortative_matching_cum_probs]
-    was_infected_by = np.full(n_individuals, -1, dtype=np.int16)
-    newly_infected = np.zeros(n_individuals, dtype=DTYPE_INFECTED)
+    was_infected_by = np.full(n_individuals, -1, dtype=DTYPE_CONTACT_MODEL_CODES)
+    newly_infected = np.full(n_individuals, -1, dtype=DTYPE_VIRUS_STRAIN)
 
     # Loop over all individual-contact_model combinations
     for i in range(n_individuals):
@@ -430,22 +462,34 @@ def _calculate_infections_by_random_contacts(
                     random_contacts[j, cm] -= 1
 
                     if infectious[i] and not immune[j]:
+                        virus_strain_i = virus_strain[i]
+                        contagiousness_factor_i = contagiousness_factor[virus_strain_i]
+                        adjusted_individual_infection_risk_j = (
+                            susceptibility_factor[j] * contagiousness_factor_i
+                        )
+
                         is_infection = boolean_choice(
-                            infection_probability_multiplier[j]
+                            adjusted_individual_infection_risk_j
                         )
                         if is_infection:
                             infection_counter[i] += 1
-                            newly_infected[j] = True
+                            newly_infected[j] = virus_strain_i
                             immune[j] = True
                             was_infected_by[j] = cm
 
                     elif infectious[j] and not immune[i]:
+                        virus_strain_j = virus_strain[j]
+                        contagiousness_factor_j = contagiousness_factor[virus_strain_j]
+                        adjusted_individual_infection_risk_i = (
+                            susceptibility_factor[i] * contagiousness_factor_j
+                        )
+
                         is_infection = boolean_choice(
-                            infection_probability_multiplier[i]
+                            adjusted_individual_infection_risk_i
                         )
                         if is_infection:
                             infection_counter[j] += 1
-                            newly_infected[i] = True
+                            newly_infected[i] = virus_strain_j
                             immune[i] = True
                             was_infected_by[i] = cm
 
