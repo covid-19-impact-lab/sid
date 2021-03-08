@@ -166,8 +166,8 @@ def parse_virus_strains(virus_strains: Optional[List[str]], params: pd.DataFrame
         virus_strains (Dict[str, Any]): A dictionary with two keys.
 
         - ``"names"`` holds the sorted names of the virus strains.
-        - ``"multipliers"`` holds the multipliers for the contagiousness of the viruses
-          scaled between 0 and 1.
+        - ``"factors"`` holds the factors for the contagiousness of the viruses scaled
+          between 0 and 1.
 
     """
     if virus_strains is None:
@@ -180,19 +180,19 @@ def parse_virus_strains(virus_strains: Optional[List[str]], params: pd.DataFrame
         sorted_strains = sorted(virus_strains)
         multipliers = np.array(
             [
-                params.loc[("virus_strain", name, "multiplier"), "value"]
+                params.loc[("virus_strain", name, "factor"), "value"]
                 for name in sorted_strains
             ]
         )
         multipliers = multipliers / multipliers.max()
 
         if any(multipliers < 0):
-            raise ValueError("Multipliers of 'virus_strains' cannot be <0.")
+            raise ValueError("Factors of 'virus_strains' cannot be smaller than 0.")
 
         virus_strains = {"names": sorted_strains, "multipliers": multipliers}
 
     else:
-        raise ValueError("'virus_strains' is not None and not a list.")
+        raise ValueError("'virus_strains' is not 'None' and not a list.")
 
     return virus_strains
 

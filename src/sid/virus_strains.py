@@ -21,6 +21,7 @@ def combine_first_factorized_infections(
 def categorize_factorized_infections(
     factorized_infections: Union[pd.Series, np.ndarray], virus_strains: Dict[str, Any]
 ) -> pd.Series:
+    """Convert factorized infections with virus strains to a categorical."""
     return pd.Series(
         pd.Categorical(
             factorized_infections, categories=range(-1, len(virus_strains["names"]))
@@ -54,32 +55,33 @@ def factorize_multiple_boolean_or_categorical_infections(
 
 
 def factorize_boolean_or_categorical_infections(infections, virus_strains):
-    if infections.dtype == np.bool:
-        values, categories = _factorize_boolean_infections(infections)
-    elif infections.dtype == "category":
-        values, categories = factorize_categorical_infections(
-            infections, virus_strains["names"]
-        )
+    """Factorize boolean or categorical infections."""
+    if pd.core.dtypes.common.is_bool_dtype(infections):
+        values, _ = _factorize_boolean_infections(infections, virus_strains["names"])
+    elif pd.core.dtypes.common.is_categorical_dtype(infections):
+        values, _ = factorize_categorical_infections(infections, virus_strains["names"])
     else:
         raise ValueError(
             "Unknown dtype of infections. Can only handle 'bool' and 'category'"
-        )
-
-    if not (categories == virus_strains["names"]).all():
-        raise ValueError(
-            "Infections do not align with the passed virus strains:\n\n"
-            f"virus_strains: {virus_strains['names']}\nparsed: {categories}"
         )
 
     return values
 
 
 def _factorize_boolean_infections(
-    infected: Union[pd.Series, np.ndarray]
+    infected: Union[pd.Series, np.ndarray], names: List[str]
 ) -> Tuple[np.ndarray]:
+    """Factorize boolean infection."""
+    if len(names) > 1:
+        raise ValueError(
+            f"Boolean infections must correspond to one virus strain, but got {names}."
+        )
+    if infected.dtype.name != "bool":
+        raise ValueError("Infections must have a bool dtype.")
+
     values = np.full(len(infected), -1, dtype=DTYPE_VIRUS_STRAIN)
     values[infected] = 0
-    categories = np.array(["base_strain"])
+    categories = np.array(names[:1])
     return values, categories
 
 
@@ -87,7 +89,11 @@ def factorize_categorical_infections(
     virus_strain: pd.Series, names: List[str]
 ) -> Tuple[np.ndarray]:
     """Factorize a categorical variable indicating virus strains."""
-    virus_strain = virus_strain.cat.reorder_categories(names)
-    values, categories = pd.factorize(virus_strain, sort=True)
-    values = values.astype(DTYPE_VIRUS_STRAIN)
-    return values, categories.categories
+    try:
+        virus_strain = virus_strain.cat.reorder_categories(names)
+    except ValueError as e:
+        raise ValueError(
+            "Infections do not align with the passed virus strains:\n\n"
+            f"virus_strains: {names}\ninfections: {virus_strain.cat.categories}"
+        ) from e
+    return virus_strain.cat.codes, virus_strain.cat.categories

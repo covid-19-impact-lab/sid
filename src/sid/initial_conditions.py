@@ -188,6 +188,9 @@ def sample_initial_distribution_of_infections_and_immunity(
             - ``virus_shares`` (Union[dict, pandas.Series]): A mapping between the names
               of the virus strains and their share among newly infected individuals in
               each burn-in period.
+        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
+            ``"factors"`` holding the different contagiousness factors of multiple
+            viruses.
         seed (itertools.count): The seed counter.
 
     Returns:

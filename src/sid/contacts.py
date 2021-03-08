@@ -137,7 +137,9 @@ def calculate_infections_by_contacts(
             for each contact model.
         susceptibility_factor (np.ndarray): A multiplier which scales the infection
             probability.
-        virus_strains
+        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
+            ``"factors"`` holding the different contagiousness factors of multiple
+            viruses.
         seed (itertools.count): Seed counter to control randomness.
 
     Returns:
@@ -191,7 +193,7 @@ def calculate_infections_by_contacts(
             indexers["recurrent"],
             infection_probabilities_recurrent,
             susceptibility_factor,
-            virus_strains["multipliers"],
+            virus_strains["factors"],
             infection_counter,
             next(seed),
         )
@@ -219,7 +221,7 @@ def calculate_infections_by_contacts(
             assortative_matching_cum_probs,
             indexers["random"],
             susceptibility_factor,
-            virus_strains["multipliers"],
+            virus_strains["factors"],
             infection_counter,
             next(seed),
         )

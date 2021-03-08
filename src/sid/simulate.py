@@ -159,8 +159,9 @@ def get_simulate_func(
             takes the states and parameters and returns an infection probability
             multiplier for each individual.
         virus_strains (Optional[List[str]]): A list of names indicating the different
-            virus strains used in the model. Their different infectiousness is looked up
-            in the params DataFrame. By default, only one virus strain is used.
+            virus strains used in the model. Their different contagiousness factors are
+            looked up in the params DataFrame. By default, only one virus strain is
+            used.
 
     Returns:
         Callable: Simulates dataset based on parameters.
@@ -334,7 +335,8 @@ def _simulate(
             states and parameters and returns an infection probability multiplier for
             each individual.
         virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
-            ``"multipliers"``.
+            ``"factors"`` holding the different contagiousness factors of multiple
+            viruses.
 
     Returns:
         result (dict): The simulation result which includes the following keys:

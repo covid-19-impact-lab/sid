@@ -15,7 +15,10 @@ def calculate_infections_by_events(states, params, events, virus_strains, seed):
         states (pandas.DataFrame): See :ref:`states`.
         params (pandas.DataFrame): See :ref:`params`.
         events (dict): Dictionary of events which cause infections.
-        seed
+        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
+            ``"factors"`` holding the different contagiousness factors of multiple
+            viruses.
+        seed (itertools.count): The seed counter.
 
     Returns:
         newly_infected_events (pandas.Series): Series marking individuals who have been

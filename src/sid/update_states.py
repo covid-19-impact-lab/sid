@@ -34,6 +34,9 @@ def update_states(
         newly_infected_events (pandas.Series): Boolean series indicating individuals
             infected by events. There can be an overlap with infections by contacts.
         params (pandas.DataFrame): See :ref:`params`.
+        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
+            ``"factors"`` holding the different contagiousness factors of multiple
+            viruses.
         to_be_processed_tests (pandas.Series): Tests which are going to be processed.
         seed (itertools.count): Seed counter to control randomness.
 
@@ -59,6 +62,7 @@ def update_states(
 
 
 def _update_countdowns(states):
+    """Update countdowns."""
     # Reduce all existing countdowns by 1.
     for countdown in COUNTDOWNS:
         states[countdown] -= 1
@@ -78,6 +82,7 @@ def _update_countdowns(states):
 def _update_info_on_newly_infected(
     states, newly_infected_contacts, newly_infected_events, virus_strains
 ):
+    """Update information with newly infected individuals."""
     # Update states with new infections and add corresponding countdowns.
     states["newly_infected"] = (newly_infected_contacts >= 0) | (
         newly_infected_events >= 0
