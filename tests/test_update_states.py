@@ -3,6 +3,7 @@ import pytest
 from sid.config import INDEX_NAMES
 from sid.update_states import _kill_people_over_icu_limit
 from sid.update_states import _update_info_on_new_tests
+from sid.update_states import _update_info_on_new_vaccinations
 
 
 @pytest.mark.unit
@@ -89,6 +90,30 @@ def test_update_info_on_new_tests():
             "knows_infectious": [False, False, True, False],
             "cd_knows_infectious_false": [-1, -1, 5, -1],
             "cd_infectious_false": [-1, -1, 5, -1],
+        }
+    )
+
+    assert result.equals(expected)
+
+
+@pytest.mark.unit
+def test_update_info_on_new_vaccinations():
+    states = pd.DataFrame(
+        {
+            "received_vaccine": [False, False, False],
+            "cd_is_vaccinated_true": [0, -1, -1],
+            "cd_is_vaccinated_true_draws": [0, -1, 40],
+        }
+    )
+    newly_vaccinated = pd.Series([False, False, True])
+
+    result = _update_info_on_new_vaccinations(states, newly_vaccinated)
+
+    expected = pd.DataFrame(
+        {
+            "received_vaccine": [False, False, True],
+            "cd_is_vaccinated_true": [0, -1, 40],
+            "cd_is_vaccinated_true_draws": [0, -1, 40],
         }
     )
 
