@@ -102,3 +102,4 @@ cd_received_test_result_true,all,4,0.07
 cd_knows_immune_false,all,-1,1
 cd_knows_infectious_false,all,-1,1
 cd_ever_infected,all,-1,1
+cd_is_vaccinated_true,all,-1,1
