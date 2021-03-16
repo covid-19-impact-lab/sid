@@ -172,8 +172,8 @@ def _update_info_on_new_vaccinations(
     """Activate the counter for immunity by vaccinations."""
     states["newly_vaccinated"] = newly_vaccinated
     states.loc[newly_vaccinated, "ever_vaccinated"] = newly_vaccinated
-    states.loc[newly_vaccinated, "cd_is_vaccinated_true"] = states.loc[
-        newly_vaccinated, "cd_is_vaccinated_true_draws"
+    states.loc[newly_vaccinated, "cd_is_immune_by_vaccine"] = states.loc[
+        newly_vaccinated, "cd_is_immune_by_vaccine_draws"
     ]
 
     return states

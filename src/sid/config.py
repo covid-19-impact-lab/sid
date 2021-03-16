@@ -22,7 +22,7 @@ BOOLEAN_STATE_COLUMNS = [
     "newly_infected",
     "newly_deceased",
     "new_known_case",
-    "is_vaccinated",
+    "newly_vaccinated",
     "ever_vaccinated",
 ]
 

@@ -102,8 +102,8 @@ def test_update_info_on_new_vaccinations():
         {
             "newly_vaccinated": [False, False, False, False],
             "ever_vaccinated": [False, False, False, True],
-            "cd_is_vaccinated_true": [0, -1, -1, -10],
-            "cd_is_vaccinated_true_draws": [0, -1, 40, 40],
+            "cd_is_immune_by_vaccine": [0, -1, -1, -10],
+            "cd_is_immune_by_vaccine_draws": [0, -1, 40, 40],
         }
     )
     newly_vaccinated = pd.Series([False, False, True, False])
@@ -114,8 +114,8 @@ def test_update_info_on_new_vaccinations():
         {
             "newly_vaccinated": [False, False, True, False],
             "ever_vaccinated": [False, False, True, True],
-            "cd_is_vaccinated_true": [0, -1, 40, -10],
-            "cd_is_vaccinated_true_draws": [0, -1, 40, 40],
+            "cd_is_immune_by_vaccine": [0, -1, 40, -10],
+            "cd_is_immune_by_vaccine_draws": [0, -1, 40, 40],
         }
     )
 
