@@ -1,4 +1,6 @@
 import itertools
+from typing import Any
+from typing import Dict
 from typing import Optional
 
 import numpy as np
@@ -8,6 +10,8 @@ from sid.config import KNOWS_INFECTIOUS
 from sid.config import RECEIVES_POSITIVE_TEST
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.countdowns import COUNTDOWNS
+from sid.virus_strains import categorize_factorized_infections
+from sid.virus_strains import combine_first_factorized_infections
 
 
 def update_states(
@@ -15,6 +19,7 @@ def update_states(
     newly_infected_contacts: pd.Series,
     newly_infected_events: pd.Series,
     params: pd.DataFrame,
+    virus_strains: Dict[str, Any],
     to_be_processed_tests: Optional[pd.Series],
     seed: itertools.count,
 ):
@@ -29,6 +34,9 @@ def update_states(
         newly_infected_events (pandas.Series): Boolean series indicating individuals
             infected by events. There can be an overlap with infections by contacts.
         params (pandas.DataFrame): See :ref:`params`.
+        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
+            ``"factors"`` holding the different contagiousness factors of multiple
+            viruses.
         to_be_processed_tests (pandas.Series): Tests which are going to be processed.
         seed (itertools.count): Seed counter to control randomness.
 
@@ -39,7 +47,7 @@ def update_states(
     states = _update_countdowns(states)
 
     states = _update_info_on_newly_infected(
-        states, newly_infected_contacts, newly_infected_events
+        states, newly_infected_contacts, newly_infected_events, virus_strains
     )
 
     states = _kill_people_over_icu_limit(states, params, next(seed))
@@ -54,6 +62,7 @@ def update_states(
 
 
 def _update_countdowns(states):
+    """Update countdowns."""
     # Reduce all existing countdowns by 1.
     for countdown in COUNTDOWNS:
         states[countdown] -= 1
@@ -71,10 +80,21 @@ def _update_countdowns(states):
 
 
 def _update_info_on_newly_infected(
-    states, newly_infected_contacts, newly_infected_events
+    states, newly_infected_contacts, newly_infected_events, virus_strains
 ):
+    """Update information with newly infected individuals."""
     # Update states with new infections and add corresponding countdowns.
-    states["newly_infected"] = newly_infected_contacts | newly_infected_events
+    states["newly_infected"] = (newly_infected_contacts >= 0) | (
+        newly_infected_events >= 0
+    )
+
+    combined_newly_infected = combine_first_factorized_infections(
+        newly_infected_contacts, newly_infected_events
+    )
+    newly_virus_strain = categorize_factorized_infections(
+        combined_newly_infected, virus_strains
+    )
+    states["virus_strain"] = states["virus_strain"].fillna(newly_virus_strain)
 
     locs = states["newly_infected"]
     states.loc[states["newly_infected"], "immune"] = True

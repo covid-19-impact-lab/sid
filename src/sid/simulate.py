@@ -33,13 +33,13 @@ from sid.initial_conditions import (
 from sid.matching_probabilities import create_cumulative_group_transition_probabilities
 from sid.parse_model import parse_duration
 from sid.parse_model import parse_initial_conditions
+from sid.parse_model import parse_virus_strains
 from sid.pathogenesis import draw_course_of_disease
 from sid.shared import factorize_assortative_variables
 from sid.shared import separate_contact_model_names
 from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
-from sid.validation import validate_initial_conditions
 from sid.validation import validate_initial_states
 from sid.validation import validate_models
 from sid.validation import validate_params
@@ -64,7 +64,8 @@ def get_simulate_func(
     path: Union[str, Path, None] = None,
     saved_columns: Optional[Dict[str, Union[bool, str, List[str]]]] = None,
     initial_conditions: Optional[Dict[str, Any]] = None,
-    infection_probability_multiplier_model: Callable = None,
+    susceptibility_factor_model: Optional[Callable] = None,
+    virus_strains: Optional[List[str]] = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -151,9 +152,16 @@ def get_simulate_func(
               initial infections while keeping shares between ``assort_by`` variables
               constant. This is helpful if official numbers are underreporting the
               number of cases.
-        infection_probability_multiplier_model (Callable): A function which takes the
-            states and parameters and returns an infection probability multiplier for
-            each individual.
+            - ``virus_shares`` (Union[dict, pandas.Series]): A mapping between the names
+              of the virus strains and their share among newly infected individuals in
+              each burn-in period.
+        susceptibility_factor_model (Optional[Callable]): A function which
+            takes the states and parameters and returns an infection probability
+            multiplier for each individual.
+        virus_strains (Optional[List[str]]): A list of names indicating the different
+            virus strains used in the model. Their different contagiousness factors are
+            looked up in the params DataFrame. By default, only one virus strain is
+            used.
 
     Returns:
         Callable: Simulates dataset based on parameters.
@@ -163,11 +171,13 @@ def get_simulate_func(
 
     events = {} if events is None else events
     contact_policies = {} if contact_policies is None else contact_policies
-    if testing_demand_models is None:
+    if (
+        testing_demand_models is None
+        or testing_allocation_models is None
+        or testing_processing_models is None
+    ):
         testing_demand_models = {}
-    if testing_allocation_models is None:
         testing_allocation_models = {}
-    if testing_processing_models is None:
         testing_processing_models = {}
 
     initial_states = initial_states.copy(deep=True)
@@ -188,12 +198,14 @@ def get_simulate_func(
     contact_models = _sort_contact_models(contact_models)
     assort_bys = _process_assort_bys(contact_models)
     duration = parse_duration(duration)
+    virus_strains = parse_virus_strains(virus_strains, params)
 
     contact_policies = _add_default_duration_to_models(contact_policies, duration)
     contact_policies = _add_defaults_to_policy_dict(contact_policies)
 
-    initial_conditions = parse_initial_conditions(initial_conditions, duration["start"])
-    validate_initial_conditions(initial_conditions)
+    initial_conditions = parse_initial_conditions(
+        initial_conditions, duration["start"], virus_strains
+    )
 
     # Testing models are used in the initial conditions and should be activated during
     # the burn-in phase if the starting date is not defined.
@@ -221,7 +233,9 @@ def get_simulate_func(
         validate_prepared_initial_states(initial_states, duration)
     else:
         validate_initial_states(initial_states)
-        initial_states = _process_initial_states(initial_states, assort_bys)
+        initial_states = _process_initial_states(
+            initial_states, assort_bys, virus_strains
+        )
         initial_states = draw_course_of_disease(
             initial_states, params, next(startup_seed)
         )
@@ -232,6 +246,7 @@ def get_simulate_func(
             testing_demand_models,
             testing_allocation_models,
             testing_processing_models,
+            virus_strains,
             startup_seed,
         )
 
@@ -262,7 +277,8 @@ def get_simulate_func(
         path=path,
         columns_to_keep=cols_to_keep,
         indexers=indexers,
-        infection_probability_multiplier_model=infection_probability_multiplier_model,
+        susceptibility_factor_model=susceptibility_factor_model,
+        virus_strains=virus_strains,
     )
     return sim_func
 
@@ -283,7 +299,8 @@ def _simulate(
     path,
     columns_to_keep,
     indexers,
-    infection_probability_multiplier_model,
+    susceptibility_factor_model,
+    virus_strains,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -314,9 +331,12 @@ def _simulate(
             :class:`numpy.random.seed` right before the call.
         path (pathlib.Path): Path to the directory where the simulated data is stored.
         columns_to_keep (list): Columns of states that will be saved in each period.
-        infection_probability_multiplier_model (Callable): A function which takes the
+        susceptibility_factor_model (Callable): A function which takes the
             states and parameters and returns an infection probability multiplier for
             each individual.
+        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
+            ``"factors"`` holding the different contagiousness factors of multiple
+            viruses.
 
     Returns:
         result (dict): The simulation result which includes the following keys:
@@ -336,8 +356,8 @@ def _simulate(
         )
     )
 
-    infection_probability_multiplier = _prepare_infection_probability_multiplier(
-        infection_probability_multiplier_model,
+    susceptibility_factor = _prepare_susceptibility_factor(
+        susceptibility_factor_model,
         initial_states,
         params,
         next(seed),
@@ -380,13 +400,14 @@ def _simulate(
             assortative_matching_cum_probs=assortative_matching_cum_probs,
             contact_models=contact_models,
             group_codes_info=group_codes_info,
-            infection_probability_multiplier=infection_probability_multiplier,
+            susceptibility_factor=susceptibility_factor,
+            virus_strains=virus_strains,
             seed=seed,
         )
         (
             newly_infected_events,
             channel_infected_by_event,
-        ) = calculate_infections_by_events(states, params, events, seed)
+        ) = calculate_infections_by_events(states, params, events, virus_strains, seed)
 
         states, channel_demands_test, to_be_processed_tests = perform_testing(
             date=date,
@@ -405,6 +426,7 @@ def _simulate(
             newly_infected_events=newly_infected_events,
             params=params,
             to_be_processed_tests=to_be_processed_tests,
+            virus_strains=virus_strains,
             seed=seed,
         )
 
@@ -418,7 +440,7 @@ def _simulate(
             channel_infected_by_contact=channel_infected_by_contact,
             channel_infected_by_event=channel_infected_by_event,
             channel_demands_test=channel_demands_test,
-            infection_probability_multiplier=infection_probability_multiplier,
+            susceptibility_factor=susceptibility_factor,
         )
 
         _dump_periodic_states(states, columns_to_keep, path, date)
@@ -709,7 +731,11 @@ def _add_defaults_to_policy_dict(policies):
     return policies
 
 
-def _process_initial_states(states: pd.DataFrame, assort_bys: Dict[str, List[str]]):
+def _process_initial_states(
+    states: pd.DataFrame,
+    assort_bys: Dict[str, List[str]],
+    virus_strains: Dict[str, Any],
+) -> pd.DataFrame:
     """Process the initial states given by the user.
 
     Args:
@@ -745,6 +771,9 @@ def _process_initial_states(states: pd.DataFrame, assort_bys: Dict[str, List[str
 
     states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
     states["pending_test_date"] = pd.NaT
+    states["virus_strain"] = pd.Categorical(
+        [pd.NA] * len(states), categories=virus_strains["names"]
+    )
 
     return states
 
@@ -941,7 +970,7 @@ def _add_additional_information_to_states(
     channel_infected_by_contact: pd.Series,
     channel_infected_by_event: pd.Series,
     channel_demands_test: pd.Series,
-    infection_probability_multiplier: np.ndarray,
+    susceptibility_factor: np.ndarray,
 ):
     """Add additional but optional information to states.
 
@@ -956,7 +985,7 @@ def _add_additional_information_to_states(
             information which contact model lead to the infection.
         channel_infected_by_event (pandas.Series): A categorical series containing the
             information which event model lead to the infection.
-        infection_probability_multiplier (numpy.ndarray): An array containing infection
+        susceptibility_factor (numpy.ndarray): An array containing infection
             probability multiplier for each individual.
 
     Returns:
@@ -990,14 +1019,14 @@ def _add_additional_information_to_states(
     if n_has_additionally_infected is not None:
         states["n_has_infected"] += n_has_additionally_infected
 
-    if "infection_probability_multiplier" in columns_to_keep:
-        states["infection_probability_multiplier"] = infection_probability_multiplier
+    if "susceptibility_factor" in columns_to_keep:
+        states["susceptibility_factor"] = susceptibility_factor
 
     return states
 
 
-def _prepare_infection_probability_multiplier(
-    infection_probability_multiplier_model: Optional[Callable],
+def _prepare_susceptibility_factor(
+    susceptibility_factor_model: Optional[Callable],
     initial_states: pd.DataFrame,
     params: pd.DataFrame,
     seed: int,
@@ -1012,49 +1041,44 @@ def _prepare_infection_probability_multiplier(
     individual.
 
     Args:
-        infection_probability_multiplier_model (Optional[Callable]): The custom function
+        susceptibility_factor_model (Optional[Callable]): The custom function
             which computes individual multipliers with states, parameters and a seed.
         initial_states (pandas.DataFrame): The initial states.
         params (pandas.DataFrame): The parameters.
         seed (int): An integer which can be used by the user for reproducibility.
 
-    Returns: infection_probability_multiplier (numpy.ndarray): An array with a
+    Returns: susceptibility_factor (numpy.ndarray): An array with a
         multiplier for each individual between 0 and 1.
 
     """
-    if infection_probability_multiplier_model is None:
-        infection_probability_multiplier = np.ones(len(initial_states))
+    if susceptibility_factor_model is None:
+        susceptibility_factor = np.ones(len(initial_states))
     else:
-        infection_probability_multiplier = infection_probability_multiplier_model(
+        susceptibility_factor = susceptibility_factor_model(
             initial_states, params, seed
         )
-        if not isinstance(infection_probability_multiplier, (pd.Series, np.ndarray)):
+        if not isinstance(susceptibility_factor, (pd.Series, np.ndarray)):
             raise ValueError(
-                "'infection_probability_multiplier_model' must return a pd.Series or a "
+                "'susceptibility_factor_model' must return a pd.Series or a "
                 "np.ndarray."
             )
-        elif len(infection_probability_multiplier) != len(initial_states):
+        elif len(susceptibility_factor) != len(initial_states):
             raise ValueError(
-                "The 'infection_probability_multiplier' must be given for each "
-                "individual."
+                "The 'susceptibility_factor' must be given for each " "individual."
             )
-        elif isinstance(infection_probability_multiplier, pd.Series):
-            infection_probability_multiplier = (
-                infection_probability_multiplier.to_numpy()
-            )
+        elif isinstance(susceptibility_factor, pd.Series):
+            susceptibility_factor = susceptibility_factor.to_numpy()
 
         # Make sure the highest multiplier is set to one so that random contacts only
         # need to be reduced by the infection probability of the contact model.
-        infection_probability_multiplier = (
-            infection_probability_multiplier / infection_probability_multiplier.max()
-        )
+        susceptibility_factor = susceptibility_factor / susceptibility_factor.max()
 
         if (
-            not (0 <= infection_probability_multiplier).all()
-            and (infection_probability_multiplier <= 1).all()
+            not (0 <= susceptibility_factor).all()
+            and (susceptibility_factor <= 1).all()
         ):
             raise ValueError(
                 "The infection probability multiplier needs to be between 0 and 1."
             )
 
-    return infection_probability_multiplier
+    return susceptibility_factor

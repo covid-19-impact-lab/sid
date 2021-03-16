@@ -27,7 +27,7 @@ sid
 .. image:: https://img.shields.io/github/workflow/status/covid-19-impact-lab/sid/Continuous%20Integration%20Workflow/main
    :target: https://github.com/covid-19-impact-lab/sid/actions?query=branch%3Amain
 
-.. image:: https://codecov.io/gh/covid-19-impact-lab/sid/branch/master/graph/badge.svg
+.. image:: https://codecov.io/gh/covid-19-impact-lab/sid/branch/main/graph/badge.svg
     :target: https://codecov.io/gh/covid-19-impact-lab/sid
 
 .. image:: https://results.pre-commit.ci/badge/github/covid-19-impact-lab/sid/main.svg

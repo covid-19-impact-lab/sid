@@ -49,6 +49,7 @@ def setup_households_w_one_infection():
             "households": [0] * 4 + [1] * 4,
             "group_codes_non_rec": [0] * 4 + [1] * 4,
             "n_has_infected": 0,
+            "virus_strain": pd.Series(["base_strain"] + [pd.NA] * 7, dtype="category"),
         }
     )
 
@@ -70,7 +71,9 @@ def setup_households_w_one_infection():
 
     group_codes_info = {"households": {"name": "group_codes_households"}}
 
-    infection_probability_multiplier = np.ones(len(states))
+    susceptibility_factor = np.ones(len(states))
+
+    virus_strains = {"names": ["base_strain"], "factors": np.ones(1)}
 
     return (
         states,
@@ -79,7 +82,8 @@ def setup_households_w_one_infection():
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
-        infection_probability_multiplier,
+        susceptibility_factor,
+        virus_strains,
     )
 
 
@@ -94,7 +98,8 @@ def test_calculate_infections_only_recurrent_all_participate(
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
-        infection_probability_multiplier,
+        susceptibility_factor,
+        virus_strains,
     ) = setup_households_w_one_infection
 
     (
@@ -111,12 +116,13 @@ def test_calculate_infections_only_recurrent_all_participate(
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
-        infection_probability_multiplier=infection_probability_multiplier,
+        susceptibility_factor=susceptibility_factor,
+        virus_strains=virus_strains,
         seed=itertools.count(),
     )
 
-    exp_infected = pd.Series([False] + [True] * 3 + [False] * 4)
-    exp_infection_counter = pd.Series([3] + [0] * 7).astype(np.int32)
+    exp_infected = pd.Series([-1] + [0] * 3 + [-1] * 4, dtype="int8")
+    exp_infection_counter = pd.Series([3] + [0] * 7, dtype="int32")
     exp_immune = pd.Series([True] * 4 + [False] * 4)
     assert calc_infected.equals(exp_infected)
     assert (
@@ -124,7 +130,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         .astype(np.int32)
         .equals(exp_infection_counter)
     )
-    assert (states["immune"] | calc_infected).equals(exp_immune)
+    assert (states["immune"] | (calc_infected == 0)).equals(exp_immune)
     assert calc_missed_contacts is None
 
 
@@ -139,7 +145,8 @@ def test_calculate_infections_only_recurrent_sick_skips(
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
-        infection_probability_multiplier,
+        susceptibility_factor,
+        virus_strains,
     ) = setup_households_w_one_infection
 
     recurrent_contacts[0] = 0
@@ -158,12 +165,13 @@ def test_calculate_infections_only_recurrent_sick_skips(
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
-        infection_probability_multiplier=infection_probability_multiplier,
+        susceptibility_factor=susceptibility_factor,
+        virus_strains=virus_strains,
         seed=itertools.count(),
     )
 
-    exp_infected = pd.Series([False] * 8)
-    exp_infection_counter = pd.Series([0] * 8).astype(np.int32)
+    exp_infected = pd.Series([-1] * 8, dtype="int8")
+    exp_infection_counter = pd.Series([0] * 8, dtype="int32")
 
     assert calc_infected.equals(exp_infected)
     assert calc_n_has_additionally_infected.astype(np.int32).equals(
@@ -183,7 +191,8 @@ def test_calculate_infections_only_recurrent_one_skips(
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
-        infection_probability_multiplier,
+        susceptibility_factor,
+        virus_strains,
     ) = setup_households_w_one_infection
 
     # 2nd person does not participate in household meeting
@@ -203,12 +212,13 @@ def test_calculate_infections_only_recurrent_one_skips(
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
-        infection_probability_multiplier=infection_probability_multiplier,
+        susceptibility_factor=susceptibility_factor,
+        virus_strains=virus_strains,
         seed=itertools.count(),
     )
 
-    exp_infected = pd.Series([False, False] + [True] * 2 + [False] * 4)
-    exp_infection_counter = pd.Series([2] + [0] * 7).astype(np.int32)
+    exp_infected = pd.Series([-1, -1] + [0] * 2 + [-1] * 4, dtype="int8")
+    exp_infection_counter = pd.Series([2] + [0] * 7, dtype="int32")
 
     assert calc_infected.equals(exp_infected)
     assert calc_n_has_additionally_infected.astype(np.int32).equals(
@@ -228,7 +238,8 @@ def test_calculate_infections_only_recurrent_one_immune(
         indexers,
         assortative_matching_cum_probs,
         group_codes_info,
-        infection_probability_multiplier,
+        susceptibility_factor,
+        virus_strains,
     ) = setup_households_w_one_infection
 
     states.loc[1, "immune"] = True
@@ -247,12 +258,13 @@ def test_calculate_infections_only_recurrent_one_immune(
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"households": {"is_recurrent": True}},
         group_codes_info=group_codes_info,
-        infection_probability_multiplier=infection_probability_multiplier,
+        susceptibility_factor=susceptibility_factor,
+        virus_strains=virus_strains,
         seed=itertools.count(),
     )
 
-    exp_infected = pd.Series([False, False] + [True] * 2 + [False] * 4)
-    exp_infection_counter = pd.Series([2] + [0] * 7).astype(np.int32)
+    exp_infected = pd.Series([-1, -1] + [0] * 2 + [-1] * 4, dtype="int8")
+    exp_infection_counter = pd.Series([2] + [0] * 7, dtype="int32")
     assert calc_infected.equals(exp_infected)
     assert calc_n_has_additionally_infected.astype(np.int32).equals(
         exp_infection_counter
@@ -266,7 +278,8 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
         states,
         random_contacts,
         *_,
-        infection_probability_multiplier,
+        susceptibility_factor,
+        virus_strains,
     ) = setup_households_w_one_infection
 
     random_contacts[0] = 1
@@ -295,12 +308,13 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"non_rec": {"is_recurrent": False}},
         group_codes_info={"non_rec": {"name": "group_codes_non_rec"}},
-        infection_probability_multiplier=infection_probability_multiplier,
+        susceptibility_factor=susceptibility_factor,
+        virus_strains=virus_strains,
         seed=itertools.count(),
     )
 
-    exp_infected = pd.Series([False, False, True, False, False, False, False, False])
-    exp_infection_counter = pd.Series([1] + [0] * 7).astype(np.int32)
+    exp_infected = pd.Series([-1, -1, 0, -1, -1, -1, -1, -1], dtype="int8")
+    exp_infection_counter = pd.Series([1] + [0] * 7, dtype="int32")
     assert calc_infected.equals(exp_infected)
     assert calc_n_has_additionally_infected.astype(np.int32).equals(
         exp_infection_counter

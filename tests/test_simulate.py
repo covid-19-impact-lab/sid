@@ -10,7 +10,7 @@ from sid.config import INDEX_NAMES
 from sid.simulate import _add_default_duration_to_models
 from sid.simulate import _create_group_codes_and_info
 from sid.simulate import _create_group_codes_names
-from sid.simulate import _prepare_infection_probability_multiplier
+from sid.simulate import _prepare_susceptibility_factor
 from sid.simulate import _process_assort_bys
 from sid.simulate import _process_initial_states
 from sid.simulate import get_simulate_func
@@ -45,10 +45,12 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
 def test_check_assort_by_are_categoricals(initial_states):
     assort_bys = _process_assort_bys(CONTACT_MODELS)
 
-    _ = _process_initial_states(initial_states, assort_bys)
+    virus_strains = {"names": ["base_strain"], "factors": np.ones(1)}
+
+    _ = _process_initial_states(initial_states, assort_bys, virus_strains)
 
     initial_states = initial_states.astype(str)
-    processed = _process_initial_states(initial_states, assort_bys)
+    processed = _process_initial_states(initial_states, assort_bys, virus_strains)
     for var in ["age_group", "region"]:
         assert is_categorical_dtype(processed[var].dtype)
 
@@ -266,6 +268,7 @@ def test_skipping_factorization_of_assort_by_variable_works(
     assert "group_codes_households" not in last_states
 
 
+@pytest.mark.unit
 @pytest.mark.parametrize(
     "model, states, expectation, expected",
     [
@@ -273,13 +276,13 @@ def test_skipping_factorization_of_assort_by_variable_works(
         (
             lambda *x: True,
             None,
-            pytest.raises(ValueError, match="'infection_probability_multiplier_model"),
+            pytest.raises(ValueError, match="'susceptibility_factor_model"),
             None,
         ),
         (
             lambda *x: pd.Series([1]),
             [1, 1],
-            pytest.raises(ValueError, match="The 'infection_probability_multiplier"),
+            pytest.raises(ValueError, match="The 'susceptibility_factor"),
             None,
         ),
         (lambda *x: pd.Series([1]), [1], does_not_raise(), [1]),
@@ -287,7 +290,7 @@ def test_skipping_factorization_of_assort_by_variable_works(
         (lambda *x: np.array([1, 2]), [1, 1], does_not_raise(), [0.5, 1]),
     ],
 )
-def test_prepare_infection_probability_multiplier(model, states, expectation, expected):
+def test_prepare_susceptibility_factor(model, states, expectation, expected):
     with expectation:
-        result = _prepare_infection_probability_multiplier(model, states, None, 0)
+        result = _prepare_susceptibility_factor(model, states, None, 0)
         assert (result == expected).all()

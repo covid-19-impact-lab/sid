@@ -34,10 +34,12 @@ been started.
 DTYPE_DRAW_COURSE_OF_DISEASE = np.int16
 DTYPE_GROUP_CODE = np.int32
 DTYPE_INDEX = np.uint32
-DTYPE_INFECTED = np.bool_
+DTYPE_VIRUS_STRAIN = np.int8
 DTYPE_INFECTION_COUNTER = np.uint16
 DTYPE_N_CONTACTS = np.uint16
 DTYPE_SID_PERIOD = np.int16
+DTYPE_VIRUS_STRAIN_CODES = np.int8
+DTYPE_CONTACT_MODEL_CODES = np.int8
 
 INDEX_NAMES = ["category", "subcategory", "name"]
 
@@ -54,7 +56,7 @@ SAVED_COLUMNS = {
     "contacts": False,
     "countdown_draws": False,
     "group_codes": False,
-    "other": ["n_has_infected", "newly_infected", "new_known_case"],
+    "other": ["n_has_infected", "newly_infected", "new_known_case", "virus_strain"],
     "channels": False,
 }
 
@@ -66,7 +68,12 @@ INITIAL_CONDITIONS = {
     "known_cases_multiplier": 1,
     "initial_infections": 0.01,
     "initial_immunity": None,
+    "virus_shares": None,
 }
+
+
+DEFAULT_VIRUS_STRAINS = {"names": ["base_strain"], "factors": np.array([1])}
+
 
 POLICIES = {"is_active": lambda states: True}  # noqa: U100
 
