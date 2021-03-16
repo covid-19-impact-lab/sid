@@ -23,7 +23,7 @@ BOOLEAN_STATE_COLUMNS = [
     "newly_deceased",
     "new_known_case",
     "is_vaccinated",
-    "received_vaccine",
+    "ever_vaccinated",
 ]
 
 DTYPE_COUNTDOWNS = np.int16
