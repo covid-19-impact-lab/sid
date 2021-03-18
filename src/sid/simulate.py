@@ -40,6 +40,7 @@ from sid.shared import separate_contact_model_names
 from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
+from sid.vaccination import vaccinate_individuals
 from sid.validation import validate_initial_states
 from sid.validation import validate_models
 from sid.validation import validate_params
@@ -66,6 +67,7 @@ def get_simulate_func(
     initial_conditions: Optional[Dict[str, Any]] = None,
     susceptibility_factor_model: Optional[Callable] = None,
     virus_strains: Optional[List[str]] = None,
+    vaccination_model: Optional[Callable] = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -162,6 +164,9 @@ def get_simulate_func(
             virus strains used in the model. Their different contagiousness factors are
             looked up in the params DataFrame. By default, only one virus strain is
             used.
+        vaccination_model (Optional[Callable]): A function accepting ``states``,
+            ``params``, and a ``seed`` which returns boolean indicators for individuals
+            who received a vaccination.
 
     Returns:
         Callable: Simulates dataset based on parameters.
@@ -247,6 +252,7 @@ def get_simulate_func(
             testing_allocation_models,
             testing_processing_models,
             virus_strains,
+            vaccination_model,
             startup_seed,
         )
 
@@ -279,6 +285,7 @@ def get_simulate_func(
         indexers=indexers,
         susceptibility_factor_model=susceptibility_factor_model,
         virus_strains=virus_strains,
+        vaccination_model=vaccination_model,
     )
     return sim_func
 
@@ -301,6 +308,7 @@ def _simulate(
     indexers,
     susceptibility_factor_model,
     virus_strains,
+    vaccination_model,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -337,6 +345,9 @@ def _simulate(
         virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
             ``"factors"`` holding the different contagiousness factors of multiple
             viruses.
+        vaccination_model (Optional[Callable]): A function accepting ``states``,
+            ``params``, and a ``seed`` which returns boolean indicators for individuals
+            who received a vaccination.
 
     Returns:
         result (dict): The simulation result which includes the following keys:
@@ -420,6 +431,10 @@ def _simulate(
             columns_to_keep=columns_to_keep,
         )
 
+        newly_vaccinated = vaccinate_individuals(
+            vaccination_model, states, params, seed
+        )
+
         states = update_states(
             states=states,
             newly_infected_contacts=newly_infected_contacts,
@@ -427,6 +442,7 @@ def _simulate(
             params=params,
             to_be_processed_tests=to_be_processed_tests,
             virus_strains=virus_strains,
+            newly_vaccinated=newly_vaccinated,
             seed=seed,
         )
 

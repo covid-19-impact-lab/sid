@@ -7,6 +7,7 @@ beginning of a simulation and can used to create patterns which match the real d
 import itertools
 import math
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -20,6 +21,7 @@ from sid.contacts import boolean_choice
 from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
+from sid.vaccination import vaccinate_individuals
 
 
 def sample_initial_infections(
@@ -131,6 +133,7 @@ def sample_initial_distribution_of_infections_and_immunity(
     testing_allocation_models: Dict[str, Dict[str, Any]],
     testing_processing_models: Dict[str, Dict[str, Any]],
     virus_strains: Dict[str, Any],
+    vaccination_model: Optional[Callable],
     seed: itertools.count,
 ):
     """Sample the initial distribution of infections and immunity.
@@ -191,6 +194,9 @@ def sample_initial_distribution_of_infections_and_immunity(
         virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
             ``"factors"`` holding the different contagiousness factors of multiple
             viruses.
+        vaccination_model (Optional[Callable]): A function accepting ``states``,
+            ``params``, and a ``seed`` which returns boolean indicators for individuals
+            who received a vaccination.
         seed (itertools.count): The seed counter.
 
     Returns:
@@ -242,6 +248,10 @@ def sample_initial_distribution_of_infections_and_immunity(
             seed=seed,
         )
 
+        newly_vaccinated = vaccinate_individuals(
+            vaccination_model, states, params, seed
+        )
+
         states = update_states(
             states=states,
             newly_infected_contacts=spread_out_virus_strains[burn_in_date],
@@ -249,6 +259,7 @@ def sample_initial_distribution_of_infections_and_immunity(
             params=params,
             to_be_processed_tests=to_be_processed_tests,
             virus_strains=virus_strains,
+            newly_vaccinated=newly_vaccinated,
             seed=seed,
         )
 

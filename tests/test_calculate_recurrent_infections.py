@@ -96,6 +96,7 @@ def test_infections_occur_not_in_other_recurrent_group():
     assert (was_infected == [-1, 0, -1, -1]).all()
 
 
+@pytest.mark.unit
 def test_infections_can_be_scaled_with_multiplier():
     """Run a scenario where infections are halved by the multiplier."""
     n_individuals = 100_000

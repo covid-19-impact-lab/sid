@@ -21,6 +21,7 @@ def update_states(
     params: pd.DataFrame,
     virus_strains: Dict[str, Any],
     to_be_processed_tests: Optional[pd.Series],
+    newly_vaccinated: Optional[pd.Series],
     seed: itertools.count,
 ):
     """Update the states with new infections and advance it by one period.
@@ -38,6 +39,8 @@ def update_states(
             ``"factors"`` holding the different contagiousness factors of multiple
             viruses.
         to_be_processed_tests (pandas.Series): Tests which are going to be processed.
+        newly_vaccinated (Optional[pandas.Series]): A series which indicates newly
+            vaccinated people.
         seed (itertools.count): Seed counter to control randomness.
 
     Returns: states (pandas.DataFrame): Updated states with reduced countdown lengths,
@@ -57,6 +60,9 @@ def update_states(
 
     if to_be_processed_tests is not None:
         states = _update_info_on_new_tests(states, to_be_processed_tests)
+
+    if newly_vaccinated is not None:
+        states = _update_info_on_new_vaccinations(states, newly_vaccinated)
 
     return states
 
@@ -156,5 +162,18 @@ def _update_info_on_new_tests(
     # Everyone looses ``received_test_result == True`` because it is passed to the
     # more specific knows attributes.
     states.loc[states["received_test_result"], "received_test_result"] = False
+
+    return states
+
+
+def _update_info_on_new_vaccinations(
+    states: pd.DataFrame, newly_vaccinated: pd.Series
+) -> pd.DataFrame:
+    """Activate the counter for immunity by vaccinations."""
+    states["newly_vaccinated"] = newly_vaccinated
+    states.loc[newly_vaccinated, "ever_vaccinated"] = True
+    states.loc[newly_vaccinated, "cd_is_immune_by_vaccine"] = states.loc[
+        newly_vaccinated, "cd_is_immune_by_vaccine_draws"
+    ]
 
     return states
