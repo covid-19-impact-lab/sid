@@ -171,7 +171,7 @@ def _update_info_on_new_vaccinations(
 ) -> pd.DataFrame:
     """Activate the counter for immunity by vaccinations."""
     states["newly_vaccinated"] = newly_vaccinated
-    states.loc[newly_vaccinated, "ever_vaccinated"] = newly_vaccinated
+    states.loc[newly_vaccinated, "ever_vaccinated"] = True
     states.loc[newly_vaccinated, "cd_is_immune_by_vaccine"] = states.loc[
         newly_vaccinated, "cd_is_immune_by_vaccine_draws"
     ]
