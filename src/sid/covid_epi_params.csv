@@ -18,7 +18,7 @@ cd_symptoms_false,all,18,0.3
 cd_symptoms_false,all,22,0.3
 cd_symptoms_false,all,27,0.3
 cd_needs_icu_true,0-9,-1,0.99995
-cd_needs_icu_true,0-9,7,0.00005
+cd_needs_icu_true,0-9,7,5E-05
 cd_needs_icu_true,10-19,-1,0.9997
 cd_needs_icu_true,10-19,7,0.0003
 cd_needs_icu_true,20-29,-1,0.99925
@@ -102,4 +102,6 @@ cd_received_test_result_true,all,4,0.07
 cd_knows_immune_false,all,-1,1
 cd_knows_infectious_false,all,-1,1
 cd_ever_infected,all,-1,1
-cd_is_immune_by_vaccine,all,-1,1
+cd_is_immune_by_vaccine,all,-1,0.25
+cd_is_immune_by_vaccine,all,14,0.35
+cd_is_immune_by_vaccine,all,21,0.4
