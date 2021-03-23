@@ -7,7 +7,7 @@ all releases are available on `Anaconda.org
 <https://anaconda.org/covid-19-impact-lab/sid>`_.
 
 
-0.0.2 - 2021-xx-xx
+0.0.2 - 2021-03-23
 ------------------
 
 - :gh:`59` removes the ``optional_state_columns`` which is now controlled by
@@ -32,6 +32,8 @@ all releases are available on `Anaconda.org
 - :gh:`85` adds seeds to events.
 - :gh:`86` renames the package such that it is published on PyPI and Anaconda as
   sid-dev.
+- :gh:`88` adds models to vaccinate individuals.
+- :gh:`91` adds realistic parameters for when vaccines become effective.
 
 
 0.0.1 - 2021-01-05
