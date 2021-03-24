@@ -34,16 +34,18 @@ def _compute_who_receives_rapid_tests(date, states, params, rapid_tests_models, 
         func = model["model"]
 
         if model["start"] <= date <= model["end"]:
-            receives_rapid_test = func(
-                receives_rapid_test=receives_rapid_test,
+            new_receives_rapid_test = func(
+                receives_rapid_test=receives_rapid_test.copy(deep=True),
                 states=states,
                 params=params.loc[loc],
                 seed=next(seed),
             )
 
-            receives_rapid_test = validate_return_is_series_or_ndarray(
-                receives_rapid_test, states.index, "rapid_tests_model"
+            new_receives_rapid_test = validate_return_is_series_or_ndarray(
+                new_receives_rapid_test, states.index, "rapid_tests_model"
             )
+
+            receives_rapid_test.loc[new_receives_rapid_test] = True
 
     return receives_rapid_test
 
