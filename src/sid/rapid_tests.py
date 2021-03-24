@@ -13,15 +13,18 @@ def perform_rapid_tests(
     rapid_tests_models: Optional[Callable],
     seed: itertools.count,
 ) -> pd.DataFrame:
-    receives_rapid_test = _compute_who_receives_rapid_tests(
-        date, states, params, rapid_tests_models, seed
-    )
+    if rapid_tests_models:
+        receives_rapid_test = _compute_who_receives_rapid_tests(
+            date, states, params, rapid_tests_models, seed
+        )
 
-    is_tested_positive = _sample_test_outcome(states, receives_rapid_test, params, seed)
+        is_tested_positive = _sample_test_outcome(
+            states, receives_rapid_test, params, seed
+        )
 
-    states = _update_states_with_rapid_tests_outcomes(
-        states, receives_rapid_test, is_tested_positive
-    )
+        states = _update_states_with_rapid_tests_outcomes(
+            states, receives_rapid_test, is_tested_positive
+        )
 
     return states
 

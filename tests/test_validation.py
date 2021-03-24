@@ -11,11 +11,8 @@ from sid.validation import validate_function
         pytest.param(lambda x: x, does_not_raise(), id="test with function"),
         pytest.param(
             1,
-            pytest.raises(
-                ValueError,
-                match="must be a function or None.",
-                id="test with invalid input",
-            ),
+            pytest.raises(ValueError, match="must be a function or 'None'."),
+            id="test with invalid input",
         ),
     ],
 )

@@ -35,7 +35,7 @@ from sid.parse_model import parse_duration
 from sid.parse_model import parse_initial_conditions
 from sid.parse_model import parse_virus_strains
 from sid.pathogenesis import draw_course_of_disease
-from sid.rapid_tests_models import perform_rapid_tests
+from sid.rapid_tests import perform_rapid_tests
 from sid.shared import factorize_assortative_variables
 from sid.shared import separate_contact_model_names
 from sid.testing import perform_testing
