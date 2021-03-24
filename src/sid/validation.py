@@ -1,5 +1,7 @@
 """This module contains routines to validate inputs to functions."""
 import warnings
+from typing import Callable
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -180,3 +182,9 @@ def validate_return_is_series_or_ndarray(x, index=None, when=None):
         return pd.Series(data=x, index=index)
     else:
         raise ValueError(f"'{when}' must always return a pd.Series or a np.ndarray.")
+
+
+def validate_function(model: Optional[Callable], model_name: str) -> None:
+    """Validate that the input is either a function or None."""
+    if not (callable(model) or model is None):
+        raise ValueError(f"{model_name} must be a function or 'None'.")

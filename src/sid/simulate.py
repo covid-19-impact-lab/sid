@@ -35,12 +35,14 @@ from sid.parse_model import parse_duration
 from sid.parse_model import parse_initial_conditions
 from sid.parse_model import parse_virus_strains
 from sid.pathogenesis import draw_course_of_disease
+from sid.rapid_tests_models import perform_rapid_tests
 from sid.shared import factorize_assortative_variables
 from sid.shared import separate_contact_model_names
 from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
 from sid.vaccination import vaccinate_individuals
+from sid.validation import validate_function
 from sid.validation import validate_initial_states
 from sid.validation import validate_models
 from sid.validation import validate_params
@@ -68,6 +70,7 @@ def get_simulate_func(
     susceptibility_factor_model: Optional[Callable] = None,
     virus_strains: Optional[List[str]] = None,
     vaccination_model: Optional[Callable] = None,
+    rapid_tests_models: Optional[Dict[str, Dict[str, Any]]] = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -167,6 +170,15 @@ def get_simulate_func(
         vaccination_model (Optional[Callable]): A function accepting ``states``,
             ``params``, and a ``seed`` which returns boolean indicators for individuals
             who received a vaccination.
+        rapid_tests_models (Optional[Dict[str, Dict[str, Any]]]: A dictionary of
+            dictionaries containing models for rapid tests. Each model for rapid tests
+            can have a ``"start"`` and ``"end"`` date. It must have a function under
+            ``"model"`` which accepts ``states``, ``params``, ``receives_rapid_test``
+            and ``seed`` and returns a boolean series indicating individuals who
+            received a rapid test. The difference to other test models is that rapid
+            tests are performed before contacts are calculated to allow that people can
+            use rapid tests before they meet other people and so that normal tests can
+            re-test individuals with positive rapid tests.
 
     Returns:
         Callable: Simulates dataset based on parameters.
@@ -184,6 +196,9 @@ def get_simulate_func(
         testing_demand_models = {}
         testing_allocation_models = {}
         testing_processing_models = {}
+
+    if rapid_tests_models is None:
+        rapid_tests_models = {}
 
     initial_states = initial_states.copy(deep=True)
     params = params.copy(deep=True)
@@ -227,6 +242,10 @@ def get_simulate_func(
     testing_processing_models = _add_default_duration_to_models(
         testing_processing_models, default_duration_testing
     )
+
+    rapid_tests_models = _add_default_duration_to_models(rapid_tests_models, duration)
+
+    validate_function(vaccination_model, "vaccination_model")
 
     if _are_states_prepared(initial_states):
         if initial_conditions is not None:
@@ -286,6 +305,7 @@ def get_simulate_func(
         susceptibility_factor_model=susceptibility_factor_model,
         virus_strains=virus_strains,
         vaccination_model=vaccination_model,
+        rapid_tests_models=rapid_tests_models,
     )
     return sim_func
 
@@ -309,6 +329,7 @@ def _simulate(
     susceptibility_factor_model,
     virus_strains,
     vaccination_model,
+    rapid_tests_models,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -348,14 +369,24 @@ def _simulate(
         vaccination_model (Optional[Callable]): A function accepting ``states``,
             ``params``, and a ``seed`` which returns boolean indicators for individuals
             who received a vaccination.
+        rapid_tests_models (Optional[Dict[str, Dict[str, Any]]]: A dictionary of
+            dictionaries containing models for rapid tests. Each model for rapid tests
+            can have a ``"start"`` and ``"end"`` date. It must have a function under
+            ``"model"`` which accepts ``states``, ``params``, ``receives_rapid_test``
+            and ``seed`` and returns a boolean series indicating individuals who
+            received a rapid test. The difference to other test models is that rapid
+            tests are performed before contacts are calculated to allow that people can
+            use rapid tests before they meet other people and so that normal tests can
+            re-test individuals with positive rapid tests.
 
     Returns:
-        result (dict): The simulation result which includes the following keys:
+        result (Dict[str, dask.dataframe]): The simulation result which includes the
+            following keys:
 
-        - **time_series** (:class:`dask.dataframe`): The DataFrame contains the states
-          of each period (see :ref:`states`).
-        - **last_states** (:class:`dask.dataframe`): The states of the last simulated
-          period to resume the simulation.
+            - **time_series** (:class:`dask.dataframe`): The DataFrame contains the
+              states of each period (see :ref:`states`).
+            - **last_states** (:class:`dask.dataframe`): The states of the last
+              simulated period to resume the simulation.
 
     """
     seed = np.random.randint(0, 1_000_000) if seed is None else seed
@@ -387,6 +418,8 @@ def _simulate(
 
         states["date"] = date
         states["period"] = timestamp_to_sid_period(date)
+
+        states = perform_rapid_tests(date, states, params, rapid_tests_models, seed)
 
         recurrent_contacts, random_contacts = calculate_contacts(
             contact_models=contact_models,
