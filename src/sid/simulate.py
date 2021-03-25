@@ -70,7 +70,7 @@ def get_simulate_func(
     susceptibility_factor_model: Optional[Callable] = None,
     virus_strains: Optional[List[str]] = None,
     vaccination_model: Optional[Callable] = None,
-    rapid_tests_models: Optional[Dict[str, Dict[str, Any]]] = None,
+    rapid_test_models: Optional[Dict[str, Dict[str, Any]]] = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -170,7 +170,7 @@ def get_simulate_func(
         vaccination_model (Optional[Callable]): A function accepting ``states``,
             ``params``, and a ``seed`` which returns boolean indicators for individuals
             who received a vaccination.
-        rapid_tests_models (Optional[Dict[str, Dict[str, Any]]]: A dictionary of
+        rapid_test_models (Optional[Dict[str, Dict[str, Any]]]: A dictionary of
             dictionaries containing models for rapid tests. Each model for rapid tests
             can have a ``"start"`` and ``"end"`` date. It must have a function under
             ``"model"`` which accepts ``states``, ``params``, ``receives_rapid_test``
@@ -197,8 +197,8 @@ def get_simulate_func(
         testing_allocation_models = {}
         testing_processing_models = {}
 
-    if rapid_tests_models is None:
-        rapid_tests_models = {}
+    if rapid_test_models is None:
+        rapid_test_models = {}
 
     initial_states = initial_states.copy(deep=True)
     params = params.copy(deep=True)
@@ -243,7 +243,7 @@ def get_simulate_func(
         testing_processing_models, default_duration_testing
     )
 
-    rapid_tests_models = _add_default_duration_to_models(rapid_tests_models, duration)
+    rapid_test_models = _add_default_duration_to_models(rapid_test_models, duration)
 
     validate_function(vaccination_model, "vaccination_model")
 
@@ -305,7 +305,7 @@ def get_simulate_func(
         susceptibility_factor_model=susceptibility_factor_model,
         virus_strains=virus_strains,
         vaccination_model=vaccination_model,
-        rapid_tests_models=rapid_tests_models,
+        rapid_test_models=rapid_test_models,
     )
     return sim_func
 
@@ -329,7 +329,7 @@ def _simulate(
     susceptibility_factor_model,
     virus_strains,
     vaccination_model,
-    rapid_tests_models,
+    rapid_test_models,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -369,7 +369,7 @@ def _simulate(
         vaccination_model (Optional[Callable]): A function accepting ``states``,
             ``params``, and a ``seed`` which returns boolean indicators for individuals
             who received a vaccination.
-        rapid_tests_models (Optional[Dict[str, Dict[str, Any]]]: A dictionary of
+        rapid_test_models (Optional[Dict[str, Dict[str, Any]]]: A dictionary of
             dictionaries containing models for rapid tests. Each model for rapid tests
             can have a ``"start"`` and ``"end"`` date. It must have a function under
             ``"model"`` which accepts ``states``, ``params``, ``receives_rapid_test``
@@ -419,7 +419,7 @@ def _simulate(
         states["date"] = date
         states["period"] = timestamp_to_sid_period(date)
 
-        states = perform_rapid_tests(date, states, params, rapid_tests_models, seed)
+        states = perform_rapid_tests(date, states, params, rapid_test_models, seed)
 
         recurrent_contacts, random_contacts = calculate_contacts(
             contact_models=contact_models,

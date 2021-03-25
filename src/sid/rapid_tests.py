@@ -12,13 +12,13 @@ def perform_rapid_tests(
     date: pd.Timestamp,
     states: pd.DataFrame,
     params: pd.DataFrame,
-    rapid_tests_models: Optional[Callable],
+    rapid_test_models: Optional[Callable],
     seed: itertools.count,
 ) -> pd.DataFrame:
     """Perform testing with rapid tests."""
-    if rapid_tests_models:
+    if rapid_test_models:
         receives_rapid_test = _compute_who_receives_rapid_tests(
-            date, states, params, rapid_tests_models, seed
+            date, states, params, rapid_test_models, seed
         )
 
         is_tested_positive = _sample_test_outcome(
@@ -32,7 +32,7 @@ def perform_rapid_tests(
     return states
 
 
-def _compute_who_receives_rapid_tests(date, states, params, rapid_tests_models, seed):
+def _compute_who_receives_rapid_tests(date, states, params, rapid_test_models, seed):
     """Compute who receives rapid tests.
 
     We loop over all rapid tests models and collect newly allocated rapid tests in
@@ -42,7 +42,7 @@ def _compute_who_receives_rapid_tests(date, states, params, rapid_tests_models, 
     """
     receives_rapid_test = pd.Series(index=states.index, data=False)
 
-    for model in rapid_tests_models.values():
+    for model in rapid_test_models.values():
         loc = model.get("loc", params.index)
         func = model["model"]
 
@@ -89,7 +89,8 @@ def _sample_test_outcome(states, receives_rapid_test, params, seed):
         np.full(receives_test_and_is_not_infectious.sum(), 1 - specificity)
     )
 
-    is_tested_positive.loc[is_truly_positive | is_falsely_positive] = True
+    is_tested_positive.loc[receives_test_and_is_infectious] = is_truly_positive
+    is_tested_positive.loc[receives_test_and_is_not_infectious] = is_falsely_positive
 
     return is_tested_positive
 
@@ -98,7 +99,7 @@ def _update_states_with_rapid_tests_outcomes(
     states, receives_rapid_test, is_tested_positive
 ):
     """Updates states with outcomes of rapid tests."""
-    states[receives_rapid_test, "cd_received_rapid_test"] = 0
-    states[is_tested_positive, "is_tested_positive_by_rapid_test"] = True
+    states.loc[receives_rapid_test, "cd_received_rapid_test"] = 0
+    states.loc[is_tested_positive, "is_tested_positive_by_rapid_test"] = True
 
     return states
