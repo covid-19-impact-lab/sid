@@ -105,4 +105,6 @@ cd_ever_infected,all,-1,1
 cd_is_immune_by_vaccine,all,-1,0.25
 cd_is_immune_by_vaccine,all,14,0.35
 cd_is_immune_by_vaccine,all,21,0.4
-cd_received_rapid_test,all,-999,1
+cd_received_rapid_test,all,-99,1
+rapid_test,sensitivity,sensitivity,0.961
+rapid_test,specificity,specificity,0.994
