@@ -42,7 +42,7 @@ def _compute_who_receives_rapid_tests(date, states, params, rapid_test_models, s
     """
     receives_rapid_test = pd.Series(index=states.index, data=False)
 
-    for model in rapid_test_models.values():
+    for name, model in rapid_test_models.items():
         loc = model.get("loc", params.index)
         func = model["model"]
 
@@ -55,7 +55,7 @@ def _compute_who_receives_rapid_tests(date, states, params, rapid_test_models, s
             )
 
             new_receives_rapid_test = validate_return_is_series_or_ndarray(
-                new_receives_rapid_test, states.index, "rapid_tests_model"
+                new_receives_rapid_test, states.index, f"{name}, a rapid_test_model,"
             )
 
             receives_rapid_test.loc[new_receives_rapid_test] = True
@@ -100,6 +100,6 @@ def _update_states_with_rapid_tests_outcomes(
 ):
     """Updates states with outcomes of rapid tests."""
     states.loc[receives_rapid_test, "cd_received_rapid_test"] = 0
-    states.loc[is_tested_positive, "is_tested_positive_by_rapid_test"] = True
+    states["is_tested_positive_by_rapid_test"] = is_tested_positive
 
     return states
