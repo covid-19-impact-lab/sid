@@ -61,6 +61,7 @@ SAVED_COLUMNS = {
     "group_codes": False,
     "other": ["n_has_infected", "newly_infected", "new_known_case", "virus_strain"],
     "channels": False,
+    "rapid_tests": True,
 }
 
 

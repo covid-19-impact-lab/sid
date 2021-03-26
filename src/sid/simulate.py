@@ -35,6 +35,7 @@ from sid.parse_model import parse_duration
 from sid.parse_model import parse_initial_conditions
 from sid.parse_model import parse_virus_strains
 from sid.pathogenesis import draw_course_of_disease
+from sid.rapid_tests import apply_reactions_to_rapid_tests
 from sid.rapid_tests import perform_rapid_tests
 from sid.shared import factorize_assortative_variables
 from sid.shared import separate_contact_model_names
@@ -71,6 +72,7 @@ def get_simulate_func(
     virus_strains: Optional[List[str]] = None,
     vaccination_model: Optional[Callable] = None,
     rapid_test_models: Optional[Dict[str, Dict[str, Any]]] = None,
+    rapid_test_reaction_models: Optional[Dict[str, Dict[str, Any]]] = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -179,6 +181,9 @@ def get_simulate_func(
             tests are performed before contacts are calculated to allow that people can
             use rapid tests before they meet other people and so that normal tests can
             re-test individuals with positive rapid tests.
+        rapid_test_reaction_models (Optional[Dict[str, Dict[str, Any]]]): A dictionary
+            holding rapid tests reaction models which allow to change calculated
+            contacts based on the results of rapid tests.
 
     Returns:
         Callable: Simulates dataset based on parameters.
@@ -197,6 +202,8 @@ def get_simulate_func(
         testing_allocation_models = {}
         testing_processing_models = {}
 
+    if rapid_test_reaction_models is None or rapid_test_models is None:
+        rapid_test_reaction_models = {}
     if rapid_test_models is None:
         rapid_test_models = {}
 
@@ -244,6 +251,9 @@ def get_simulate_func(
     )
 
     rapid_test_models = _add_default_duration_to_models(rapid_test_models, duration)
+    rapid_test_reaction_models = _add_default_duration_to_models(
+        rapid_test_reaction_models, duration
+    )
 
     validate_function(vaccination_model, "vaccination_model")
 
@@ -306,6 +316,7 @@ def get_simulate_func(
         virus_strains=virus_strains,
         vaccination_model=vaccination_model,
         rapid_test_models=rapid_test_models,
+        rapid_test_reaction_models=rapid_test_reaction_models,
     )
     return sim_func
 
@@ -330,6 +341,7 @@ def _simulate(
     virus_strains,
     vaccination_model,
     rapid_test_models,
+    rapid_test_reaction_models,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -378,6 +390,9 @@ def _simulate(
             tests are performed before contacts are calculated to allow that people can
             use rapid tests before they meet other people and so that normal tests can
             re-test individuals with positive rapid tests.
+        rapid_test_reaction_models (Optional[Dict[str, Dict[str, Any]]]): A dictionary
+            holding rapid tests reaction models which allow to change calculated
+            contacts based on the results of rapid tests.
 
     Returns:
         result (Dict[str, dask.dataframe]): The simulation result which includes the
@@ -419,14 +434,34 @@ def _simulate(
         states["date"] = date
         states["period"] = timestamp_to_sid_period(date)
 
-        states = perform_rapid_tests(date, states, params, rapid_test_models, seed)
-
         recurrent_contacts, random_contacts = calculate_contacts(
             contact_models=contact_models,
             contact_policies=contact_policies,
             states=states,
             params=params,
             date=date,
+            seed=seed,
+        )
+
+        states = perform_rapid_tests(
+            date=date,
+            states=states,
+            params=params,
+            rapid_test_models=rapid_test_models,
+            recurrent_contacts=recurrent_contacts,
+            random_contacts=random_contacts,
+            contact_models=contact_models,
+            seed=seed,
+        )
+
+        recurrent_contacts, random_contacts = apply_reactions_to_rapid_tests(
+            date=date,
+            states=states,
+            params=params,
+            rapid_test_reaction_models=rapid_test_reaction_models,
+            recurrent_contacts=recurrent_contacts,
+            random_contacts=random_contacts,
+            contact_models=contact_models,
             seed=seed,
         )
 
@@ -970,6 +1005,7 @@ def _process_saved_columns(
             "channel_infected_by_event",
             "channel_demands_test",
         ],
+        "rapid_tests": ["is_tested_positive_by_rapid_test"],
     }
 
     keep = []
