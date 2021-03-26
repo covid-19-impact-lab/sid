@@ -7,6 +7,7 @@ from resources import CONTACT_MODELS
 from sid import get_simulate_func
 from sid.rapid_tests import _compute_who_receives_rapid_tests
 from sid.rapid_tests import _sample_test_outcome
+from sid.rapid_tests import _update_states_with_rapid_tests_outcomes
 
 
 @pytest.mark.end_to_end
@@ -109,3 +110,27 @@ def test_sample_test_outcome_with_specificity(params):
 
     specificity = params.loc[("rapid_test", "specificity", "specificity"), "value"]
     assert np.isclose(is_tested_positive.mean(), 1 - specificity, atol=1e-3)
+
+
+@pytest.mark.unit
+def test_update_states_with_rapid_tests_outcomes():
+    columns = ["cd_received_rapid_test", "is_tested_positive_by_rapid_test"]
+
+    states = pd.DataFrame(
+        [
+            (-9, False),  # Person receiving no rapid test.
+            (-9, False),  # Person receiving a negative rapid test.
+            (-9, False),  # Person receiving a positive rapid test.
+        ],
+        columns=columns,
+    )
+    receives_rapid_test = pd.Series([False, True, True])
+    is_tested_positive = pd.Series([False, False, True])
+
+    result = _update_states_with_rapid_tests_outcomes(
+        states, receives_rapid_test, is_tested_positive
+    )
+
+    expected = pd.DataFrame([(-9, False), (0, False), (0, True)], columns=columns)
+
+    assert result.equals(expected)
