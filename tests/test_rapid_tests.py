@@ -100,14 +100,16 @@ def test_compute_who_reveives_rapid_tests(initial_states, params):
         "model": {
             "start": pd.Timestamp("2021-03-23"),
             "end": pd.Timestamp("2021-03-25"),
-            "model": lambda receives_rapid_test, states, params, seed: pd.Series(
-                index=states.index, data=True
+            "model": lambda receives_rapid_test, states, params, contacts, seed: (
+                pd.Series(index=states.index, data=True)
             ),
         }
     }
 
+    contacts = pd.Series(index=initial_states.index, data=0)
+
     receives_rapid_test = _compute_who_receives_rapid_tests(
-        date, initial_states, params, rapid_test_models, itertools.count(0)
+        date, initial_states, params, rapid_test_models, contacts, itertools.count(0)
     )
 
     assert receives_rapid_test.all()
@@ -121,13 +123,20 @@ def test_compute_who_reveives_rapid_tests_raises_error(initial_states, params):
         "model": {
             "start": pd.Timestamp("2021-03-23"),
             "end": pd.Timestamp("2021-03-25"),
-            "model": lambda receives_rapid_test, states, params, seed: 1,
+            "model": lambda receives_rapid_test, states, params, contacts, seed: 1,
         }
     }
 
+    contacts = pd.Series(index=initial_states.index, data=0)
+
     with pytest.raises(ValueError, match="model, a rapid_test_model,"):
         _compute_who_receives_rapid_tests(
-            date, initial_states, params, rapid_test_models, itertools.count(0)
+            date,
+            initial_states,
+            params,
+            rapid_test_models,
+            contacts,
+            itertools.count(0),
         )
 
 
