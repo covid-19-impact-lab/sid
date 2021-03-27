@@ -175,15 +175,20 @@ def get_simulate_func(
         rapid_test_models (Optional[Dict[str, Dict[str, Any]]]: A dictionary of
             dictionaries containing models for rapid tests. Each model for rapid tests
             can have a ``"start"`` and ``"end"`` date. It must have a function under
-            ``"model"`` which accepts ``states``, ``params``, ``receives_rapid_test``
-            and ``seed`` and returns a boolean series indicating individuals who
-            received a rapid test. The difference to other test models is that rapid
-            tests are performed before contacts are calculated to allow that people can
-            use rapid tests before they meet other people and so that normal tests can
-            re-test individuals with positive rapid tests.
+            ``"model"`` which accepts ``states``, ``params``, ``receives_rapid_test``,
+            ``"contacts"``  and ``seed`` and returns a boolean series indicating
+            individuals who  received a rapid test. The difference to other test
+            models is that rapid tests are performed after planned contacts are
+            calculated (i.e. contact models and policies are evaluated) but before
+            they actually take place. This allows people to use more rapid tests
+            on days  with many planned contacts and to react to the test outcome in
+            ``rapid_test_reaction_models``.
         rapid_test_reaction_models (Optional[Dict[str, Dict[str, Any]]]): A dictionary
             holding rapid tests reaction models which allow to change calculated
-            contacts based on the results of rapid tests.
+            contacts based on the results of rapid tests. Each model can have
+            a ``"start"`` and ``"end"`` date. It must have a function under
+            ``"model"`` which accepts ``states``, ``params``,  ``"contacts"``  and
+             ``seed`` and returns a modified copy of contacts.
 
     Returns:
         Callable: Simulates dataset based on parameters.
