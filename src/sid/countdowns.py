@@ -43,6 +43,7 @@ COUNTDOWNS = {
     "cd_knows_infectious_false": {"changes": {"knows_infectious": False}},
     "cd_ever_infected": {},
     "cd_is_immune_by_vaccine": {"changes": {"immune": True}},
+    "cd_received_rapid_test": {},
 }
 """(dict): The dictionary with the information on countdowns.
 

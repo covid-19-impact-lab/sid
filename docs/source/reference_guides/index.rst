@@ -17,6 +17,7 @@ They assume that you are already familiar with sid.
    policies
    events
    testing
+   rapid_tests
 
 
 The following documents are auto-generated and not carefully edited. They provide direct

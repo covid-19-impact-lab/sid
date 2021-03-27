@@ -7,6 +7,19 @@ all releases are available on `Anaconda.org
 <https://anaconda.org/covid-19-impact-lab/sid>`_.
 
 
+0.0.4 - 2021-xx-xx
+------------------
+
+- :gh:`92` adds an interface for rapid tests.
+
+
+0.0.3 - 2021-03-23
+------------------
+
+- :gh:`88` adds models to vaccinate individuals.
+- :gh:`91` adds realistic parameters for when vaccines become effective.
+
+
 0.0.2 - 2021-03-23
 ------------------
 
@@ -28,12 +41,12 @@ all releases are available on `Anaconda.org
 - :gh:`79` implements a multiplier for infection probabilities.
 - :gh:`81` sets the default start date for testing models to the first burn-in period of
   the initial conditions.
+- :gh:`83` adds an interface to have multiple virus strains with different
+  infectiousness.
 - :gh:`84` does some clean up in the matching algorithm.
 - :gh:`85` adds seeds to events.
 - :gh:`86` renames the package such that it is published on PyPI and Anaconda as
   sid-dev.
-- :gh:`88` adds models to vaccinate individuals.
-- :gh:`91` adds realistic parameters for when vaccines become effective.
 
 
 0.0.1 - 2021-01-05

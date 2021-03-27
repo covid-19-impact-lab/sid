@@ -24,6 +24,7 @@ BOOLEAN_STATE_COLUMNS = [
     "new_known_case",
     "newly_vaccinated",
     "ever_vaccinated",
+    "is_tested_positive_by_rapid_test",
 ]
 
 DTYPE_COUNTDOWNS = np.int16
@@ -60,6 +61,7 @@ SAVED_COLUMNS = {
     "group_codes": False,
     "other": ["n_has_infected", "newly_infected", "new_known_case", "virus_strain"],
     "channels": False,
+    "rapid_tests": True,
 }
 
 
