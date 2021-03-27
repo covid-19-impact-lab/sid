@@ -3,6 +3,14 @@
 Testing
 =======
 
+In contrast to :doc:`rapid_tests`, the following testing modules represent PCR tests
+and, for simplicity, always detect the true state of the individual at the point in time
+when the test was administered.
+
+It is also assumed that the test result is not available on the day the test was
+administered such that the outcome cannot have an influence on the behavior of
+individuals in the same period.
+
 For an introduction to specify testing, have a look at the `testing tutorial
 <../tutorials/how_to_test.ipynb>`_
 
