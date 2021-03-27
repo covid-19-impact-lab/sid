@@ -176,9 +176,9 @@ def get_simulate_func(
             dictionaries containing models for rapid tests. Each model for rapid tests
             can have a ``"start"`` and ``"end"`` date. It must have a function under
             ``"model"`` which accepts ``states``, ``params``, ``receives_rapid_test``,
-            ``"contacts"``  and ``seed`` and returns a boolean series indicating 
-            individuals who  received a rapid test. The difference to other test 
-            models is that rapid tests are performed after planned contacts are 
+            ``"contacts"``  and ``seed`` and returns a boolean series indicating
+            individuals who  received a rapid test. The difference to other test
+            models is that rapid tests are performed after planned contacts are
             calculated (i.e. contact models and policies are evaluated) but before
             they actually take place. This allows people to use more rapid tests
             on days  with many planned contacts and to react to the test outcome in
@@ -188,7 +188,7 @@ def get_simulate_func(
             contacts based on the results of rapid tests. Each model can have
             a ``"start"`` and ``"end"`` date. It must have a function under
             ``"model"`` which accepts ``states``, ``params``,  ``"contacts"``  and
-             ``seed`` and returns a modified copy of contacts. 
+             ``seed`` and returns a modified copy of contacts.
 
     Returns:
         Callable: Simulates dataset based on parameters.
