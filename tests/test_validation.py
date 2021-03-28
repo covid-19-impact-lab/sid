@@ -1,21 +1,46 @@
 from contextlib import ExitStack as does_not_raise  # noqa: N813
 
 import pytest
-from sid.validation import validate_function
+from sid.validation import validate_model_function
 
 
 @pytest.mark.parametrize(
-    "x, expectation",
+    "model_name, model_group, model, args, expectation",
     [
-        pytest.param(None, does_not_raise(), id="test with None"),
-        pytest.param(lambda x: x, does_not_raise(), id="test with function"),
         pytest.param(
-            1,
-            pytest.raises(ValueError, match="must be a function or 'None'."),
-            id="test with invalid input",
+            "a",
+            "group_a",
+            lambda x: True,
+            ["x"],
+            does_not_raise(),
+            id="Pass and all arguments matched.",
+        ),
+        pytest.param(
+            "b",
+            "group_b",
+            lambda x, y: True,
+            ["x"],
+            does_not_raise(),
+            id="Pass only subset of params matched.",
+        ),
+        pytest.param(
+            "c",
+            "group_c",
+            None,
+            None,
+            pytest.raises(TypeError, match="The model 'c' of 'group_c' is not a "),
+            id="error when model is not a callable.",
+        ),
+        pytest.param(
+            "d",
+            "group_d",
+            lambda x: True,
+            ["x", "y"],
+            pytest.raises(ValueError, match="The model 'd' of 'group_d' is missing"),
+            id="error when not all arguments are accepted by the function.",
         ),
     ],
 )
-def test_validate_function(x, expectation):
+def test_validate_model_function(model_name, model_group, model, args, expectation):
     with expectation:
-        validate_function(x, "lorem ipsum")
+        validate_model_function(model_name, model_group, model, args)

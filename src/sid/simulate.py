@@ -43,7 +43,6 @@ from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
 from sid.vaccination import vaccinate_individuals
-from sid.validation import validate_function
 from sid.validation import validate_initial_states
 from sid.validation import validate_models
 from sid.validation import validate_params
@@ -259,8 +258,6 @@ def get_simulate_func(
     rapid_test_reaction_models = _add_default_duration_to_models(
         rapid_test_reaction_models, duration
     )
-
-    validate_function(vaccination_model, "vaccination_model")
 
     if _are_states_prepared(initial_states):
         if initial_conditions is not None:
