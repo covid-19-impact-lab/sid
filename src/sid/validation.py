@@ -14,6 +14,9 @@ from sid.time import get_date
 
 COMMON_ARGS = ("states", "params", "seed")
 
+NECESSARY_CONTACT_MODEL_KEYS = ("is_recurrent", "model", "assort_by")
+NECESSARY_CONTACT_POLICY_KEYS = ("affected_contact_model", "policy")
+
 
 def validate_params(params: pd.DataFrame) -> None:
     """Validate the parameter DataFrame."""
@@ -110,60 +113,68 @@ def validate_prepared_initial_states(states, duration):
         )
 
 
-def validate_contact_models_and_policies(contact_models, contact_policies):
+def validate_contact_models(contact_models):
     """Validate contact models and policies."""
     if not isinstance(contact_models, dict):
         raise ValueError("contact_models must be a dictionary.")
 
-    for cm_name, cm in contact_models.items():
-        if not isinstance(cm, dict):
-            raise ValueError(f"Each contact model must be a dictionary: {cm_name}.")
+    for name, model in contact_models.items():
+        if not isinstance(model, dict):
+            raise ValueError(f"Each contact model must be a dictionary: {name}.")
 
-        if cm["is_recurrent"] and "assort_by" not in cm:
+        missing_keys = set(NECESSARY_CONTACT_MODEL_KEYS) - set(model)
+        if missing_keys:
             raise ValueError(
-                f"{cm_name} is a recurrent contact model without an assort_by."
+                f"Contact model {name} is missing the following keys: {missing_keys}"
             )
 
-        validate_model_function(cm_name, "contact_models", cm.get("model"), COMMON_ARGS)
+        if model["is_recurrent"] and "assort_by" not in model:
+            raise ValueError(
+                f"{name} is a recurrent contact model without an assort_by."
+            )
 
+        validate_model_function(name, "contact_models", model.get("model"), COMMON_ARGS)
+
+
+def validate_contact_policies(contact_policies, contact_models):
     if not isinstance(contact_policies, dict):
         raise ValueError("policies must be a dictionary.")
 
-    for name, pol in contact_policies.items():
-        if not isinstance(pol, dict):
+    for name, policy in contact_policies.items():
+        if not isinstance(policy, dict):
             raise ValueError(f"Each policy must be a dictionary: {name}.")
 
-        if "affected_contact_model" not in pol:
-            raise KeyError(
-                f"contact_policy {name} must have a 'affected_contact_model' specified."
+        missing_keys = set(NECESSARY_CONTACT_POLICY_KEYS) - set(policy)
+        if missing_keys:
+            raise ValueError(
+                f"The policy model {name} is missing the following keys: {missing_keys}"
             )
 
-        model = pol["affected_contact_model"]
-        if model not in contact_models:
-            raise ValueError(f"Unknown affected_contact_model for {name}.")
-        if "policy" not in pol:
-            raise KeyError(f"contact_policy {name} must have a 'policy' specified.")
+        affected_model = policy["affected_contact_model"]
+        if affected_model not in contact_models:
+            raise ValueError(
+                f"Unknown affected contact_model {affected_model} for {name}."
+            )
 
-        # the policy must either be a callable or a number between 0 and 1.
-        if callable(pol["policy"]):
+        if callable(policy["policy"]):
             validate_model_function(
-                name, "contact_policies", pol["policy"], COMMON_ARGS
+                name, "contact_policies", policy["policy"], COMMON_ARGS
             )
-        elif isinstance(pol["policy"], (float, int)):
-            if contact_models[model]["is_reccurent"]:
-                if pol["policy"] != 0:
+        elif isinstance(policy["policy"], (float, int)):
+            if contact_models[affected_model]["is_reccurent"]:
+                if policy["policy"] != 0:
                     raise ValueError(
                         f"Specifying multipliers for recurrent models such as {name} "
-                        f"for {pol['affected_contact_model']} will not change the "
+                        f"for {policy['affected_contact_model']} will not change the "
                         "contacts of anyone because for recurrent models it is only "
                         "checked where the number of contacts is larger than 0. "
                         "This is unaffected by any multiplier other than 0"
                     )
             else:
-                if not 0 <= pol["policy"] <= 1:
+                if not 0 <= policy["policy"] <= 1:
                     raise ValueError(
                         f"If 'policy' is a number it must lie between 0 and 1. "
-                        f"For {name} it is {pol['policy']}."
+                        f"For {name} it is {policy['policy']}."
                     )
         else:
             raise ValueError(

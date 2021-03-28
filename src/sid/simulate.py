@@ -43,7 +43,8 @@ from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
 from sid.vaccination import vaccinate_individuals
-from sid.validation import validate_contact_models_and_policies
+from sid.validation import validate_contact_models
+from sid.validation import validate_contact_policies
 from sid.validation import validate_initial_states
 from sid.validation import validate_params
 from sid.validation import validate_prepared_initial_states
@@ -216,8 +217,8 @@ def get_simulate_func(
     params = params.copy(deep=True)
 
     validate_params(params)
-    validate_contact_models_and_policies(contact_models, contact_policies)
-
+    validate_contact_models(contact_models)
+    validate_contact_policies(contact_policies, contact_models)
     validate_testing_models(
         testing_demand_models, testing_allocation_models, testing_processing_models
     )
