@@ -1,7 +1,7 @@
 from contextlib import ExitStack as does_not_raise  # noqa: N813
 
 import pytest
-from sid.validation import validate_model_function
+from sid.validation import _validate_model_function
 
 
 @pytest.mark.parametrize(
@@ -41,6 +41,6 @@ from sid.validation import validate_model_function
         ),
     ],
 )
-def test_validate_model_function(model_name, model_group, model, args, expectation):
+def test__validate_model_function(model_name, model_group, model, args, expectation):
     with expectation:
-        validate_model_function(model_name, model_group, model, args)
+        _validate_model_function(model_name, model_group, model, args)

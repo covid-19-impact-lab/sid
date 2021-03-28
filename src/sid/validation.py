@@ -133,7 +133,9 @@ def validate_contact_models(contact_models):
                 f"{name} is a recurrent contact model without an assort_by."
             )
 
-        validate_model_function(name, "contact_models", model.get("model"), COMMON_ARGS)
+        _validate_model_function(
+            name, "contact_models", model.get("model"), COMMON_ARGS
+        )
 
 
 def validate_contact_policies(contact_policies, contact_models):
@@ -157,7 +159,7 @@ def validate_contact_policies(contact_policies, contact_models):
             )
 
         if callable(policy["policy"]):
-            validate_model_function(
+            _validate_model_function(
                 name, "contact_policies", policy["policy"], COMMON_ARGS
             )
         elif isinstance(policy["policy"], (float, int)):
@@ -203,7 +205,7 @@ def validate_testing_models(
             if not isinstance(testing_model[name], dict):
                 raise ValueError(f"Each testing model must be a dictionary: {name}.")
 
-            validate_model_function(
+            _validate_model_function(
                 name, group_name, testing_model[name].get("model"), args
             )
 
@@ -215,7 +217,7 @@ def validate_return_is_series_or_ndarray(x, index=None, when=None):
         raise ValueError(f"'{when}' must always return a pd.Series or a np.ndarray.")
 
 
-def validate_model_function(
+def _validate_model_function(
     model_name: str, model_group: str, model: Callable, args: List[str]
 ) -> None:
     if not callable(model):
