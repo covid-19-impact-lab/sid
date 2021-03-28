@@ -133,7 +133,7 @@ def sample_initial_distribution_of_infections_and_immunity(
     testing_allocation_models: Dict[str, Dict[str, Any]],
     testing_processing_models: Dict[str, Dict[str, Any]],
     virus_strains: Dict[str, Any],
-    vaccination_model: Optional[Callable],
+    vaccination_models: Optional[Callable],
     seed: itertools.count,
 ):
     """Sample the initial distribution of infections and immunity.
@@ -194,7 +194,7 @@ def sample_initial_distribution_of_infections_and_immunity(
         virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
             ``"factors"`` holding the different contagiousness factors of multiple
             viruses.
-        vaccination_model (Optional[Callable]): A function accepting ``states``,
+        vaccination_models (Optional[Callable]): A function accepting ``states``,
             ``params``, and a ``seed`` which returns boolean indicators for individuals
             who received a vaccination.
         seed (itertools.count): The seed counter.
@@ -249,7 +249,7 @@ def sample_initial_distribution_of_infections_and_immunity(
         )
 
         newly_vaccinated = vaccinate_individuals(
-            vaccination_model, states, params, seed
+            burn_in_date, vaccination_models, states, params, seed
         )
 
         states = update_states(

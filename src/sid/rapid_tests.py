@@ -120,7 +120,7 @@ def _compute_who_receives_rapid_tests(
             )
 
             new_receives_rapid_test = validate_return_is_series_or_ndarray(
-                new_receives_rapid_test, states.index, f"{name}, a rapid_test_model,"
+                new_receives_rapid_test, name, "rapid_test_models", states.index
             )
 
             receives_rapid_test.loc[new_receives_rapid_test] = True

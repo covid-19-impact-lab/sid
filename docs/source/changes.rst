@@ -12,6 +12,7 @@ all releases are available on `Anaconda.org
 
 - :gh:`92` adds an interface for rapid tests.
 - :gh:`93` enhances the validation mechanism.
+- :gh:`94` scales a single vaccination model to multiple vaccination models.
 
 
 0.0.3 - 2021-03-23
