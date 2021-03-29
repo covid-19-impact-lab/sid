@@ -46,7 +46,7 @@ sid
 Features
 --------
 
-sid is a agent-based simulation-based model for infectious diseases like COVID-19.
+sid is an agent-based simulation-based model for infectious diseases like COVID-19.
 
 sid's focus is on predicting the effects of non-pharmaceutical interventions on the
 spread of an infectious disease. To accomplish this task it is built to capture

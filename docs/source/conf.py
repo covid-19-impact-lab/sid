@@ -43,6 +43,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
+    "IPython.sphinxext.ipython_console_highlighting",
     "nbsphinx",
     "sphinx_autodoc_typehints",
     "sphinx_copybutton",
@@ -55,7 +56,7 @@ extensions = [
 # html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
 
-pygments_style = "sphinx"
+pygments_style = "default"
 pygments_dark_style = "monokai"
 
 
