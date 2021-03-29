@@ -1,23 +1,24 @@
 channels:
   - conda-forge
+  - nodefaults
 
 dependencies:
   - python >= 3.6
 
   # Sphinx dependencies.
-  - ipython
-  - sphinx
-  - sphinx-copybutton
-  - sphinx-autoapi
+  - furo
   - nbsphinx
-  - pydata-sphinx-theme
+  - sphinx
+  - sphinx-autoapi
+  - sphinx-autodoc-typehints
+  - sphinx-copybutton
+  - sphinx-panels
 
   # Package dependencies.
   - bokeh
   - dask
   - fastparquet
   - numba >=0.48
-  - numpy
   - pandas >=1
   - python-snappy
   - seaborn
