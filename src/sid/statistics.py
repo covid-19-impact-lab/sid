@@ -1,7 +1,19 @@
+import numpy as np
+import pandas as pd
+
+
+__all__ = ["calculate_r_effective", "calculate_r_zero"]
+
+
 def calculate_r_effective(df, window_length=7):
     """Calculate the effective reproduction number.
 
     More information can be found here: https://bit.ly/2VZOR5a.
+
+    Note:
+        The infection counter is only reset to zero once a person becomes infected again
+        so abstracting from very fast reinfections its mean among those that ceased to
+        be infectious in the last window_length is R_e.
 
     Args:
         df (pandas.DataFrame): states DataFrame for which to calculate R_e, usually
@@ -15,11 +27,16 @@ def calculate_r_effective(df, window_length=7):
             spell ended in the last *window_length* days.
 
     """
-    prev_infected = df[df["cd_infectious_false"].between(-window_length, 0)]
-    # the infection counter is only reset to zero once a person becomes infected again
-    # so abstracting from very fast reinfections its mean among those that
-    # ceased to be infectious in the last window_length is R_e.
-    r_effective = prev_infected["n_has_infected"].mean()
+    grouper = _create_time_grouper(df)
+    infectious_in_the_last_n_days = df["cd_infectious_false"].between(-window_length, 0)
+    r_effective = (
+        df.loc[infectious_in_the_last_n_days].groupby(grouper)["n_has_infected"].mean()
+    )
+
+    # The groupby-mean removed some dates without infections. Add them again.
+    all_time_periods = np.sort(df[grouper.key].unique())
+    r_effective = r_effective.reindex(index=all_time_periods).fillna(0)
+
     return r_effective
 
 
@@ -51,3 +68,14 @@ def calculate_r_zero(df, window_length=7):
     pct_susceptible = 1 - df["immune"].mean()
     r_zero = r_effective / pct_susceptible
     return r_zero
+
+
+def _create_time_grouper(df):
+    if "date" in df.columns:
+        grouper = pd.Grouper(key="date", freq="D")
+    elif "period" in df.columns:
+        grouper = pd.Grouper(key="period")
+    else:
+        raise ValueError("The DataFrame does not provide information on periods.")
+
+    return grouper

@@ -69,6 +69,21 @@ features:
    the infection probabilities are fit to the data and the remaining parameters are
    calibrated from the medical literature and datasets on contact frequencies.
 
+5. The model allows for two testing mechanisms, representing PCR and rapid tests. The
+   first mechanism always reveals the true health status of the tested individual
+   whereas the latter's ability depends on the sensitivity and specificity of the test.
+
+   The first mechanism can also be used to differentiate between known and unknown
+   infections. Both mechanisms can be adapted to reflect different testing policies like
+   (bi-)weekly testing in educational facilities or work places, etc..
+
+6. Mutations may lead to multiple, prevalent virus strains with different
+   characteristics. For now, sid is able to model an unlimited amount of virus strains
+   with different degrees of infectiousness.
+
+7. The model allows to vaccinate individuals who, then, gain perfect immunity from the
+   disease.
+
 More information can be found in the `discussion paper
 <https://www.iza.org/publications/dp/13899>`_ or in the `documentation
 <https://sid-dev.readthedocs.io/en/latest/>`_.

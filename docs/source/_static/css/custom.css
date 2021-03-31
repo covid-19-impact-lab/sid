@@ -21,3 +21,8 @@ pre {
 li pre {
   padding-left: 20px
 }
+
+
+.table-wrapper {
+  padding-right: 0;
+}

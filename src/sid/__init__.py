@@ -1,5 +1,6 @@
 import logging
 
+from sid import statistics
 from sid.colors import get_colors
 from sid.initial_conditions import sample_initial_immunity
 from sid.initial_conditions import sample_initial_infections
@@ -29,6 +30,7 @@ __all__ = [
     "load_epidemiological_parameters",
     "sid_period_to_timestamp",
     "timestamp_to_sid_period",
+    "statistics",
 ]
 
 
