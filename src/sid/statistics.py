@@ -8,7 +8,7 @@ __all__ = ["calculate_r_effective", "calculate_r_zero"]
 def calculate_r_effective(df, window_length=7):
     """Calculate the effective reproduction number.
 
-    More information can be found here: https://bit.ly/2VZOR5a.
+    More explanation can be found in the `Wikipedia article <Wikipedia>`_.
 
     Note:
         The infection counter is only reset to zero once a person becomes infected again
@@ -26,6 +26,9 @@ def calculate_r_effective(df, window_length=7):
         r_effective (float): mean number of people infected by someone whose infectious
             spell ended in the last *window_length* days.
 
+    .. _Wikipedia:
+        https://en.wikipedia.org/wiki/Basic_reproduction_number
+
     """
     grouper = _create_time_grouper(df)
     infectious_in_the_last_n_days = df["cd_infectious_false"].between(-window_length, 0)
@@ -34,8 +37,8 @@ def calculate_r_effective(df, window_length=7):
     )
 
     # The groupby-mean removed some dates without infections. Add them again.
-    all_time_periods = np.sort(df[grouper.key].unique())
-    r_effective = r_effective.reindex(index=all_time_periods).fillna(0)
+    all_periods = np.sort(df[grouper.key].unique())
+    r_effective = r_effective.reindex(index=all_periods).fillna(0)
 
     return r_effective
 
