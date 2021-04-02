@@ -86,11 +86,9 @@ def _create_transition_matrix_from_own_prob(own_prob, group_names=None):
     other groups.
 
     Args:
-        own_prob (float or pd.Series): Probability of staying inside
-            the own group, either as scalar or as pandas.Series with one
-            entry per group.
-        group_names (list): List group codes. Mandatory if own_group
-            is a scalar.
+        own_prob (float or pd.Series): Probability of staying inside the own group,
+            either as scalar or as pandas.Series with one entry per group.
+        group_names (list): List group codes. Mandatory if own_group is a scalar.
 
     Returns:
         pd.DataFrame: Transition matrix as square DataFrame. The index

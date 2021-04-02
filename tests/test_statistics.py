@@ -63,6 +63,7 @@ def test_r_zero_multiple_days(data_for_multiple_days, window, expected):
     assert np.allclose(result, expected)
 
 
+@pytest.mark.unit
 @pytest.mark.parametrize(
     "df, expected",
     [

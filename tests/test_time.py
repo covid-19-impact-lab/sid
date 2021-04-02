@@ -1,9 +1,12 @@
+from contextlib import ExitStack as does_not_raise  # noqa: N813
+
 import numpy as np
 import pandas as pd
 import pytest
 from resources import CONTACT_MODELS
 from sid.config import SID_TIME_START
 from sid.simulate import get_simulate_func
+from sid.time import get_date
 from sid.time import period_to_timestamp
 from sid.time import sid_period_to_timestamp
 from sid.time import timestamp_to_period
@@ -105,3 +108,31 @@ def test_replace_date_with_period_in_simulation(params, initial_states, tmp_path
         assert df["period"].dtype.name == "int16"
         assert df["period"].eq(0).all()
     assert "date" not in time_series
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "df, expectation, expected",
+    [
+        (
+            pd.DataFrame({"date": [pd.Timestamp("2020-03-09")]}),
+            does_not_raise(),
+            pd.Timestamp("2020-03-09"),
+        ),
+        (pd.DataFrame({"period": [0]}), does_not_raise(), pd.Timestamp("2019-01-01")),
+        (
+            pd.DataFrame({"date": [pd.Timestamp("2020-03-09")], "period": [1]}),
+            does_not_raise(),
+            pd.Timestamp("2020-03-09"),
+        ),
+        (
+            pd.DataFrame(),
+            pytest.raises(ValueError, match="'states' does not contain"),
+            None,
+        ),
+    ],
+)
+def test_get_date(df, expectation, expected):
+    with expectation:
+        result = get_date(df)
+        assert result == expected
