@@ -36,7 +36,7 @@ def test_factorize_assortative_variables(initial_states, assort_by, expected):
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "x, seed, expected", [(0, None, False), (1, None, True), (0.7, 0, False)]
+    "x, seed, expected", [(0, None, False), (1, None, True), (0.7, 0, True)]
 )
 def test_boolean_choice(x, seed, expected):
     np.random.seed(seed)
