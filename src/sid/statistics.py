@@ -30,15 +30,21 @@ def calculate_r_effective(df, window_length=7):
         https://en.wikipedia.org/wiki/Basic_reproduction_number
 
     """
-    grouper = _create_time_grouper(df)
     infectious_in_the_last_n_days = df["cd_infectious_false"].between(-window_length, 0)
-    r_effective = (
-        df.loc[infectious_in_the_last_n_days].groupby(grouper)["n_has_infected"].mean()
-    )
 
-    # The groupby-mean removed some dates without infections. Add them again.
-    all_periods = np.sort(df[grouper.key].unique())
-    r_effective = r_effective.reindex(index=all_periods).fillna(0)
+    grouper = _create_time_grouper(df)
+    if grouper is None:
+        r_effective = df.loc[infectious_in_the_last_n_days]["n_has_infected"].mean()
+    else:
+        r_effective = (
+            df.loc[infectious_in_the_last_n_days]
+            .groupby(grouper)["n_has_infected"]
+            .mean()
+        )
+
+        # The groupby-mean removed some dates without infections. Add them again.
+        all_periods = np.sort(df[grouper.key].unique())
+        r_effective = r_effective.reindex(index=all_periods).fillna(0)
 
     return r_effective
 
@@ -68,8 +74,15 @@ def calculate_r_zero(df, window_length=7):
 
     """
     r_effective = calculate_r_effective(df=df, window_length=window_length)
-    pct_susceptible = 1 - df["immune"].mean()
-    r_zero = r_effective / pct_susceptible
+
+    grouper = _create_time_grouper(df)
+    if grouper is None:
+        share_susceptibles = 1 - df["immune"].mean()
+        r_zero = r_effective / share_susceptibles
+    else:
+        share_susceptibles = 1 - df.groupby(grouper)["immune"].mean()
+        r_zero = r_effective / share_susceptibles
+
     return r_zero
 
 
@@ -79,6 +92,6 @@ def _create_time_grouper(df):
     elif "period" in df.columns:
         grouper = pd.Grouper(key="period")
     else:
-        raise ValueError("The DataFrame does not provide information on periods.")
+        grouper = None
 
     return grouper

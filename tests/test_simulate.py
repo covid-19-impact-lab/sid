@@ -41,6 +41,52 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
         }
 
 
+@pytest.mark.end_to_end
+def test_resume_a_simulation(params, initial_states, tmp_path):
+    simulate = get_simulate_func(
+        params=params,
+        initial_states=initial_states,
+        contact_models=CONTACT_MODELS,
+        saved_columns={"other": ["channel_infected_by_contact"]},
+        path=tmp_path,
+        seed=144,
+    )
+
+    result = simulate(params)
+
+    time_series = result["time_series"].compute()
+    last_states = result["last_states"].compute()
+
+    for df in [time_series, last_states]:
+        assert isinstance(df, pd.DataFrame)
+        assert set(df["channel_infected_by_contact"].cat.categories) == {
+            "not_infected_by_contact",
+            "standard",
+        }
+
+    resumed_simulate = get_simulate_func(
+        params=params,
+        initial_states=last_states,
+        contact_models=CONTACT_MODELS,
+        saved_columns={"other": ["channel_infected_by_contact"]},
+        duration={"start": "2020-02-06", "periods": 5},
+        path=tmp_path,
+        seed=144,
+    )
+
+    resumed_result = resumed_simulate(params)
+
+    resumed_time_series = resumed_result["time_series"].compute()
+    resumed_last_states = resumed_result["last_states"].compute()
+
+    for df in [resumed_time_series, resumed_last_states]:
+        assert isinstance(df, pd.DataFrame)
+        assert set(df["channel_infected_by_contact"].cat.categories) == {
+            "not_infected_by_contact",
+            "standard",
+        }
+
+
 @pytest.mark.unit
 def test_check_assort_by_are_categoricals(initial_states):
     assort_bys = _process_assort_bys(CONTACT_MODELS)
@@ -168,7 +214,7 @@ def test_create_group_codes_names(contact_models, assort_bys, expectation, expec
 @pytest.mark.parametrize(
     "states, assort_bys, contact_models, expected_states, expected_group_codes_info",
     [
-        (
+        pytest.param(
             pd.DataFrame({"a": [2, 4, 1, 3, -1]}, dtype="category"),
             {"cm": ["a"]},
             {"cm": {"assort_by": ["a"], "is_recurrent": False}},
@@ -179,8 +225,9 @@ def test_create_group_codes_names(contact_models, assort_bys, expectation, expec
                 }
             ),
             {"cm": {"name": "group_codes_cm", "groups": [1, 2, 3, 4]}},
+            id="test with random model",
         ),
-        (
+        pytest.param(
             pd.DataFrame({"a": [2, 4, 1, 3, -1]}, dtype="category"),
             {"cm": ["a"]},
             {"cm": {"assort_by": ["a"], "is_recurrent": True}},
@@ -191,8 +238,9 @@ def test_create_group_codes_names(contact_models, assort_bys, expectation, expec
                 }
             ),
             {"cm": {"name": "group_codes_cm", "groups": [1, 2, 3, 4]}},
+            id="test with recurrent model",
         ),
-        (
+        pytest.param(
             pd.DataFrame(
                 {"a": [2, 4, 1, 3, -1], "b": [1, 1, 2, 2, 1]}, dtype="category"
             ),
@@ -211,6 +259,15 @@ def test_create_group_codes_names(contact_models, assort_bys, expectation, expec
                     "groups": [(-1, 1), (1, 2), (2, 1), (3, 2), (4, 1)],
                 }
             },
+            id="test random model with multiple variables.",
+        ),
+        pytest.param(
+            pd.DataFrame({"a": [2, 4, 1, 3, -1]}),
+            {"cm": ["a"]},
+            {"cm": {"assort_by": ["a"], "is_recurrent": True, "is_factorized": True}},
+            pd.DataFrame({"a": np.int32([2, 4, 1, 3, -1])}),
+            {"cm": {"name": "a", "groups": [1, 2, 3, 4]}},
+            id="test recurrent model with already factorized variable",
         ),
     ],
 )

@@ -88,7 +88,8 @@ def validate_initial_states(initial_states):
 
 
 def validate_prepared_initial_states(states, duration):
-    if np.any(states.drop(columns="pending_test_date", errors="ignore").isna()):
+    columns_with_nans = ["pending_test_date", "virus_strain"]
+    if np.any(states.drop(columns=columns_with_nans, errors="ignore").isna()):
         raise ValueError("'initial_states' are not allowed to contain NaNs.")
 
     for column in BOOLEAN_STATE_COLUMNS:
