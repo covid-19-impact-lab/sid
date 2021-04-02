@@ -11,6 +11,8 @@ all releases are available on `Anaconda.org
 ------------------
 
 - :gh:`92` adds an interface for rapid tests.
+- :gh:`96` changes the initialization of countdowns and removes draws created for
+  countdowns without randomness.
 
 
 0.0.3 - 2021-03-23

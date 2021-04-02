@@ -52,3 +52,9 @@ COUNTDOWNS = {
 - all other countdowns are triggered by chain reactions.
 
 """
+
+COUNTDOWNS_WITHOUT_DRAWS = ("cd_received_rapid_test", "cd_ever_infected")
+"""Tuple[str]: Countdowns which do not have draws."""
+
+COUNTDOWNS_WITH_DRAWS = tuple(set(COUNTDOWNS) - set(COUNTDOWNS_WITHOUT_DRAWS))
+"""Tuple[str]: Countdowns whose length is a random variable."""

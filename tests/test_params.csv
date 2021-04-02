@@ -14,9 +14,7 @@ infection_prob,standard,standard,0.05,,
 cd_received_test_result_true,all,2,1,,
 cd_knows_immune_false,all,-1,1,,
 cd_knows_infectious_false,all,-1,1,,
-cd_ever_infected,all,-1,1,,
 cd_is_immune_by_vaccine,all,-1,1,,
 known_cases_multiplier,known_cases_multiplier,known_cases_multiplier,1.1,,
-cd_received_rapid_test,all,-99,1
 rapid_test,sensitivity,sensitivity,0.961
 rapid_test,specificity,specificity,0.994
