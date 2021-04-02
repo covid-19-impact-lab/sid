@@ -104,6 +104,7 @@ def random_choice(choices, probabilities=None, decimals=5):
         pass
     else:
         raise TypeError(f"'choices' has invalid type {type(choices)}.")
+    choices = np.atleast_2d(choices)
 
     if probabilities is None:
         n_choices = choices.shape[-1]
@@ -111,10 +112,13 @@ def random_choice(choices, probabilities=None, decimals=5):
         probabilities = np.broadcast_to(probabilities, choices.shape)
     elif isinstance(probabilities, (pd.Series, pd.DataFrame)):
         probabilities = probabilities.to_numpy()
+    elif isinstance(probabilities, (dict, list, tuple)):
+        probabilities = np.array(list(probabilities))
     elif isinstance(probabilities, np.ndarray):
         pass
     else:
         raise TypeError(f"'probabilities' has invalid type {type(probabilities)}.")
+    probabilities = np.atleast_2d(probabilities)
 
     cumulative_distribution = probabilities.cumsum(axis=1)
     # Probabilities often do not sum to one but 0.99999999999999999.
