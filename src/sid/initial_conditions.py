@@ -194,9 +194,10 @@ def sample_initial_distribution_of_infections_and_immunity(
         virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
             ``"factors"`` holding the different contagiousness factors of multiple
             viruses.
-        vaccination_models (Optional[Callable]): A function accepting ``states``,
-            ``params``, and a ``seed`` which returns boolean indicators for individuals
-            who received a vaccination.
+        vaccination_models (Optional[Dict[str, Dict[str, Any]): A dictionary of models
+            which allow to vaccinate individuals. The ``"model"`` key holds a function
+            with arguments ``states``, ``params``, and a ``seed`` which returns boolean
+            indicators for individuals who received a vaccination.
         seed (itertools.count): The seed counter.
 
     Returns:
