@@ -248,7 +248,7 @@ def calculate_infections_by_contacts(
     return newly_infected, n_has_additionally_infected, missed_contacts, was_infected_by
 
 
-@nb.njit
+@nb.njit  # pragma: no cover
 def _reduce_random_contacts_with_infection_probs(
     random_contacts: np.ndarray, probs: np.ndarray, seed: int
 ) -> np.ndarray:
@@ -289,7 +289,7 @@ def _reduce_random_contacts_with_infection_probs(
     return random_contacts
 
 
-@nb.njit
+@nb.njit  # pragma: no cover
 def _calculate_infections_by_recurrent_contacts(
     recurrent_contacts: np.ndarray,
     infectious: np.ndarray,
@@ -379,7 +379,7 @@ def _calculate_infections_by_recurrent_contacts(
     return newly_infected, infection_counter, immune, was_infected_by
 
 
-@nb.njit
+@nb.njit  # pragma: no cover
 def _calculate_infections_by_random_contacts(
     random_contacts: np.ndarray,
     infectious: np.ndarray,
@@ -498,7 +498,7 @@ def _calculate_infections_by_random_contacts(
     return newly_infected, infection_counter, immune, missed, was_infected_by
 
 
-@nb.njit
+@nb.njit  # pragma: no cover
 def choose_other_group(a, cdf):
     """Choose a group out of a, given cumulative choice probabilities.
 
@@ -510,7 +510,7 @@ def choose_other_group(a, cdf):
     return a[index]
 
 
-@nb.njit
+@nb.njit  # pragma: no cover
 def choose_other_individual(a, weights):
     """Return an element of a, if weights are not all zero, else return -1.
 
@@ -551,7 +551,7 @@ def choose_other_individual(a, weights):
     return chosen
 
 
-@nb.njit
+@nb.njit  # pragma: no cover
 def _get_index_refining_search(u, cdf):
     """Get the index of the first element in cdf that is larger than u.
 
@@ -634,7 +634,7 @@ def create_group_indexer(
     return indexer
 
 
-@nb.njit
+@nb.njit  # pragma: no cover
 def _sum_preserving_round(arr):
     """Round values in an array, preserving the sum as good as possible.
 

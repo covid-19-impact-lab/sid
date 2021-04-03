@@ -1,5 +1,3 @@
-import warnings
-
 import numba as nb
 import numpy as np
 import pandas as pd
@@ -11,14 +9,6 @@ from sid.config import ROOT_DIR
 def load_epidemiological_parameters():
     """Load epidemiological_parameters."""
     return pd.read_csv(ROOT_DIR / "covid_epi_params.csv", index_col=INDEX_NAMES)
-
-
-def get_epidemiological_parameters():
-    warnings.warn(
-        "This function will soon be deprecated. Use load_epidemiological_parameters "
-        "instead."
-    )
-    return load_epidemiological_parameters()
 
 
 def factorize_assortative_variables(states, assort_by, is_recurrent):
@@ -139,8 +129,8 @@ def random_choice(choices, probabilities=None, decimals=5):
     return out
 
 
-@nb.njit
-def boolean_choice(truth_probability):
+@nb.njit  # pragma: no cover
+def boolean_choice(truth_probability):  # pragma: no cover
     """Sample boolean value with probability given for ``True``.
 
     Args:

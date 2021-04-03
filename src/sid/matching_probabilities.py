@@ -1,6 +1,9 @@
 """Functions to work with transition matrices for assortative matching."""
 import string
 import warnings
+from typing import List
+from typing import Optional
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -78,7 +81,9 @@ def _get_transition_matrix_from_params(params, states, variable, model_name):
     return trans_mat
 
 
-def _create_transition_matrix_from_own_prob(own_prob, group_names=None):
+def _create_transition_matrix_from_own_prob(
+    own_prob: Union[int, float, pd.Series], group_names=Optional[List[str]]
+) -> pd.DataFrame:
     """Create a transition matrix.
 
     The matrix is calculated from the probability of staying inside
@@ -108,12 +113,12 @@ def _create_transition_matrix_from_own_prob(own_prob, group_names=None):
         b  0.3  0.7
 
     """
-    if np.isscalar(own_prob) and group_names is None:
-        raise ValueError("If own_prob is a scalar you must provide group_probs.")
-    elif np.isscalar(own_prob):
+    if np.isscalar(own_prob) and group_names is not None:
         own_prob = pd.Series(data=own_prob, index=group_names)
-    elif group_names is not None:
+    elif isinstance(own_prob, pd.Series) and group_names is not None:
         own_prob = own_prob.loc[group_names]
+    else:
+        raise ValueError("Pass either a scalar and group_names, ")
 
     n_groups = len(own_prob)
     other_prob = (1 - own_prob) / (n_groups - 1)

@@ -93,3 +93,18 @@ def test_einsum_kronecker_product_fourfold():
     calculated = _einsum_kronecker_product(*trans_mats).astype("float32")
 
     np.testing.assert_allclose(calculated, expected, rtol=1e-06)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "own_prob, group_names, expectation, expected",
+    [
+        (0.5, None, pytest.raises(ValueError, match="If 'own_prob' is a"), None),
+    ],
+)
+def test_create_transition_matrix_own_prob(
+    own_prob, group_names, expectation, expected
+):
+    with expectation:
+        result = _create_transition_matrix_from_own_prob(own_prob, group_names)
+        assert np.allclose(result, expected)

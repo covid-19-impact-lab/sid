@@ -351,3 +351,24 @@ def test_prepare_susceptibility_factor(model, states, expectation, expected):
     with expectation:
         result = _prepare_susceptibility_factor(model, states, None, 0)
         assert (result == expected).all()
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "contact_models, expectation, expected",
+    [
+        ({"cm": {}}, pytest.warns(UserWarning, match="Not specifying"), {"cm": []}),
+        ({"cm": {"assort_by": False}}, does_not_raise(), {"cm": []}),
+        ({"cm": {"assort_by": "age"}}, does_not_raise(), {"cm": ["age"]}),
+        ({"cm": {"assort_by": ["age"]}}, does_not_raise(), {"cm": ["age"]}),
+        (
+            {"cm": {"assort_by": {"age"}}},
+            pytest.raises(ValueError, match="'assort_by' for"),
+            None,
+        ),
+    ],
+)
+def test_process_assort_bys(contact_models, expectation, expected):
+    with expectation:
+        result = _process_assort_bys(contact_models)
+        assert result == expected
