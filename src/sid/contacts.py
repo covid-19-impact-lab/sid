@@ -58,7 +58,7 @@ def calculate_contacts(
             states=states, params=params.loc[loc], seed=next(seed)
         )
         model_specific_contacts = validate_return_is_series_or_ndarray(
-            model_specific_contacts, when=f"Contact model {model_name}"
+            model_specific_contacts, model_name, "contact_models", states.index
         )
         for policy in contact_policies.values():
             if policy["affected_contact_model"] == model_name:

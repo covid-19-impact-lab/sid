@@ -1,7 +1,8 @@
 """This module contains routines to validate inputs to functions."""
+import inspect
 import warnings
 from typing import Callable
-from typing import Optional
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -9,6 +10,12 @@ from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import INDEX_NAMES
 from sid.countdowns import COUNTDOWNS_WITH_DRAWS
 from sid.time import get_date
+
+
+COMMON_ARGS = ("states", "params", "seed")
+
+NECESSARY_CONTACT_MODEL_KEYS = ("is_recurrent", "model", "assort_by")
+NECESSARY_CONTACT_POLICY_KEYS = ("affected_contact_model", "policy")
 
 
 def validate_params(params: pd.DataFrame) -> None:
@@ -107,85 +114,141 @@ def validate_prepared_initial_states(states, duration):
         )
 
 
-def validate_models(
-    contact_models,
-    contact_policies,
-    testing_demand_models,
-    testing_allocation_models,
-    testing_processing_models,
-):
-    """Check the user inputs."""
+def validate_contact_models(contact_models):
+    """Validate contact models and policies."""
     if not isinstance(contact_models, dict):
         raise ValueError("contact_models must be a dictionary.")
 
-    for cm_name, cm in contact_models.items():
-        if not isinstance(cm, dict):
-            raise ValueError(f"Each contact model must be a dictionary: {cm_name}.")
-        if cm["is_recurrent"] and "assort_by" not in cm:
+    for name, model in contact_models.items():
+        if not isinstance(model, dict):
+            raise ValueError(f"Each contact model must be a dictionary: {name}.")
+
+        missing_keys = set(NECESSARY_CONTACT_MODEL_KEYS) - set(model)
+        if missing_keys:
             raise ValueError(
-                f"{cm_name} is a recurrent contact model without an assort_by."
+                f"Contact model {name} is missing the following keys: {missing_keys}"
             )
 
+        if model["is_recurrent"] and "assort_by" not in model:
+            raise ValueError(
+                f"{name} is a recurrent contact model without an assort_by."
+            )
+
+        _validate_model_function(
+            name, "contact_models", model.get("model"), COMMON_ARGS
+        )
+
+
+def validate_contact_policies(contact_policies, contact_models):
     if not isinstance(contact_policies, dict):
         raise ValueError("policies must be a dictionary.")
 
-    for name, pol in contact_policies.items():
-        if not isinstance(pol, dict):
+    for name, policy in contact_policies.items():
+        if not isinstance(policy, dict):
             raise ValueError(f"Each policy must be a dictionary: {name}.")
-        if "affected_contact_model" not in pol:
-            raise KeyError(
-                f"contact_policy {name} must have a 'affected_contact_model' specified."
+
+        missing_keys = set(NECESSARY_CONTACT_POLICY_KEYS) - set(policy)
+        if missing_keys:
+            raise ValueError(
+                f"The policy model {name} is missing the following keys: {missing_keys}"
             )
-        model = pol["affected_contact_model"]
-        if model not in contact_models:
-            raise ValueError(f"Unknown affected_contact_model for {name}.")
-        if "policy" not in pol:
-            raise KeyError(f"contact_policy {name} must have a 'policy' specified.")
 
-        # the policy must either be a callable or a number between 0 and 1.
-        if not callable(pol["policy"]):
-            if not isinstance(pol["policy"], (float, int)):
-                raise ValueError(
-                    f"The 'policy' entry of {name} must be callable or a number."
-                )
-            elif (pol["policy"] > 1.0) or (pol["policy"] < 0.0):
-                raise ValueError(
-                    f"If 'policy' is a number it must lie between 0 and 1. "
-                    f"For {name} it is {pol['policy']}."
-                )
+        affected_model = policy["affected_contact_model"]
+        if affected_model not in contact_models:
+            raise ValueError(
+                f"Unknown affected contact_model {affected_model} for {name}."
+            )
+
+        if callable(policy["policy"]):
+            _validate_model_function(
+                name, "contact_policies", policy["policy"], COMMON_ARGS
+            )
+        elif isinstance(policy["policy"], (float, int)):
+            if contact_models[affected_model]["is_reccurent"]:
+                if policy["policy"] != 0:
+                    raise ValueError(
+                        f"Specifying multipliers for recurrent models such as {name} "
+                        f"for {policy['affected_contact_model']} will not change the "
+                        "contacts of anyone because for recurrent models it is only "
+                        "checked where the number of contacts is larger than 0. "
+                        "This is unaffected by any multiplier other than 0"
+                    )
             else:
-                recurrent = contact_models[model]["is_recurrent"]
-                assert not recurrent or pol["policy"] == 0.0, (
-                    f"Specifying multipliers for recurrent models such as {name} for "
-                    f"{pol['affected_contact_model']} will not change the contacts "
-                    "of anyone because for recurrent models it is only checked"
-                    "where the number of contacts is larger than 0. "
-                    "This is unaffected by any multiplier other than 0"
-                )
+                if not 0 <= policy["policy"] <= 1:
+                    raise ValueError(
+                        f"If 'policy' is a number it must lie between 0 and 1. "
+                        f"For {name} it is {policy['policy']}."
+                    )
+        else:
+            raise ValueError(
+                f"The 'policy' entry of {name} must be callable or a number."
+            )
 
-    for testing_model in [
-        testing_demand_models,
-        testing_allocation_models,
-        testing_processing_models,
+
+def validate_testing_models(
+    testing_demand_models, testing_allocation_models, testing_processing_models
+):
+    """Validate models for testing."""
+    for group_name, testing_model, args in [
+        ("testing_demand_models", testing_demand_models, COMMON_ARGS),
+        (
+            "testing_allocation_models",
+            testing_allocation_models,
+            ("n_allocated_tests", "demands_test") + COMMON_ARGS,
+        ),
+        (
+            "testing_processing_models",
+            testing_processing_models,
+            ("n_to_be_processed_tests",) + COMMON_ARGS,
+        ),
     ]:
         for name in testing_model:
             if not isinstance(testing_model[name], dict):
                 raise ValueError(f"Each testing model must be a dictionary: {name}.")
 
-            if "model" not in testing_model[name]:
-                raise ValueError(
-                    f"Each testing model must have a 'model' entry: {name}."
-                )
+            _validate_model_function(
+                name, group_name, testing_model[name].get("model"), args
+            )
 
 
-def validate_return_is_series_or_ndarray(x, index=None, when=None):
+def validate_vaccination_models(vaccination_models):
+    """Validate vaccination models."""
+    for name, model in vaccination_models.items():
+        if not isinstance(model, dict):
+            raise ValueError(f"Vaccination model {name} is not a dictionary.")
+
+        _validate_model_function(
+            name,
+            "vaccination_models",
+            model.get("model"),
+            ("receives_vaccine",) + COMMON_ARGS,
+        )
+
+
+def validate_return_is_series_or_ndarray(x, model_name, model_group, index):
     if isinstance(x, (pd.Series, np.ndarray)):
         return pd.Series(data=x, index=index)
     else:
-        raise ValueError(f"'{when}' must always return a pd.Series or a np.ndarray.")
+        raise ValueError(
+            f"The model '{model_name}' of '{model_group}' does not return a "
+            f"pandas.Series or a numpy.array, but {x} has type {type(x)}."
+        )
 
 
-def validate_function(model: Optional[Callable], model_name: str) -> None:
-    """Validate that the input is either a function or None."""
-    if not (callable(model) or model is None):
-        raise ValueError(f"{model_name} must be a function or 'None'.")
+def _validate_model_function(
+    model_name: str, model_group: str, model: Callable, args: List[str]
+) -> None:
+    if not callable(model):
+        raise TypeError(
+            f"The model '{model_name}' of '{model_group}' is not a callable, but "
+            f"{model}."
+        )
+
+    signature = inspect.signature(model)
+    missing_arguments = set(args) - set(signature.parameters)
+
+    if missing_arguments:
+        raise ValueError(
+            f"The model '{model_name}' of '{model_group}' is missing some mandatory "
+            f"arguments: {missing_arguments}."
+        )
