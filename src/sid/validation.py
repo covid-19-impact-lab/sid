@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import INDEX_NAMES
-from sid.countdowns import COUNTDOWNS
+from sid.countdowns import COUNTDOWNS_WITH_DRAWS
 from sid.time import get_date
 
 
@@ -42,7 +42,7 @@ def validate_params(params: pd.DataFrame) -> None:
     if params["value"].isna().any():
         raise ValueError("The 'value' column of params must not contain NaNs.")
 
-    cd_names = sorted(COUNTDOWNS)
+    cd_names = sorted(COUNTDOWNS_WITH_DRAWS)
     gb = params.loc[cd_names].groupby(INDEX_NAMES[:2])
     prob_sums = gb["value"].sum()
     problematic = prob_sums[~prob_sums.between(1 - 1e-08, 1 + 1e-08)].index.tolist()

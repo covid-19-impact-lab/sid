@@ -78,12 +78,12 @@ def random_choice(choices, probabilities=None, decimals=5):
     Examples:
         Here is an example with non-zero probabilities.
 
-        >>> n_samples = 100_000
+        >>> n_samples = 1_000_000
         >>> n_choices = 3
         >>> p = np.array([0.15, 0.35, 0.5])
         >>> ps = np.tile(p, (n_samples, 1))
         >>> choices = random_choice(n_choices, ps)
-        >>> np.round(np.bincount(choices), decimals=-3) / n_samples
+        >>> np.round(np.bincount(choices) / n_samples, decimals=2)
         array([0.15, 0.35, 0.5 ])
 
         Here is an example where one choice has probability zero.
@@ -92,7 +92,7 @@ def random_choice(choices, probabilities=None, decimals=5):
         >>> p = np.array([0.4, 0, 0.6])
         >>> ps = np.tile(p, (n_samples, 1))
         >>> choices = random_choice(3, ps)
-        >>> np.round(np.bincount(choices), decimals=-3) / n_samples
+        >>> np.round(np.bincount(choices) / n_samples, decimals=2)
         array([0.4, 0. , 0.6])
 
     """
