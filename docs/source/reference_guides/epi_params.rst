@@ -296,42 +296,47 @@ period by the `meta-analysis for the infectiousness period (figure 5)
 <https://bmjopen.bmj.com/content/bmjopen/10/8/e039856.full.pdf>`_.
 
 However, a significant share of infected and infectious individuals never develop
-symptoms.
+symptoms. We use data by `Davies et al. (2020) <https://go.nature.com/3cvLs7L>`_
+to get an age dependent probability of becoming symptomatic. The probability of
+developing symptoms varies between 25% for children and young adults to nearly 70%
+for the elderly.
 
-A big problem with estimating the share of asymptomatic individuals is that they can be
-difficult to find. In addition, in the beginning, tests have been a precious resource in
-the fight against COVID-19 - usually reserved for those with symptoms and their
-contacts. Korea has had a stellar performance in testing a large fraction of its
-population. We therefore rely on the `Korean CDC reported 33% of asymptomatic cases
-<https://www.ijidonline.com/article/S1201-9712(20)30344-1/abstract>`_.
+.. A big problem with estimating the share of asymptomatics is that they can be
+.. difficult to find. In addition, in the beginning, tests were a precious resource in
+.. the fight against COVID-19 - usually reserved for those with symptoms and their
+.. contacts. Korea has had a stellar performance in testing a large fraction of its
+.. population. We therefore rely on the `Korean CDC reported 33% of asymptomatic cases
+.. <https://www.ijidonline.com/article/S1201-9712(20)30344-1/abstract>`_.
+..
+.. Other sources with more or less similar estimates of asymptomatic cases include:
+..
+.. - 13% of Chinese children (<15 years) (`Dong et al. (2020)
+..   <https://pediatrics.aappublications.org/content/145/6/e20200702>`_)
+.. - 15-20% on the Diamond Princess (`Mizumoto et al. (2020)
+..   <https://www.eurosurveillance.org/content/10.2807/
+..   1560-7917.ES.2020.25.10.2000180/#html_fulltext>`_)
+.. - 30.8% (CI: 7.7–53.8%) from Japanese evacuees (`Nishiura and Kobayashi
+..   <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7270890/>`_)
+.. - 46% (CI: 18-74%) from a meta study by (`He et al. (2020-05-29)
+..   <https://onlinelibrary.wiley.com/doi/full/10.1002/jmv.26041>`_)
+..
 
-Other sources with more or less similar estimates of asymptomatic cases include:
+We split the remaining probability mass evenly between 1 and 2 days, which is the
+length of the presymptomatic stage:
 
-- 13% of Chinese children (<15 years) (`Dong et al. (2020)
-  <https://pediatrics.aappublications.org/content/145/6/e20200702>`_)
-- 15-20% on the Diamond Princess (`Mizumoto et al. (2020)
-  <https://www.eurosurveillance.org/content/10.2807/
-  1560-7917.ES.2020.25.10.2000180/#html_fulltext>`_)
-- 30.8% (CI: 7.7–53.8%) from Japanese evacuees (`Nishiura and Kobayashi
-  <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7270890/>`_)
-- 46% (CI: 18-74%) from a meta study by (`He et al. (2020-05-29)
-  <https://onlinelibrary.wiley.com/doi/full/10.1002/jmv.26041>`_)
-
-We split the remaining probability mass evenly between 1 and 2 days for the
-presymptomatic stage:
-
-.. csv-table::
-    :header: "duration of pre-symptomatic stage", "probability"
-
-        1,0.335
-        2,0.335
-        no symptoms,0.33
-
-.. note::
-
-    The `OpenABM project <https://github.com/BDI-pathogens/OpenABM-Covid19/blob/master/
-    documentation/parameters/parameter_dictionary.md>`_ has asymptomatic probabilities
-    by age group, ranging from 0.19 for those >80 to 0.45 for those <9.
+..
+.. .. csv-table::
+..     :header: "duration of pre-symptomatic stage", "probability"
+..
+..         1,0.335
+..         2,0.335
+..         no symptoms,0.33
+..
+.. .. note::
+..
+..     The `OpenABM project <https://github.com/BDI-pathogens/OpenABM-Covid19/blob/master/
+..     documentation/parameters/parameter_dictionary.md>`_ has asymptomatic probabilities
+..     by age group, ranging from 0.19 for those >80 to 0.45 for those <9.
 
 
 Duration of Symptoms
