@@ -129,7 +129,7 @@ def test_compute_who_reveives_rapid_tests_raises_error(initial_states, params):
 
     contacts = pd.Series(index=initial_states.index, data=0)
 
-    with pytest.raises(ValueError, match="model, a rapid_test_model,"):
+    with pytest.raises(ValueError, match="The model 'model' of 'rapid_test_models'"):
         _compute_who_receives_rapid_tests(
             date,
             initial_states,

@@ -11,6 +11,8 @@ all releases are available on `Anaconda.org
 ------------------
 
 - :gh:`92` adds an interface for rapid tests.
+- :gh:`93` enhances the validation mechanism.
+- :gh:`94` scales a single vaccination model to multiple vaccination models.
 - :gh:`95` enhances the documentation and fixes resuming simulations.
 - :gh:`96` changes the initialization of countdowns and removes draws created for
   countdowns without randomness.

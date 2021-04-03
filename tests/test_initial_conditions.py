@@ -193,7 +193,7 @@ def test_scale_and_spread_initial_infections(
             {},
             {},
             DEFAULT_VIRUS_STRAINS,
-            None,
+            {},
             seed,
         )
         assert result["ever_infected"].equals(expected)
@@ -303,7 +303,7 @@ def test_scale_and_spread_initial_infections_w_testing_models(initial_states, pa
         testing_allocation_models=testing_allocation_models,
         testing_processing_models=testing_processing_models,
         virus_strains=DEFAULT_VIRUS_STRAINS,
-        vaccination_model=None,
+        vaccination_models={},
         seed=itertools.count(),
     )
 
