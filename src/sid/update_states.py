@@ -21,7 +21,7 @@ def update_states(
     params: pd.DataFrame,
     virus_strains: Dict[str, Any],
     to_be_processed_tests: Optional[pd.Series],
-    newly_vaccinated: Optional[pd.Series],
+    newly_vaccinated: pd.Series,
     seed: itertools.count,
 ):
     """Update the states with new infections and advance it by one period.
@@ -61,8 +61,7 @@ def update_states(
     if to_be_processed_tests is not None:
         states = _update_info_on_new_tests(states, to_be_processed_tests)
 
-    if newly_vaccinated is not None:
-        states = _update_info_on_new_vaccinations(states, newly_vaccinated)
+    states = _update_info_on_new_vaccinations(states, newly_vaccinated)
 
     return states
 

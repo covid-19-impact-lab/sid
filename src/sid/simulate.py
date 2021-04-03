@@ -49,6 +49,7 @@ from sid.validation import validate_initial_states
 from sid.validation import validate_params
 from sid.validation import validate_prepared_initial_states
 from sid.validation import validate_testing_models
+from sid.validation import validate_vaccination_models
 from tqdm import tqdm
 
 
@@ -71,7 +72,7 @@ def get_simulate_func(
     initial_conditions: Optional[Dict[str, Any]] = None,
     susceptibility_factor_model: Optional[Callable] = None,
     virus_strains: Optional[List[str]] = None,
-    vaccination_model: Optional[Callable] = None,
+    vaccination_models: Optional[Callable] = None,
     rapid_test_models: Optional[Dict[str, Dict[str, Any]]] = None,
     rapid_test_reaction_models: Optional[Dict[str, Dict[str, Any]]] = None,
 ):
@@ -170,9 +171,10 @@ def get_simulate_func(
             virus strains used in the model. Their different contagiousness factors are
             looked up in the params DataFrame. By default, only one virus strain is
             used.
-        vaccination_model (Optional[Callable]): A function accepting ``states``,
-            ``params``, and a ``seed`` which returns boolean indicators for individuals
-            who received a vaccination.
+        vaccination_models (Optional[Dict[str, Dict[str, Any]): A dictionary of models
+            which allow to vaccinate individuals. The ``"model"`` key holds a function
+            with arguments ``states``, ``params``, and a ``seed`` which returns boolean
+            indicators for individuals who received a vaccination.
         rapid_test_models (Optional[Dict[str, Dict[str, Any]]]: A dictionary of
             dictionaries containing models for rapid tests. Each model for rapid tests
             can have a ``"start"`` and ``"end"`` date. It must have a function under
@@ -212,6 +214,8 @@ def get_simulate_func(
         rapid_test_reaction_models = {}
     if rapid_test_models is None:
         rapid_test_models = {}
+    if vaccination_models is None:
+        vaccination_models = {}
 
     initial_states = initial_states.copy(deep=True)
     params = params.copy(deep=True)
@@ -222,6 +226,7 @@ def get_simulate_func(
     validate_testing_models(
         testing_demand_models, testing_allocation_models, testing_processing_models
     )
+    validate_vaccination_models(vaccination_models)
 
     user_state_columns = initial_states.columns
 
@@ -238,20 +243,23 @@ def get_simulate_func(
         initial_conditions, duration["start"], virus_strains
     )
 
-    # Testing models are used in the initial conditions and should be activated during
-    # the burn-in phase if the starting date is not defined.
-    default_duration_testing = {
+    # Testing and vaccination models are used in the initial conditions and should be
+    # activated during the burn-in phase if the starting date is not defined.
+    default_duration_w_burn_in = {
         "start": initial_conditions["burn_in_periods"][0],
         "end": duration["end"],
     }
     testing_demand_models = _add_default_duration_to_models(
-        testing_demand_models, default_duration_testing
+        testing_demand_models, default_duration_w_burn_in
     )
     testing_allocation_models = _add_default_duration_to_models(
-        testing_allocation_models, default_duration_testing
+        testing_allocation_models, default_duration_w_burn_in
     )
     testing_processing_models = _add_default_duration_to_models(
-        testing_processing_models, default_duration_testing
+        testing_processing_models, default_duration_w_burn_in
+    )
+    vaccination_models = _add_default_duration_to_models(
+        vaccination_models, default_duration_w_burn_in
     )
 
     rapid_test_models = _add_default_duration_to_models(rapid_test_models, duration)
@@ -276,15 +284,15 @@ def get_simulate_func(
             initial_states, params, next(startup_seed)
         )
         initial_states = sample_initial_distribution_of_infections_and_immunity(
-            initial_states,
-            params,
-            initial_conditions,
-            testing_demand_models,
-            testing_allocation_models,
-            testing_processing_models,
-            virus_strains,
-            vaccination_model,
-            startup_seed,
+            states=initial_states,
+            params=params,
+            initial_conditions=initial_conditions,
+            testing_demand_models=testing_demand_models,
+            testing_allocation_models=testing_allocation_models,
+            testing_processing_models=testing_processing_models,
+            virus_strains=virus_strains,
+            vaccination_models=vaccination_models,
+            seed=startup_seed,
         )
 
     initial_states, group_codes_info = _create_group_codes_and_info(
@@ -316,7 +324,7 @@ def get_simulate_func(
         indexers=indexers,
         susceptibility_factor_model=susceptibility_factor_model,
         virus_strains=virus_strains,
-        vaccination_model=vaccination_model,
+        vaccination_models=vaccination_models,
         rapid_test_models=rapid_test_models,
         rapid_test_reaction_models=rapid_test_reaction_models,
     )
@@ -341,7 +349,7 @@ def _simulate(
     indexers,
     susceptibility_factor_model,
     virus_strains,
-    vaccination_model,
+    vaccination_models,
     rapid_test_models,
     rapid_test_reaction_models,
 ):
@@ -380,9 +388,10 @@ def _simulate(
         virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
             ``"factors"`` holding the different contagiousness factors of multiple
             viruses.
-        vaccination_model (Optional[Callable]): A function accepting ``states``,
-            ``params``, and a ``seed`` which returns boolean indicators for individuals
-            who received a vaccination.
+        vaccination_models (Optional[Dict[str, Dict[str, Any]): A dictionary of models
+            which allow to vaccinate individuals. The ``"model"`` key holds a function
+            with arguments ``states``, ``params``, and a ``seed`` which returns boolean
+            indicators for individuals who received a vaccination.
         rapid_test_models (Optional[Dict[str, Dict[str, Any]]]: A dictionary of
             dictionaries containing models for rapid tests. Each model for rapid tests
             can have a ``"start"`` and ``"end"`` date. It must have a function under
@@ -502,7 +511,7 @@ def _simulate(
         )
 
         newly_vaccinated = vaccinate_individuals(
-            vaccination_model, states, params, seed
+            date, vaccination_models, states, params, seed
         )
 
         states = update_states(

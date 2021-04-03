@@ -36,7 +36,7 @@ def process_tests(
     """
     all_to_be_processed_tests = pd.Series(index=states.index, data=False)
 
-    for model in testing_processing_models.values():
+    for name, model in testing_processing_models.items():
         loc = model.get("loc", params.index)
         func = model["model"]
 
@@ -49,7 +49,7 @@ def process_tests(
             )
 
             to_be_processed_tests = validate_return_is_series_or_ndarray(
-                to_be_processed_tests, states.index, "testing_allocation_models"
+                to_be_processed_tests, name, "testing_allocation_models", states.index
             )
 
             if not states["pending_test"][to_be_processed_tests].all():

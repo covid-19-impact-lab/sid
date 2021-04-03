@@ -39,7 +39,7 @@ def allocate_tests(
     all_allocated_tests = pd.Series(index=states.index, data=False)
     current_demands_test = demands_test.copy()
 
-    for model in testing_allocation_models.values():
+    for name, model in testing_allocation_models.items():
         loc = model.get("loc", params.index)
         func = model["model"]
 
@@ -52,7 +52,7 @@ def allocate_tests(
                 seed=next(seed),
             )
             allocated_tests = validate_return_is_series_or_ndarray(
-                allocated_tests, states.index, "testing_allocation_models"
+                allocated_tests, name, "testing_allocation_models", states.index
             )
 
             if not current_demands_test[allocated_tests].all():

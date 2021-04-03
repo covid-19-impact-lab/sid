@@ -210,11 +210,28 @@ def validate_testing_models(
             )
 
 
-def validate_return_is_series_or_ndarray(x, index=None, when=None):
+def validate_vaccination_models(vaccination_models):
+    """Validate vaccination models."""
+    for name, model in vaccination_models.items():
+        if not isinstance(model, dict):
+            raise ValueError(f"Vaccination model {name} is not a dictionary.")
+
+        _validate_model_function(
+            name,
+            "vaccination_models",
+            model.get("model"),
+            ("receives_vaccine",) + COMMON_ARGS,
+        )
+
+
+def validate_return_is_series_or_ndarray(x, model_name, model_group, index):
     if isinstance(x, (pd.Series, np.ndarray)):
         return pd.Series(data=x, index=index)
     else:
-        raise ValueError(f"'{when}' must always return a pd.Series or a np.ndarray.")
+        raise ValueError(
+            f"The model '{model_name}' of '{model_group}' does not return a "
+            f"pandas.Series or a numpy.array, but {x} has type {type(x)}."
+        )
 
 
 def _validate_model_function(
@@ -222,7 +239,8 @@ def _validate_model_function(
 ) -> None:
     if not callable(model):
         raise TypeError(
-            f"The model '{model_name}' of '{model_group}' is not a callable."
+            f"The model '{model_name}' of '{model_group}' is not a callable, but "
+            f"{model}."
         )
 
     signature = inspect.signature(model)
