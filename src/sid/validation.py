@@ -163,7 +163,7 @@ def validate_contact_policies(contact_policies, contact_models):
                 name, "contact_policies", policy["policy"], COMMON_ARGS
             )
         elif isinstance(policy["policy"], (float, int)):
-            if contact_models[affected_model]["is_reccurent"]:
+            if contact_models[affected_model]["is_recurrent"]:
                 if policy["policy"] != 0:
                     raise ValueError(
                         f"Specifying multipliers for recurrent models such as {name} "
