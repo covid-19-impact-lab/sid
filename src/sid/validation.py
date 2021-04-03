@@ -230,7 +230,7 @@ def validate_return_is_series_or_ndarray(x, model_name, model_group, index):
     else:
         raise ValueError(
             f"The model '{model_name}' of '{model_group}' does not return a "
-            f"pandas.Series or a numpy.array, but {x}."
+            f"pandas.Series or a numpy.array, but {x} has type {type(x)}."
         )
 
 
