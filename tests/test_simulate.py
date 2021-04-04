@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 from pandas.api.types import is_categorical_dtype
 from resources import CONTACT_MODELS
+from resources import meet_two
 from sid.config import INDEX_NAMES
 from sid.simulate import _add_default_duration_to_models
 from sid.simulate import _create_group_codes_and_info
@@ -84,6 +85,39 @@ def test_resume_a_simulation(params, initial_states, tmp_path):
         assert set(df["channel_infected_by_contact"].cat.categories) == {
             "not_infected_by_contact",
             "standard",
+        }
+
+
+@pytest.mark.end_to_end
+def test_simulate_a_simple_model_without_assort_by(params, initial_states, tmp_path):
+    contact_models = {
+        "without_assort": {
+            "model": meet_two,
+            "assort_by": [],
+            "is_recurrent": False,
+        }
+    }
+    params.loc[("infection_prob", "without_assort", "without_assort"), "value"] = 0.1
+
+    simulate = get_simulate_func(
+        params=params,
+        initial_states=initial_states,
+        contact_models=contact_models,
+        saved_columns={"other": ["channel_infected_by_contact"]},
+        path=tmp_path,
+        seed=144,
+    )
+
+    result = simulate(params)
+
+    time_series = result["time_series"].compute()
+    last_states = result["last_states"].compute()
+
+    for df in [time_series, last_states]:
+        assert isinstance(df, pd.DataFrame)
+        assert set(df["channel_infected_by_contact"].cat.categories) == {
+            "not_infected_by_contact",
+            "without_assort",
         }
 
 

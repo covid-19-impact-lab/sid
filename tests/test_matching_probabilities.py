@@ -99,7 +99,7 @@ def test_einsum_kronecker_product_fourfold():
 @pytest.mark.parametrize(
     "own_prob, group_names, expectation, expected",
     [
-        (0.5, None, pytest.raises(ValueError, match="If 'own_prob' is a"), None),
+        (0.5, None, pytest.raises(ValueError, match="Pass either"), None),
     ],
 )
 def test_create_transition_matrix_own_prob(

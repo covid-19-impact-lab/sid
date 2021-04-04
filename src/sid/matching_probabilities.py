@@ -7,6 +7,7 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
+from sid.config import DTYPE_GROUP_TRANSITION_PROBABILITIES
 
 
 def create_cumulative_group_transition_probabilities(
@@ -28,7 +29,9 @@ def create_cumulative_group_transition_probabilities(
 
     """
     if not assort_by:
-        probs = np.ones((len(groups), len(groups)))
+        probs = np.ones(
+            (len(groups), len(groups)), dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES
+        )
 
     else:
         trans_mats = []
@@ -82,7 +85,7 @@ def _get_transition_matrix_from_params(params, states, variable, model_name):
 
 
 def _create_transition_matrix_from_own_prob(
-    own_prob: Union[int, float, pd.Series], group_names=Optional[List[str]]
+    own_prob: Union[int, float, pd.Series], group_names: Optional[List[str]] = None
 ) -> pd.DataFrame:
     """Create a transition matrix.
 
@@ -115,6 +118,8 @@ def _create_transition_matrix_from_own_prob(
     """
     if np.isscalar(own_prob) and group_names is not None:
         own_prob = pd.Series(data=own_prob, index=group_names)
+    elif isinstance(own_prob, pd.Series) and group_names is None:
+        pass
     elif isinstance(own_prob, pd.Series) and group_names is not None:
         own_prob = own_prob.loc[group_names]
     else:
@@ -126,7 +131,7 @@ def _create_transition_matrix_from_own_prob(
     trans_arr = np.tile(other_prob.to_numpy().reshape(-1, 1), n_groups)
     trans_arr[np.diag_indices(n_groups)] = own_prob
     trans_df = pd.DataFrame(trans_arr, columns=own_prob.index, index=own_prob.index)
-    trans_df = trans_df.astype("float32")
+    trans_df = trans_df.astype(DTYPE_GROUP_TRANSITION_PROBABILITIES)
     return trans_df
 
 
@@ -167,7 +172,10 @@ def _einsum_kronecker_product(*trans_mats):
     signature = _generate_einsum_signature(len(trans_mats))
 
     kronecker_product = np.einsum(
-        signature, *trans_mats, dtype="float32", casting="same_kind"
+        signature,
+        *trans_mats,
+        dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES,
+        casting="same_kind",
     )
     kronecker_product = kronecker_product.reshape(n_groups, n_groups)
 
