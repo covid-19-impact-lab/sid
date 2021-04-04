@@ -41,12 +41,12 @@ def create_cumulative_group_transition_probabilities(
         probs = np.ones((1, 1), dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES)
 
     else:
-        trans_mats = []
+        transition_matrices = []
         for var in assort_by:
             tm = _get_transition_matrix_from_params(params, states, var, model_name)
-            trans_mats.append(tm)
+            transition_matrices.append(tm)
 
-        probs = _join_transition_matrices(trans_mats)
+        probs = _join_transition_matrices(transition_matrices)
         probs = probs.loc[groups, groups].to_numpy()
 
     cum_probs = probs.cumsum(axis=1)
@@ -130,20 +130,23 @@ def _create_transition_matrix_from_own_prob(
     elif isinstance(own_prob, pd.Series) and group_names is not None:
         own_prob = own_prob.loc[group_names]
     else:
-        raise ValueError("Pass either a scalar and group_names, ")
+        raise ValueError(
+            "Pass either a scalar and 'group_names' or a pandas.Series with or without "
+            "'group_names'."
+        )
 
     n_groups = len(own_prob)
     other_prob = (1 - own_prob) / (n_groups - 1)
 
-    trans_arr = np.tile(other_prob.to_numpy().reshape(-1, 1), n_groups)
-    trans_arr[np.diag_indices(n_groups)] = own_prob
-    trans_df = pd.DataFrame(
-        trans_arr,
+    transition_array = np.tile(other_prob.to_numpy().reshape(-1, 1), n_groups)
+    transition_array[np.diag_indices(n_groups)] = own_prob
+    transition_matrix = pd.DataFrame(
+        transition_array,
         columns=own_prob.index,
         index=own_prob.index,
         dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES,
     )
-    return trans_df
+    return transition_matrix
 
 
 def _join_transition_matrices(trans_mats):
