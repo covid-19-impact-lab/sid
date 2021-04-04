@@ -15,6 +15,10 @@ def create_cumulative_group_transition_probabilities(
 ):
     """Create a transition matrix for groups.
 
+    If the model has no ``assort_by`` variables,
+    :func:`sid.shared.factorize_assortative_variables` create a group column with a
+    single group.
+
     Args:
         states (pandas.DataFrame): see :ref:`states`
         assort_by (list): List of variables that influence matching probabilities.
@@ -29,9 +33,12 @@ def create_cumulative_group_transition_probabilities(
 
     """
     if not assort_by:
-        probs = np.ones(
-            (len(groups), len(groups)), dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES
-        )
+        if len(groups) != 1:
+            raise ValueError(
+                f"Contact model '{model_name}' has no 'assort_by' variables, but the "
+                f"group number is {len(groups)}."
+            )
+        probs = np.ones((1, 1), dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES)
 
     else:
         trans_mats = []

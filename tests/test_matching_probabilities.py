@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
+from sid.config import DTYPE_GROUP_TRANSITION_PROBABILITIES
 from sid.matching_probabilities import _create_transition_matrix_from_own_prob
 from sid.matching_probabilities import _einsum_kronecker_product
 from sid.matching_probabilities import _join_transition_matrices
@@ -71,6 +72,7 @@ def test_create_cumulative_group_transition_probabilities(
         groups=groups,
     )
     np.testing.assert_allclose(transition_matrix, expected.cumsum(axis=1))
+    assert transition_matrix.dtype == DTYPE_GROUP_TRANSITION_PROBABILITIES
 
 
 @pytest.mark.unit
@@ -79,9 +81,10 @@ def test_einsum_kronecker_product_threefold():
     trans_mats = [np.random.uniform(0, 1, size=(2, 2)) for _ in range(3)]
 
     expected = np.kron(np.kron(*trans_mats[:2]), trans_mats[2])
-    calculated = _einsum_kronecker_product(*trans_mats).astype("float32")
+    calculated = _einsum_kronecker_product(*trans_mats)
 
     np.testing.assert_allclose(calculated, expected, rtol=1e-06)
+    assert calculated.dtype == DTYPE_GROUP_TRANSITION_PROBABILITIES
 
 
 @pytest.mark.unit
@@ -90,9 +93,10 @@ def test_einsum_kronecker_product_fourfold():
     trans_mats = [np.random.uniform(0, 1, size=(2, 2)) for _ in range(4)]
 
     expected = np.kron(np.kron(np.kron(*trans_mats[:2]), trans_mats[2]), trans_mats[3])
-    calculated = _einsum_kronecker_product(*trans_mats).astype("float32")
+    calculated = _einsum_kronecker_product(*trans_mats)
 
     np.testing.assert_allclose(calculated, expected, rtol=1e-06)
+    assert calculated.dtype == DTYPE_GROUP_TRANSITION_PROBABILITIES
 
 
 @pytest.mark.unit
