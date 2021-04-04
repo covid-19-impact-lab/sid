@@ -900,8 +900,8 @@ def _create_group_codes_and_info(
         is_recurrent = contact_models[model_name]["is_recurrent"]
         group_code_name = group_codes_names[model_name]
 
-        # Either we are in the normal case or a simulation is resumed which is why we
-        # need to reproduce the column to get the codes.
+        # Create the group code column if it is not available or if it exists - meaning
+        # we are resuming a simulation - to recover the groups.
         if (group_code_name not in states.columns) or (
             group_code_name in states.columns and not is_factorized
         ):
