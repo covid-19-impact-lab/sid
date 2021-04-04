@@ -78,30 +78,6 @@ def test_create_cumulative_group_transition_probabilities(
 
 
 @pytest.mark.unit
-def test_einsum_kronecker_product_threefold():
-    # Three-fold Kronecker product.
-    trans_mats = [np.random.uniform(0, 1, size=(2, 2)) for _ in range(3)]
-
-    expected = np.kron(np.kron(*trans_mats[:2]), trans_mats[2])
-    calculated = _einsum_kronecker_product(*trans_mats)
-
-    np.testing.assert_allclose(calculated, expected, rtol=1e-06)
-    assert calculated.dtype == DTYPE_GROUP_TRANSITION_PROBABILITIES
-
-
-@pytest.mark.unit
-def test_einsum_kronecker_product_fourfold():
-    # Four-fold Kronecker product.
-    trans_mats = [np.random.uniform(0, 1, size=(2, 2)) for _ in range(4)]
-
-    expected = np.kron(np.kron(np.kron(*trans_mats[:2]), trans_mats[2]), trans_mats[3])
-    calculated = _einsum_kronecker_product(*trans_mats)
-
-    np.testing.assert_allclose(calculated, expected, rtol=1e-06)
-    assert calculated.dtype == DTYPE_GROUP_TRANSITION_PROBABILITIES
-
-
-@pytest.mark.unit
 @pytest.mark.parametrize(
     "own_prob, group_names, expectation, expected",
     [
@@ -148,3 +124,27 @@ def test_create_transition_matrix_own_prob(
         result = _create_transition_matrix_from_own_prob(own_prob, group_names)
         assert result.equals(expected)
         assert (result.dtypes == DTYPE_GROUP_TRANSITION_PROBABILITIES).all()
+
+
+@pytest.mark.unit
+def test_einsum_kronecker_product_threefold():
+    # Three-fold Kronecker product.
+    trans_mats = [np.random.uniform(0, 1, size=(2, 2)) for _ in range(3)]
+
+    expected = np.kron(np.kron(*trans_mats[:2]), trans_mats[2])
+    calculated = _einsum_kronecker_product(*trans_mats)
+
+    np.testing.assert_allclose(calculated, expected, rtol=1e-06)
+    assert calculated.dtype == DTYPE_GROUP_TRANSITION_PROBABILITIES
+
+
+@pytest.mark.unit
+def test_einsum_kronecker_product_fourfold():
+    # Four-fold Kronecker product.
+    trans_mats = [np.random.uniform(0, 1, size=(2, 2)) for _ in range(4)]
+
+    expected = np.kron(np.kron(np.kron(*trans_mats[:2]), trans_mats[2]), trans_mats[3])
+    calculated = _einsum_kronecker_product(*trans_mats)
+
+    np.testing.assert_allclose(calculated, expected, rtol=1e-06)
+    assert calculated.dtype == DTYPE_GROUP_TRANSITION_PROBABILITIES
