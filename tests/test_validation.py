@@ -4,6 +4,7 @@ import pytest
 from sid.validation import _validate_model_function
 
 
+@pytest.mark.unit
 @pytest.mark.parametrize(
     "model_name, model_group, model, args, expectation",
     [
