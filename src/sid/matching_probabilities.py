@@ -137,8 +137,12 @@ def _create_transition_matrix_from_own_prob(
 
     trans_arr = np.tile(other_prob.to_numpy().reshape(-1, 1), n_groups)
     trans_arr[np.diag_indices(n_groups)] = own_prob
-    trans_df = pd.DataFrame(trans_arr, columns=own_prob.index, index=own_prob.index)
-    trans_df = trans_df.astype(DTYPE_GROUP_TRANSITION_PROBABILITIES)
+    trans_df = pd.DataFrame(
+        trans_arr,
+        columns=own_prob.index,
+        index=own_prob.index,
+        dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES,
+    )
     return trans_df
 
 
@@ -146,13 +150,12 @@ def _join_transition_matrices(trans_mats):
     """Join several transition matrices into one, assuming independence.
 
     Args:
-        trans_mats (list): List of square DataFrames. The index
-            and columns are the group_names.
+        trans_mats (list): List of square DataFrames. The index and columns are the
+            group_names.
 
     Returns:
-        pd.DataFrame: Joined transition matrix. The index and columns
-            are the cartesian product of all individual group names in
-            the same order as trans_mats.
+        pd.DataFrame: Joined transition matrix. The index and columns are the Cartesian
+            product of all individual group names in the same order as trans_mats.
 
     """
     readable_index = pd.MultiIndex.from_product([tm.index for tm in trans_mats])

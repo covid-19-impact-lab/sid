@@ -1,3 +1,5 @@
+from contextlib import ExitStack as does_not_raise  # noqa: N813
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -103,6 +105,39 @@ def test_einsum_kronecker_product_fourfold():
 @pytest.mark.parametrize(
     "own_prob, group_names, expectation, expected",
     [
+        (
+            0.9,
+            ["a", "b"],
+            does_not_raise(),
+            pd.DataFrame(
+                index=["a", "b"],
+                columns=["a", "b"],
+                data=[[0.9, 0.1], [0.1, 0.9]],
+                dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES,
+            ),
+        ),
+        (
+            pd.Series([0.9, 0.7], index=["a", "b"]),
+            None,
+            does_not_raise(),
+            pd.DataFrame(
+                index=["a", "b"],
+                columns=["a", "b"],
+                data=[[0.9, 0.1], [0.3, 0.7]],
+                dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES,
+            ),
+        ),
+        (
+            pd.Series([0.9, 0.7, 0.4], index=["a", "b", "c"]),
+            ["b", "c"],
+            does_not_raise(),
+            pd.DataFrame(
+                index=["b", "c"],
+                columns=["b", "c"],
+                data=[[0.7, 0.3], [0.6, 0.4]],
+                dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES,
+            ),
+        ),
         (0.5, None, pytest.raises(ValueError, match="Pass either"), None),
     ],
 )
@@ -111,4 +146,5 @@ def test_create_transition_matrix_own_prob(
 ):
     with expectation:
         result = _create_transition_matrix_from_own_prob(own_prob, group_names)
-        assert np.allclose(result, expected)
+        assert result.equals(expected)
+        assert (result.dtypes == DTYPE_GROUP_TRANSITION_PROBABILITIES).all()
