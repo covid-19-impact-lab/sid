@@ -3,6 +3,7 @@ import warnings
 import numba as nb
 import numpy as np
 import pandas as pd
+from pandas.core.dtypes.common import is_integer_dtype
 from sid.config import DTYPE_GROUP_CODE
 from sid.config import INDEX_NAMES
 from sid.config import ROOT_DIR
@@ -21,7 +22,7 @@ def get_epidemiological_parameters():
     return load_epidemiological_parameters()
 
 
-def factorize_assortative_variables(states, assort_by, is_recurrent):
+def factorize_assortative_variables(states, assort_by, is_recurrent):  # noqa: U100
     """Factorize assortative variables.
 
     This function forms unique values by combining the different values of assortative
@@ -37,8 +38,6 @@ def factorize_assortative_variables(states, assort_by, is_recurrent):
         states (pandas.DataFrame): The user-defined initial states.
         assort_by (List[str]): List of variable names. Contacts are assortative by these
             variables.
-        is_recurrent (bool): Indicator for that the assortative variable from a
-            recurrent contact model.
 
     Returns:
         (tuple): Tuple containing
@@ -49,21 +48,35 @@ def factorize_assortative_variables(states, assort_by, is_recurrent):
           positions correspond the values of assortative variables to form the group.
 
     """
-    if is_recurrent or len(assort_by) == 1:
-        assort_by_series = states[assort_by[0]].astype(int).replace({-1: pd.NA})
-        group_codes, group_codes_values = pd.factorize(assort_by_series, sort=True)
-        group_codes = group_codes.astype(DTYPE_GROUP_CODE)
+    if len(assort_by) == 1:
+        assort_by_series = states[assort_by[0]]
+        if is_integer_dtype(assort_by_series):
+            assort_by_series = assort_by_series.where(
+                assort_by_series >= 0, pd.NA
+            ).astype("Int64")
+        else:
+            try:
+                integer_assort_by_series = assort_by_series.astype(int)
+                assort_by_series = integer_assort_by_series.where(
+                    integer_assort_by_series >= 0, pd.NA
+                ).astype("Int64")
+            except (TypeError, ValueError):
+                pass
+
+        codes, uniques = pd.factorize(assort_by_series, sort=True)
+        codes = codes.astype(DTYPE_GROUP_CODE)
     elif assort_by:
         assort_by_series = [states[col].to_numpy() for col in assort_by]
-        group_codes, group_codes_values = pd.factorize(
+        codes, uniques = pd.factorize(
             pd._libs.lib.fast_zip(assort_by_series), sort=True
         )
-        group_codes = group_codes.astype(DTYPE_GROUP_CODE)
+        codes = codes.astype(DTYPE_GROUP_CODE)
     else:
-        group_codes = np.zeros(len(states), dtype=np.uint8)
-        group_codes_values = [(0,)]
+        codes = np.zeros(len(states), dtype=DTYPE_GROUP_CODE)
+        uniques = np.empty(1, dtype=object)
+        uniques[0] = (0,)
 
-    return group_codes, group_codes_values
+    return codes, uniques
 
 
 def random_choice(choices, probabilities=None, decimals=5):
