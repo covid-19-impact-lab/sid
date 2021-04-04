@@ -1,30 +1,31 @@
+from typing import Union
+
 import numpy as np
 import pandas as pd
-
 
 __all__ = ["calculate_r_effective", "calculate_r_zero"]
 
 
-def calculate_r_effective(df, window_length=7):
-    """Calculate the effective reproduction number.
+def calculate_r_effective(df: pd.DataFrame, window_length: int = 7) -> pd.Series:
+    """Calculate the effective reproduction number, :math:`R_e`.
 
     More explanation can be found in the `Wikipedia article <Wikipedia>`_.
 
     Note:
         The infection counter is only reset to zero once a person becomes infected again
         so abstracting from very fast reinfections its mean among those that ceased to
-        be infectious in the last window_length is R_e.
+        be infectious in the last window_length is :math:`R_e`.
 
     Args:
-        df (pandas.DataFrame): states DataFrame for which to calculate R_e, usually
-            the states of one day.
+        df (pandas.DataFrame): states DataFrame for which to calculate :math:`R_e`,
+            usually the states of one day.
         window_length (int): how many days to use to identify the previously infectious
             people. The lower, the more changes in behavior can be seen, but the smaller
-            the number of people on which to calculate R_e.
+            the number of people on which to calculate :math:`R_e`.
 
     Returns:
-        r_effective (float): mean number of people infected by someone whose infectious
-            spell ended in the last *window_length* days.
+        r_effective (pandas.Series): mean number of people infected by someone whose
+            infectious spell ended in the last *window_length* days.
 
     .. _Wikipedia:
         https://en.wikipedia.org/wiki/Basic_reproduction_number
@@ -49,8 +50,8 @@ def calculate_r_effective(df, window_length=7):
     return r_effective
 
 
-def calculate_r_zero(df, window_length=7):
-    """Calculate the basic replication number R_0.
+def calculate_r_zero(df: pd.DataFrame, window_length: int = 7) -> pd.Series:
+    """Calculate the basic replication number :math:`R_0`.
 
     This is done by dividing the effective reproduction number by the share of
     susceptible people in the DataFrame. Using R_e and the share of the susceptible
@@ -60,17 +61,17 @@ def calculate_r_zero(df, window_length=7):
     More explanation can be found here: https://bit.ly/2VZOR5a.
 
     Args:
-        df (pandas.DataFrame): states DataFrame for which to calculate R_0, usually the
-            states of one period.
+        df (pandas.DataFrame): states DataFrame for which to calculate :math:`R_0`,
+            usually the states of one period.
         window_length (int): how many days to use to identify the previously infectious
             people. The lower, the more changes in behavior can be seen, but the smaller
-            the number of people on which to calculate R_0.
+            the number of people on which to calculate :math:`R_0`.
 
     Returns:
-        r_zero (float): mean number of people that would have been infected by someone
-            whose infectious spell ended in the last *window_length* days if everyone
-            had been susceptible, neglecting heterogeneous matching and changes in the
-            rate of immunity.
+        r_zero (pandas.Series): The average number of people that would have been
+            infected by someone whose infectious spell ended in the last *window_length*
+            days if everyone had been susceptible, neglecting heterogeneous matching and
+            changes in the rate of immunity.
 
     """
     r_effective = calculate_r_effective(df=df, window_length=window_length)
@@ -86,7 +87,8 @@ def calculate_r_zero(df, window_length=7):
     return r_zero
 
 
-def _create_time_grouper(df):
+def _create_time_grouper(df: pd.DataFrame) -> Union[pd.Grouper, None]:
+    """Create a grouper for the time dimension of the DataFrame."""
     if "date" in df.columns:
         grouper = pd.Grouper(key="date", freq="D")
     elif "period" in df.columns:
