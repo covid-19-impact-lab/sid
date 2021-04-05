@@ -214,10 +214,10 @@ def test_create_group_codes_names(contact_models, assort_bys, expectation, expec
             id="test random model with multiple variables.",
         ),
         pytest.param(
-            pd.DataFrame({"e": [2, 4, 1, 3, -1]}),
+            pd.DataFrame({"e": [2, 4, 1, 3, -1]}).astype("category"),
             {"cm": ["e"]},
             {"cm": {"assort_by": ["e"], "is_recurrent": True, "is_factorized": True}},
-            pd.DataFrame({"e": np.int32([2, 4, 1, 3, -1])}),
+            pd.DataFrame({"e": np.int32([2, 4, 1, 3, -1])}).astype("category"),
             {"cm": {"name": "e", "groups": [1, 2, 3, 4]}},
             id="test recurrent model with already factorized variable",
         ),
