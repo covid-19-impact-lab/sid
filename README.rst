@@ -46,28 +46,48 @@ sid
 Features
 --------
 
-sid is a agent-based simulation-based model for infectious diseases like COVID-19.
+sid is an agent-based simulation model for infectious diseases like COVID-19. It scales
+from simple examples to complex models which makes it an ideal tool for prototyping,
+educational purposes, and research.
 
 sid's focus is on predicting the effects of non-pharmaceutical interventions on the
 spread of an infectious disease. To accomplish this task it is built to capture
 important aspects of contacts between people. In particular, sid has the following
 features:
 
-1. At the core of the model, people meet people based on a matching algorithm. We
-   distinguish various types of contacts. Currently, these are households, leisure
-   activities, schools, nurseries and several types of contacts at the workplace.
-   Contact types can be random or recurrent and vary in frequency.
+1. At the core of the model, people meet people based on a matching algorithm. It is
+   possible to represent a variety of contact types like households, leisure activities,
+   school classes and nurseries with teachers and several types of contacts at the
+   workplace. Contact types can be random or recurrent and vary in frequency.
 
-2. Policies can be implemented as shutting down contact types entirely or partially. The
-   reduction of contacts can be random or systematic, e.g., to allow for essential
-   workers.
+2. Policies allow to shut down contact types entirely or partially. The reduction of
+   contacts can be random or systematic, e.g., to allow for essential workers.
 
-3. Infection probabilities vary across contact types, but are invariant to policies
-   which reduce contacts.
+3. Infection probabilities vary across contact types and depending on the age of the
+   susceptible individual, but are invariant to policies which reduce contacts. The
+   invariance is an essential property for predicting the effects of policies for which
+   empirical data does not exist.
 
 4. The model achieves a good fit on German infection and fatality rate data even if only
    the infection probabilities are fit to the data and the remaining parameters are
-   calibrated from the medical literature and datasets on contact frequencies.
+   calibrated from the medical literature and data on contact frequencies.
+
+5. The model allows for two testing mechanisms, representing PCR and rapid tests. PCR
+   tests always reveal the true health status of the tested individual after some days
+   which can be used for testing policies or to differentiate between known and unknown
+   infections.
+
+   In contrast, rapid tests immediately return the test outcome and identify infected
+   people based on the sensitivity and specificity of the test. It is possible to
+   implement reactions to the outcome of the test enabling individuals to plan meetings,
+   test with a rapid test, and to refrain from meeting if the test is positive.
+
+6. Mutations may lead to multiple, prevalent virus strains with different
+   characteristics. For now, sid is able to model an unlimited amount of virus strains
+   with different degrees of infectiousness.
+
+7. It is possible to implement models for vaccinating people who, then, gain perfect
+   immunity from the disease.
 
 More information can be found in the `discussion paper
 <https://www.iza.org/publications/dp/13899>`_ or in the `documentation

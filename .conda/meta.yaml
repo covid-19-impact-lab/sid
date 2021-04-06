@@ -28,7 +28,6 @@ requirements:
     - dask
     - fastparquet
     - numba >=0.48
-    - numpy
     - pandas >=1
     - python-snappy
     - seaborn
