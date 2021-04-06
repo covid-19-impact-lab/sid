@@ -15,9 +15,10 @@ def create_cumulative_group_transition_probabilities(
 ):
     """Create a transition matrix for groups.
 
-    If the model has no ``assort_by`` variables,
-    :func:`sid.shared.factorize_assortative_variables` create a group column with a
-    single group.
+    If the model has no ``assort_by`` variables, a group column with a single group
+    containing all individuals is created by
+    :func:`sid.shared.factorize_assortative_variables`. This is why the transition
+    matrix becomes a 2 dimensional matrix with a single entry.
 
     Args:
         states (pandas.DataFrame): see :ref:`states`
