@@ -63,9 +63,10 @@ features:
 2. Policies allow to shut down contact types entirely or partially. The reduction of
    contacts can be random or systematic, e.g., to allow for essential workers.
 
-3. Infection probabilities vary across contact types, but are invariant to policies
-   which reduce contacts. The invariance is an essential property for predicting the
-   effects of policies for which empirical data does not exist.
+3. Infection probabilities vary across contact types and depending on the age of the
+   susceptible individual, but are invariant to policies which reduce contacts. The
+   invariance is an essential property for predicting the effects of policies for which
+   empirical data does not exist.
 
 4. The model achieves a good fit on German infection and fatality rate data even if only
    the infection probabilities are fit to the data and the remaining parameters are
