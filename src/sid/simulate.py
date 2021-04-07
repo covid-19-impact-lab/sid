@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import DTYPE_COUNTDOWNS
+from sid.config import DTYPE_GROUP_CODE
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import POLICIES
 from sid.config import SAVED_COLUMNS
@@ -268,12 +269,6 @@ def get_simulate_func(
     )
 
     if _are_states_prepared(initial_states):
-        if initial_conditions is not None:
-            raise ValueError(
-                "You passed both, prepared states to resume a simulation and initial "
-                "conditions, which is not possible. Either resume a simulation or "
-                "start a new one."
-            )
         validate_prepared_initial_states(initial_states, duration)
     else:
         validate_initial_states(initial_states)
@@ -298,6 +293,7 @@ def get_simulate_func(
     initial_states, group_codes_info = _create_group_codes_and_info(
         initial_states, assort_bys, contact_models
     )
+
     indexers = _prepare_assortative_matching_indexers(
         initial_states, contact_models, group_codes_info
     )
@@ -900,14 +896,25 @@ def _create_group_codes_and_info(
     group_codes_info = {}
 
     for model_name, assort_by in assort_bys.items():
+        is_factorized = contact_models[model_name].get("is_factorized", False)
         is_recurrent = contact_models[model_name]["is_recurrent"]
         group_code_name = group_codes_names[model_name]
-        if group_code_name not in states.columns:
+
+        # Create the group code column if it is not available or if it exists - meaning
+        # we are resuming a simulation - to recover the groups.
+        if (group_code_name not in states.columns) or (
+            group_code_name in states.columns and not is_factorized
+        ):
             states[group_code_name], groups = factorize_assortative_variables(
                 states, assort_by, is_recurrent=is_recurrent
             )
+        elif group_code_name in states.columns and is_factorized:
+            states[group_code_name] = states[group_code_name].astype(DTYPE_GROUP_CODE)
+            unsorted_groups = states[group_code_name].unique()
+            groups = np.sort(unsorted_groups[unsorted_groups != -1])
         else:
-            groups = states[group_code_name].cat.categories
+            raise NotImplementedError
+
         group_codes_info[model_name] = {"name": group_code_name, "groups": groups}
 
     return states, group_codes_info

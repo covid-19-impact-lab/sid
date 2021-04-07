@@ -3,41 +3,46 @@ name: sid
 channels:
   - conda-forge
   - opensourceeconomics
+  - nodefaults
 
 dependencies:
   - python >=3.6
   - pip
 
+  # Conda
   - anaconda-client
-  - bump2version
   - conda-build
   - conda-verify
 
-  - black
+  # Package dependencies
   - bokeh
   - dask
-  - estimagic
   - fastparquet
+  - numba >=0.48
+  - pandas >=1
+  - python-snappy
+  - seaborn
+  - tqdm
+
+  # Misc
+  - black
+  - estimagic
   - hypothesis
   - jupyterlab
-  - nbsphinx
-  - numba >=0.48
-  - numpy
-  - pandas >=1
-  - panel
   - pdbpp
   - pre-commit
   - pytest
   - pytest-cov
   - pytest-regressions
   - pytest-xdist
-  - python-snappy
-  - scipy
-  - seaborn
   - snakeviz
-  - tqdm
   - tox-conda
 
+  # Documentation
+  - furo
+  - nbsphinx
   - sphinx
-  - sphinx-copybutton
   - sphinx-autoapi
+  - sphinx-autodoc-typehints
+  - sphinx-copybutton
+  - sphinx-panels
