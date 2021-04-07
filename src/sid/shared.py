@@ -3,8 +3,6 @@ import warnings
 import numba as nb
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_categorical_dtype
-from pandas.api.types import is_integer_dtype
 from sid.config import DTYPE_GROUP_CODE
 from sid.config import INDEX_NAMES
 from sid.config import ROOT_DIR
@@ -51,19 +49,13 @@ def factorize_assortative_variables(states, assort_by, is_recurrent):  # noqa: U
     """
     if len(assort_by) == 1:
         assort_by_series = states[assort_by[0]]
-        if is_integer_dtype(assort_by_series):
-            assort_by_series = assort_by_series.where(
-                assort_by_series >= 0, pd.NA
+        try:
+            integer_assort_by_series = assort_by_series.astype(int)
+            assort_by_series = integer_assort_by_series.where(
+                integer_assort_by_series >= 0, pd.NA
             ).astype("Int64")
-        else:
-            if is_categorical_dtype(assort_by_series):
-                try:
-                    integer_assort_by_series = assort_by_series.astype(int)
-                    assort_by_series = integer_assort_by_series.where(
-                        integer_assort_by_series >= 0, pd.NA
-                    ).astype("Int64")
-                except (TypeError, ValueError):
-                    pass
+        except (TypeError, ValueError):
+            pass
 
         codes, uniques = pd.factorize(assort_by_series, sort=True)
         codes = codes.astype(DTYPE_GROUP_CODE)
