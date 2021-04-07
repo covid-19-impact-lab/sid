@@ -264,6 +264,10 @@ def sample_initial_distribution_of_infections_and_immunity(
             seed=seed,
         )
 
+    # Remove date information because when it is available, we assume the simulation is
+    # resumed.
+    states = states.drop(columns=["date", "period"])
+
     initial_immunity = sample_initial_immunity(
         initial_conditions["initial_immunity"], states["immune"], next(seed)
     )
