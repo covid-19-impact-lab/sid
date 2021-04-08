@@ -25,6 +25,7 @@ from sid.config import SAVED_COLUMNS
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
+from sid.contacts import post_process_contacts
 from sid.countdowns import COUNTDOWNS
 from sid.events import calculate_infections_by_events
 from sid.initial_conditions import (
@@ -35,6 +36,7 @@ from sid.parse_model import parse_duration
 from sid.parse_model import parse_initial_conditions
 from sid.parse_model import parse_virus_strains
 from sid.pathogenesis import draw_course_of_disease
+from sid.policies import apply_contact_policies
 from sid.rapid_tests import apply_reactions_to_rapid_tests
 from sid.rapid_tests import perform_rapid_tests
 from sid.shared import factorize_assortative_variables
@@ -441,9 +443,16 @@ def _simulate(
 
         recurrent_contacts, random_contacts = calculate_contacts(
             contact_models=contact_models,
-            contact_policies=contact_policies,
             states=states,
             params=params,
+            seed=seed,
+        )
+
+        recurrent_contacts, random_contacts = apply_contact_policies(
+            contact_policies=contact_policies,
+            recurrent_contacts=recurrent_contacts,
+            random_contacts=random_contacts,
+            states=states,
             date=date,
             seed=seed,
         )
@@ -470,6 +479,13 @@ def _simulate(
             seed=seed,
         )
 
+        recurrent_contacts_np, random_contacts_np = post_process_contacts(
+            recurrent_contacts=recurrent_contacts,
+            random_contacts=random_contacts,
+            states=states,
+            contact_models=contact_models,
+        )
+
         (
             newly_infected_contacts,
             n_has_additionally_infected,
@@ -477,8 +493,8 @@ def _simulate(
             channel_infected_by_contact,
         ) = calculate_infections_by_contacts(
             states=states,
-            recurrent_contacts=recurrent_contacts,
-            random_contacts=random_contacts,
+            recurrent_contacts=recurrent_contacts_np,
+            random_contacts=random_contacts_np,
             params=params,
             indexers=indexers,
             assortative_matching_cum_probs=assortative_matching_cum_probs,
@@ -523,7 +539,6 @@ def _simulate(
             states=states,
             columns_to_keep=columns_to_keep,
             n_has_additionally_infected=n_has_additionally_infected,
-            contact_models=contact_models,
             random_contacts=random_contacts,
             recurrent_contacts=recurrent_contacts,
             channel_infected_by_contact=channel_infected_by_contact,
@@ -1057,7 +1072,6 @@ def _add_additional_information_to_states(
     states: pd.DataFrame,
     columns_to_keep: List[str],
     n_has_additionally_infected: pd.Series,
-    contact_models: Dict[str, Dict[str, Any]],
     random_contacts: np.ndarray,
     recurrent_contacts: np.ndarray,
     channel_infected_by_contact: pd.Series,
@@ -1072,7 +1086,6 @@ def _add_additional_information_to_states(
         columns_to_keep (List[str]): A list of columns names which should be kept.
         n_has_additionally_infected (Optional[pandas.Series]): Additionally infected
             persons by this individual.
-        contact_models (Optional[Dict[str, Dict[str, Any]]]): The contact models.
         contacts (numpy.ndarray): Matrix with number of contacts for each contact model.
         channel_infected_by_contact (pandas.Series): A categorical series containing the
             information which contact model lead to the infection.
@@ -1085,14 +1098,12 @@ def _add_additional_information_to_states(
         states (pandas.DataFrame): The states with additional information.
 
     """
-    if contact_models is not None:
-        recurrent_models, random_models = separate_contact_model_names(contact_models)
-        if recurrent_contacts is not None:
-            for i, cm in enumerate(recurrent_models):
-                states[f"n_contacts_{cm}"] = recurrent_contacts[:, i]
-        if random_contacts is not None:
-            for i, cm in enumerate(random_models):
-                states[f"n_contacts_{cm}"] = random_contacts[:, i]
+    if recurrent_contacts is not None:
+        for name in recurrent_contacts.columns:
+            states[f"n_contacts_{name}"] = recurrent_contacts[name]
+    if random_contacts is not None:
+        for name in random_contacts.columns:
+            states[f"n_contacts_{name}"] = random_contacts[name]
 
     if (
         channel_infected_by_contact is not None
