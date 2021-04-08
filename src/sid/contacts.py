@@ -626,12 +626,10 @@ def post_process_contacts(recurrent_contacts, random_contacts, states, contact_m
         random_contacts = random_contacts.apply(
             lambda x: _sum_preserving_round(x.to_numpy())
         )
-        random_contacts = random_contacts[random_models].to_numpy(
-            dtype=DTYPE_N_CONTACTS
-        )
+        random_contacts = random_contacts[random_models].astype(dtype=DTYPE_N_CONTACTS)
 
     if recurrent_contacts is not None:
-        recurrent_contacts = recurrent_contacts[recurrent_models].to_numpy(dtype="bool")
+        recurrent_contacts = recurrent_contacts[recurrent_models].astype(dtype="bool")
 
     return recurrent_contacts, random_contacts
 

@@ -78,7 +78,7 @@ def test_calculate_contacts_no_policy(states_all_alive, contact_models):
     )
 
     assert recurrent_contacts is None
-    assert (random_contacts == expected).all()
+    assert (random_contacts.to_numpy() == expected).all()
 
 
 @pytest.mark.integration
@@ -118,7 +118,7 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
     )
 
     assert recurrent_contacts is None
-    assert (random_contacts == expected).all()
+    assert (random_contacts.to_numpy() == expected).all()
 
 
 @pytest.mark.integration
@@ -155,7 +155,7 @@ def test_calculate_contacts_policy_active(states_all_alive, contact_models):
     )
 
     assert recurrent_contacts is None
-    assert (random_contacts == expected).all()
+    assert (random_contacts.to_numpy() == expected).all()
 
 
 @pytest.mark.integration
@@ -198,7 +198,7 @@ def test_calculate_contacts_policy_active_policy_func(states_all_alive, contact_
     )
 
     assert recurrent_contacts is None
-    assert (random_contacts == expected).all()
+    assert (random_contacts.to_numpy() == expected).all()
 
 
 @pytest.fixture()
@@ -248,7 +248,7 @@ def test_calculate_contacts_with_dead(states_with_dead, contact_models):
     )
 
     assert recurrent_contacts is None
-    assert (random_contacts == expected).all()
+    assert (random_contacts.to_numpy() == expected).all()
 
 
 @pytest.mark.unit

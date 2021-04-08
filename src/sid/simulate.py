@@ -479,11 +479,20 @@ def _simulate(
             seed=seed,
         )
 
-        recurrent_contacts_np, random_contacts_np = post_process_contacts(
+        recurrent_contacts, random_contacts = post_process_contacts(
             recurrent_contacts=recurrent_contacts,
             random_contacts=random_contacts,
             states=states,
             contact_models=contact_models,
+        )
+
+        recurrent_contacts_np = (
+            None
+            if recurrent_contacts is None
+            else recurrent_contacts.to_numpy(copy=True)
+        )
+        random_contacts_np = (
+            None if random_contacts is None else random_contacts.to_numpy(copy=True)
         )
 
         (
