@@ -79,9 +79,6 @@ INITIAL_CONDITIONS = {
 DEFAULT_VIRUS_STRAINS = {"names": ["base_strain"], "factors": np.array([1])}
 
 
-POLICIES = {"is_active": lambda states: True}  # noqa: U100
-
-
 SID_TIME_START = pd.Timestamp("2019-01-01")
 
 
