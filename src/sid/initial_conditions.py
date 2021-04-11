@@ -331,7 +331,7 @@ def _scale_up_initial_infections(
     return scaled_up
 
 
-@nb.njit
+@nb.njit  # pragma: no cover
 def _scale_up_initial_infections_numba(initial_infections, probabilities, seed):
     """Scale up initial infections.
 

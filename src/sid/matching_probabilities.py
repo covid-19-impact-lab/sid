@@ -1,15 +1,24 @@
 """Functions to work with transition matrices for assortative matching."""
 import string
 import warnings
+from typing import List
+from typing import Optional
+from typing import Union
 
 import numpy as np
 import pandas as pd
+from sid.config import DTYPE_GROUP_TRANSITION_PROBABILITIES
 
 
 def create_cumulative_group_transition_probabilities(
     states, assort_by, params, model_name, groups
 ):
     """Create a transition matrix for groups.
+
+    If the model has no ``assort_by`` variables, a group column with a single group
+    containing all individuals is created by
+    :func:`sid.shared.factorize_assortative_variables`. This is why the transition
+    matrix becomes a 2 dimensional matrix with a single entry.
 
     Args:
         states (pandas.DataFrame): see :ref:`states`
@@ -25,15 +34,20 @@ def create_cumulative_group_transition_probabilities(
 
     """
     if not assort_by:
-        probs = np.ones((len(groups), len(groups)))
+        if len(groups) != 1:
+            raise ValueError(
+                f"Contact model '{model_name}' has no 'assort_by' variables, but the "
+                f"group number is {len(groups)}."
+            )
+        probs = np.ones((1, 1), dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES)
 
     else:
-        trans_mats = []
+        transition_matrices = []
         for var in assort_by:
             tm = _get_transition_matrix_from_params(params, states, var, model_name)
-            trans_mats.append(tm)
+            transition_matrices.append(tm)
 
-        probs = _join_transition_matrices(trans_mats)
+        probs = _join_transition_matrices(transition_matrices)
         probs = probs.loc[groups, groups].to_numpy()
 
     cum_probs = probs.cumsum(axis=1)
@@ -78,7 +92,9 @@ def _get_transition_matrix_from_params(params, states, variable, model_name):
     return trans_mat
 
 
-def _create_transition_matrix_from_own_prob(own_prob, group_names=None):
+def _create_transition_matrix_from_own_prob(
+    own_prob: Union[int, float, pd.Series], group_names: Optional[List[str]] = None
+) -> pd.DataFrame:
     """Create a transition matrix.
 
     The matrix is calculated from the probability of staying inside
@@ -86,11 +102,9 @@ def _create_transition_matrix_from_own_prob(own_prob, group_names=None):
     other groups.
 
     Args:
-        own_prob (float or pd.Series): Probability of staying inside
-            the own group, either as scalar or as pandas.Series with one
-            entry per group.
-        group_names (list): List group codes. Mandatory if own_group
-            is a scalar.
+        own_prob (float or pd.Series): Probability of staying inside the own group,
+            either as scalar or as pandas.Series with one entry per group.
+        group_names (list): List group codes. Mandatory if own_group is a scalar.
 
     Returns:
         pd.DataFrame: Transition matrix as square DataFrame. The index
@@ -110,34 +124,42 @@ def _create_transition_matrix_from_own_prob(own_prob, group_names=None):
         b  0.3  0.7
 
     """
-    if np.isscalar(own_prob) and group_names is None:
-        raise ValueError("If own_prob is a scalar you must provide group_probs.")
-    elif np.isscalar(own_prob):
+    if np.isscalar(own_prob) and group_names is not None:
         own_prob = pd.Series(data=own_prob, index=group_names)
-    elif group_names is not None:
+    elif isinstance(own_prob, pd.Series) and group_names is None:
+        pass
+    elif isinstance(own_prob, pd.Series) and group_names is not None:
         own_prob = own_prob.loc[group_names]
+    else:
+        raise ValueError(
+            "Pass either a scalar and 'group_names' or a pandas.Series with or without "
+            "'group_names'."
+        )
 
     n_groups = len(own_prob)
     other_prob = (1 - own_prob) / (n_groups - 1)
 
-    trans_arr = np.tile(other_prob.to_numpy().reshape(-1, 1), n_groups)
-    trans_arr[np.diag_indices(n_groups)] = own_prob
-    trans_df = pd.DataFrame(trans_arr, columns=own_prob.index, index=own_prob.index)
-    trans_df = trans_df.astype("float32")
-    return trans_df
+    transition_array = np.tile(other_prob.to_numpy().reshape(-1, 1), n_groups)
+    transition_array[np.diag_indices(n_groups)] = own_prob
+    transition_matrix = pd.DataFrame(
+        transition_array,
+        columns=own_prob.index,
+        index=own_prob.index,
+        dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES,
+    )
+    return transition_matrix
 
 
 def _join_transition_matrices(trans_mats):
     """Join several transition matrices into one, assuming independence.
 
     Args:
-        trans_mats (list): List of square DataFrames. The index
-            and columns are the group_names.
+        trans_mats (list): List of square DataFrames. The index and columns are the
+            group_names.
 
     Returns:
-        pd.DataFrame: Joined transition matrix. The index and columns
-            are the cartesian product of all individual group names in
-            the same order as trans_mats.
+        pd.DataFrame: Joined transition matrix. The index and columns are the Cartesian
+            product of all individual group names in the same order as trans_mats.
 
     """
     readable_index = pd.MultiIndex.from_product([tm.index for tm in trans_mats])
@@ -164,7 +186,10 @@ def _einsum_kronecker_product(*trans_mats):
     signature = _generate_einsum_signature(len(trans_mats))
 
     kronecker_product = np.einsum(
-        signature, *trans_mats, dtype="float32", casting="same_kind"
+        signature,
+        *trans_mats,
+        dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES,
+        casting="same_kind",
     )
     kronecker_product = kronecker_product.reshape(n_groups, n_groups)
 
