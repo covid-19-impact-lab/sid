@@ -62,9 +62,7 @@ def calculate_contacts(
         )
         for policy in contact_policies.values():
             if policy["affected_contact_model"] == model_name:
-                if (policy["start"] <= date <= policy["end"]) and policy["is_active"](
-                    states
-                ):
+                if policy["start"] <= date <= policy["end"]:
                     if isinstance(policy["policy"], (float, int)):
                         model_specific_contacts *= policy["policy"]
                     else:
