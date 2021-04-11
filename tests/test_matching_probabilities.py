@@ -64,7 +64,7 @@ def test_create_cumulative_group_transition_probabilities(
     assort_probs["value"] = [0.5, 0.9]
     params = params.append(assort_probs)
 
-    _, groups = factorize_assortative_variables(initial_states, assort_by, False)
+    _, groups = factorize_assortative_variables(initial_states, assort_by)
 
     transition_matrix = create_cumulative_group_transition_probabilities(
         states=initial_states,
