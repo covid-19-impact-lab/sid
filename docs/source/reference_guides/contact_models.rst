@@ -125,7 +125,7 @@ with the most parsimonious one):
 There are two ways to implement that a person has zero contacts in a recurrent contact
 model:
 
-1. The preferred is to return a zero in the "model" function for this individual.
+1. The preferred is to return a ``False`` in the "model" function for this individual.
 
 2. Alternatively, people without contacts in a recurrent contact model can have unique
    values in the assort_by variables such that their group only contains them alone.
