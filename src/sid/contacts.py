@@ -22,34 +22,30 @@ from sid.virus_strains import factorize_categorical_infections
 
 def calculate_contacts(
     contact_models: Dict[str, Dict[str, Any]],
-    contact_policies: Dict[str, Dict[str, Any]],
     states: pd.DataFrame,
     params: pd.DataFrame,
-    date: pd.Timestamp,
     seed: itertools.count,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[pd.DataFrame]:
     """Calculate number of contacts of different types.
 
     Args:
         contact_models (Dict[str, Dict[str, Any]]): See :ref:`contact_models`. They are
             already sorted.
-        contact_policies (Dict[str, Dict[str, Any]]): See :ref:`policies`.
         states (pandas.DataFrame): See :ref:`states`.
         params (pandas.DataFrame): See :ref:`params`.
-        date (pandas.Timestamp): The current date.
         seed (itertools.count): The seed counter.
 
     Returns:
         A tuple containing the following entries:
 
-        - recurrent_contacts (numpy.ndarray): An array with boolean entries for each
-          person and recurrent contact model.
-        - random_contacts (numpy.ndarray): An array with integer entries indicating the
-          number of contacts for each person and random contact model.
+        - recurrent_contacts (pandas.DataFrame): A DataFrame with boolean entries for
+          each person and recurrent contact model.
+        - random_contacts (pandas.DataFrame): An DataFrame with integer entries
+          indicating the number of contacts for each person and random contact model.
 
     """
-    random_contacts = []
-    recurrent_contacts = []
+    random_contacts = pd.DataFrame(index=states.index)
+    recurrent_contacts = pd.DataFrame(index=states.index)
 
     for model_name, model in contact_models.items():
         loc = model.get("loc", params.index)
@@ -57,40 +53,18 @@ def calculate_contacts(
         model_specific_contacts = func(
             states=states, params=params.loc[loc], seed=next(seed)
         )
+
         model_specific_contacts = validate_return_is_series_or_ndarray(
             model_specific_contacts, model_name, "contact_models", states.index
         )
-        for policy in contact_policies.values():
-            if policy["affected_contact_model"] == model_name:
-                if policy["start"] <= date <= policy["end"]:
-                    if isinstance(policy["policy"], (float, int)):
-                        model_specific_contacts *= policy["policy"]
-                    else:
-                        model_specific_contacts = policy["policy"](
-                            states=states,
-                            contacts=model_specific_contacts,
-                            seed=next(seed),
-                        )
 
         if model["is_recurrent"]:
-            recurrent_contacts.append(model_specific_contacts.astype(bool))
+            recurrent_contacts[model_name] = model_specific_contacts.astype(bool)
         else:
-            model_specific_contacts = _sum_preserving_round(
-                model_specific_contacts.to_numpy().astype(DTYPE_N_CONTACTS)
-            )
-            random_contacts.append(model_specific_contacts)
+            random_contacts[model_name] = model_specific_contacts
 
-    random_contacts = np.column_stack(random_contacts) if random_contacts else None
-    recurrent_contacts = (
-        np.column_stack(recurrent_contacts) if recurrent_contacts else None
-    )
-
-    # Dead people and ICU patients don't have contacts.
-    has_no_contacts = states["needs_icu"] | states["dead"]
-    if random_contacts is not None:
-        random_contacts[has_no_contacts, :] = 0
-    if recurrent_contacts is not None:
-        recurrent_contacts[has_no_contacts, :] = False
+    random_contacts = None if random_contacts.empty else random_contacts
+    recurrent_contacts = None if recurrent_contacts.empty else recurrent_contacts
 
     return recurrent_contacts, random_contacts
 
@@ -630,6 +604,34 @@ def create_group_indexer(
         indexer.append(indices.astype(DTYPE_INDEX))
 
     return indexer
+
+
+def post_process_contacts(recurrent_contacts, random_contacts, states, contact_models):
+    """Post-process contacts.
+
+    The number of contacts for random models is rounded such that the sum of contacts is
+    preserved.
+
+    """
+    recurrent_models, random_models = separate_contact_model_names(contact_models)
+
+    # Dead people and ICU patients don't have contacts.
+    has_no_contacts = states["needs_icu"] | states["dead"]
+    if random_contacts is not None:
+        random_contacts.loc[has_no_contacts] = 0
+    if recurrent_contacts is not None:
+        recurrent_contacts.loc[has_no_contacts] = False
+
+    if random_contacts is not None:
+        random_contacts = random_contacts.apply(
+            lambda x: _sum_preserving_round(x.to_numpy())
+        )
+        random_contacts = random_contacts[random_models].astype(dtype=DTYPE_N_CONTACTS)
+
+    if recurrent_contacts is not None:
+        recurrent_contacts = recurrent_contacts[recurrent_models].astype(dtype="bool")
+
+    return recurrent_contacts, random_contacts
 
 
 @nb.njit  # pragma: no cover
