@@ -141,22 +141,24 @@ def validate_contact_models(contact_models):
 
 def validate_contact_policies(contact_policies, contact_models):
     if not isinstance(contact_policies, dict):
-        raise ValueError("policies must be a dictionary.")
+        raise ValueError("'contact_policies' must be a dictionary.")
 
     for name, policy in contact_policies.items():
         if not isinstance(policy, dict):
-            raise ValueError(f"Each policy must be a dictionary: {name}.")
+            raise ValueError(f"Contact policy '{name}' is not a dictionary.")
 
         missing_keys = set(NECESSARY_CONTACT_POLICY_KEYS) - set(policy)
         if missing_keys:
             raise ValueError(
-                f"The policy model {name} is missing the following keys: {missing_keys}"
+                f"The contact policy '{name}' is missing the following keys: "
+                f"{missing_keys}."
             )
 
         affected_model = policy["affected_contact_model"]
         if affected_model not in contact_models:
             raise ValueError(
-                f"Unknown affected contact_model {affected_model} for {name}."
+                f"The contact policy '{name}' affects the contact model "
+                f"'{affected_model}' which is unknown."
             )
 
         if callable(policy["policy"]):
@@ -176,12 +178,13 @@ def validate_contact_policies(contact_policies, contact_models):
             else:
                 if not 0 <= policy["policy"] <= 1:
                     raise ValueError(
-                        f"If 'policy' is a number it must lie between 0 and 1. "
-                        f"For {name} it is {policy['policy']}."
+                        f"The policy of contact policy '{name}' is not a number in "
+                        "[0, 1]."
                     )
         else:
             raise ValueError(
-                f"The 'policy' entry of {name} must be callable or a number."
+                f"The 'policy' entry of contact policy '{name}' must be callable or "
+                "a number in [0, 1]."
             )
 
 
@@ -202,20 +205,26 @@ def validate_testing_models(
             ("n_to_be_processed_tests",) + COMMON_ARGS,
         ),
     ]:
-        for name in testing_model:
-            if not isinstance(testing_model[name], dict):
-                raise ValueError(f"Each testing model must be a dictionary: {name}.")
+        if not isinstance(testing_model, dict):
+            raise ValueError(f"'{group_name}' must be a dictionary.")
 
-            _validate_model_function(
-                name, group_name, testing_model[name].get("model"), args
-            )
+        for name, model in testing_model.items():
+            if not isinstance(model, dict):
+                raise ValueError(
+                    f"Each model of '{group_name}' must be a dictionary: {name}."
+                )
+
+            _validate_model_function(name, group_name, model.get("model"), args)
 
 
 def validate_vaccination_models(vaccination_models):
     """Validate vaccination models."""
+    if not isinstance(vaccination_models, dict):
+        raise ValueError("'vaccination_models' must be a dictionary.")
+
     for name, model in vaccination_models.items():
         if not isinstance(model, dict):
-            raise ValueError(f"Vaccination model {name} is not a dictionary.")
+            raise ValueError(f"Vaccination model '{name}' is not a dictionary.")
 
         _validate_model_function(
             name,

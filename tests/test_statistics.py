@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from sid.statistics import _create_time_grouper
 from sid.statistics import calculate_r_effective
 from sid.statistics import calculate_r_zero
 
@@ -60,3 +61,21 @@ def test_r_effective_multiple_days(data_for_multiple_days, window, expected):
 def test_r_zero_multiple_days(data_for_multiple_days, window, expected):
     result = calculate_r_zero(data_for_multiple_days, window)
     assert np.allclose(result, expected)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "df, expected",
+    [
+        (pd.DataFrame(columns=["date"]), pd.Grouper(key="date", freq="D")),
+        (pd.DataFrame(columns=["period"]), pd.Grouper(key="period")),
+        (pd.DataFrame(), None),
+    ],
+)
+def test_create_time_grouper(df, expected):
+    result = _create_time_grouper(df)
+    if expected is None:
+        assert result is None
+    else:
+        assert result.key == expected.key
+        assert result.freq == expected.freq

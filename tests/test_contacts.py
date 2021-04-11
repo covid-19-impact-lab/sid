@@ -394,7 +394,6 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
             "affected_contact_model": "first_half_meet",
             "start": pd.Timestamp("2020-08-01"),
             "end": pd.Timestamp("2020-08-30"),
-            "is_active": lambda x: True,
             "policy": shut_down_model,
         },
     }
@@ -423,44 +422,12 @@ def test_calculate_contacts_policy_active(states_all_alive, contact_models):
             "affected_contact_model": "first_half_meet",
             "start": pd.Timestamp("2020-09-01"),
             "end": pd.Timestamp("2020-09-30"),
-            "is_active": lambda states: True,
             "policy": shut_down_model,
         },
     }
     date = pd.Timestamp("2020-09-29")
     params = pd.DataFrame()
     expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
-    recurrent_contacts, random_contacts = calculate_contacts(
-        contact_models=contact_models,
-        contact_policies=contact_policies,
-        states=states_all_alive,
-        params=params,
-        date=date,
-        seed=itertools.count(),
-    )
-
-    assert recurrent_contacts is None
-    assert (random_contacts == expected).all()
-
-
-@pytest.mark.integration
-def test_calculate_contacts_policy_inactive_through_function(
-    states_all_alive, contact_models
-):
-    contact_policies = {
-        "noone_meets": {
-            "affected_contact_model": "first_half_meet",
-            "start": pd.Timestamp("2020-09-01"),
-            "end": pd.Timestamp("2020-09-30"),
-            "is_active": lambda states: False,
-            "policy": shut_down_model,
-        },
-    }
-    date = pd.Timestamp("2020-09-29")
-    params = pd.DataFrame()
-    expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
-    first_half = round(len(states_all_alive) / 2)
-    expected[:first_half, 1] = 1
     recurrent_contacts, random_contacts = calculate_contacts(
         contact_models=contact_models,
         contact_policies=contact_policies,
@@ -487,7 +454,6 @@ def test_calculate_contacts_policy_active_policy_func(states_all_alive, contact_
             "start": pd.Timestamp("2020-09-01"),
             "end": pd.Timestamp("2020-09-30"),
             "policy": reduce_to_1st_quarter,
-            "is_active": lambda states: True,
         },
     }
     date = pd.Timestamp("2020-09-29")

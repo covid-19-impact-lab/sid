@@ -43,6 +43,7 @@ DTYPE_N_CONTACTS = np.uint16
 DTYPE_SID_PERIOD = np.int16
 DTYPE_VIRUS_STRAIN_CODES = np.int8
 DTYPE_CONTACT_MODEL_CODES = np.int8
+DTYPE_GROUP_TRANSITION_PROBABILITIES = np.float32
 
 INDEX_NAMES = ["category", "subcategory", "name"]
 
@@ -77,9 +78,6 @@ INITIAL_CONDITIONS = {
 
 
 DEFAULT_VIRUS_STRAINS = {"names": ["base_strain"], "factors": np.array([1])}
-
-
-POLICIES = {"is_active": lambda states: True}  # noqa: U100
 
 
 SID_TIME_START = pd.Timestamp("2019-01-01")

@@ -21,7 +21,6 @@ from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_GROUP_CODE
 from sid.config import DTYPE_INFECTION_COUNTER
-from sid.config import POLICIES
 from sid.config import SAVED_COLUMNS
 from sid.contacts import calculate_contacts
 from sid.contacts import calculate_infections_by_contacts
@@ -238,7 +237,6 @@ def get_simulate_func(
     virus_strains = parse_virus_strains(virus_strains, params)
 
     contact_policies = _add_default_duration_to_models(contact_policies, duration)
-    contact_policies = _add_defaults_to_policy_dict(contact_policies)
 
     initial_conditions = parse_initial_conditions(
         initial_conditions, duration["start"], virus_strains
@@ -812,14 +810,6 @@ def _add_default_duration_to_models(
         }
 
     return dictionaries
-
-
-def _add_defaults_to_policy_dict(policies):
-    """Add defaults to a policy dictionary."""
-    for name, model in policies.items():
-        policies[name] = {**POLICIES, **model}
-
-    return policies
 
 
 def _process_initial_states(
