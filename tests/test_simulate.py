@@ -262,12 +262,12 @@ def test_create_group_codes_names(contact_models, assort_bys, expectation, expec
             id="test with random model",
         ),
         pytest.param(
-            pd.DataFrame({"a": [2, 4, 1, 3, -1]}, dtype="category"),
-            {"cm": ["a"]},
-            {"cm": {"assort_by": ["a"], "is_recurrent": True}},
+            pd.DataFrame({"b": [2, 4, 1, 3, -1]}, dtype="category"),
+            {"cm": ["b"]},
+            {"cm": {"assort_by": ["b"], "is_recurrent": True}},
             pd.DataFrame(
                 {
-                    "a": pd.Series([2, 4, 1, 3, -1]).astype("category"),
+                    "b": pd.Series([2, 4, 1, 3, -1]).astype("category"),
                     "group_codes_cm": np.int32([1, 3, 0, 2, -1]),
                 }
             ),
@@ -276,14 +276,14 @@ def test_create_group_codes_names(contact_models, assort_bys, expectation, expec
         ),
         pytest.param(
             pd.DataFrame(
-                {"a": [2, 4, 1, 3, -1], "b": [1, 1, 2, 2, 1]}, dtype="category"
+                {"c": [2, 4, 1, 3, -1], "d": [1, 1, 2, 2, 1]}, dtype="category"
             ),
-            {"cm": ["a", "b"]},
-            {"cm": {"assort_by": ["a", "b"], "is_recurrent": False}},
+            {"cm": ["c", "d"]},
+            {"cm": {"assort_by": ["c", "d"], "is_recurrent": False}},
             pd.DataFrame(
                 {
-                    "a": pd.Series([2, 4, 1, 3, -1]).astype("category"),
-                    "b": pd.Series([1, 1, 2, 2, 1]).astype("category"),
+                    "c": pd.Series([2, 4, 1, 3, -1]).astype("category"),
+                    "d": pd.Series([1, 1, 2, 2, 1]).astype("category"),
                     "group_codes_cm": np.int32([2, 4, 1, 3, 0]),
                 }
             ),
@@ -296,11 +296,11 @@ def test_create_group_codes_names(contact_models, assort_bys, expectation, expec
             id="test random model with multiple variables.",
         ),
         pytest.param(
-            pd.DataFrame({"a": [2, 4, 1, 3, -1]}),
-            {"cm": ["a"]},
-            {"cm": {"assort_by": ["a"], "is_recurrent": True, "is_factorized": True}},
-            pd.DataFrame({"a": np.int32([2, 4, 1, 3, -1])}),
-            {"cm": {"name": "a", "groups": [1, 2, 3, 4]}},
+            pd.DataFrame({"e": [2, 4, 1, 3, -1]}).astype("category"),
+            {"cm": ["e"]},
+            {"cm": {"assort_by": ["e"], "is_recurrent": True, "is_factorized": True}},
+            pd.DataFrame({"e": np.int32([2, 4, 1, 3, -1])}).astype("int32"),
+            {"cm": {"name": "e", "groups": [1, 2, 3, 4]}},
             id="test recurrent model with already factorized variable",
         ),
     ],

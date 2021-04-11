@@ -888,6 +888,7 @@ def _create_group_codes_and_info(
     for model_name, assort_by in assort_bys.items():
         is_factorized = contact_models[model_name].get("is_factorized", False)
         is_recurrent = contact_models[model_name]["is_recurrent"]
+        is_factorized = contact_models[model_name].get("is_factorized", False)
         group_code_name = group_codes_names[model_name]
 
         # Create the group code column if it is not available or if it exists - meaning
@@ -903,7 +904,9 @@ def _create_group_codes_and_info(
             unsorted_groups = states[group_code_name].unique()
             groups = np.sort(unsorted_groups[unsorted_groups != -1])
         else:
-            raise NotImplementedError
+            groups = states[group_code_name].cat.categories
+            if is_factorized:
+                groups = groups[groups != -1]
 
         group_codes_info[model_name] = {"name": group_code_name, "groups": groups}
 
