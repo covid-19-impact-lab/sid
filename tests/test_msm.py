@@ -69,7 +69,7 @@ def test_get_flat_moments(moments, expected):
     assert result.equals(expected)
 
 
-def _func():
+def _func():  # pragma: no cover
     pass
 
 

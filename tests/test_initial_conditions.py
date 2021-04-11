@@ -123,11 +123,7 @@ def test_create_initial_infections(
 ):
     with expectation:
         out = sample_initial_infections(infections, n_people, index, seed)
-
-        if callable(expected):
-            assert expected(out)
-        else:
-            assert out == expected
+        assert expected(out)
 
 
 @pytest.mark.unit
@@ -242,11 +238,7 @@ def test_scale_and_spread_initial_infections(
 def test_create_initial_immunity(immunity, infected_or_immune, expectation, expected):
     with expectation:
         out = sample_initial_immunity(immunity, infected_or_immune, 0)
-
-        if callable(expected):
-            assert expected(out)
-        else:
-            assert out == expected
+        assert expected(out)
 
 
 @pytest.mark.integration

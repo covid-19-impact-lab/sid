@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 from pandas.api.types import is_categorical_dtype
 from resources import CONTACT_MODELS
+from resources import meet_two
 from sid.config import INDEX_NAMES
 from sid.simulate import _add_default_duration_to_models
 from sid.simulate import _create_group_codes_and_info
@@ -84,6 +85,39 @@ def test_resume_a_simulation(params, initial_states, tmp_path):
         assert set(df["channel_infected_by_contact"].cat.categories) == {
             "not_infected_by_contact",
             "standard",
+        }
+
+
+@pytest.mark.end_to_end
+def test_simulate_a_simple_model_without_assort_by(params, initial_states, tmp_path):
+    contact_models = {
+        "without_assort": {
+            "model": meet_two,
+            "assort_by": [],
+            "is_recurrent": False,
+        }
+    }
+    params.loc[("infection_prob", "without_assort", "without_assort"), "value"] = 0.1
+
+    simulate = get_simulate_func(
+        params=params,
+        initial_states=initial_states,
+        contact_models=contact_models,
+        saved_columns={"other": ["channel_infected_by_contact"]},
+        path=tmp_path,
+        seed=144,
+    )
+
+    result = simulate(params)
+
+    time_series = result["time_series"].compute()
+    last_states = result["last_states"].compute()
+
+    for df in [time_series, last_states]:
+        assert isinstance(df, pd.DataFrame)
+        assert set(df["channel_infected_by_contact"].cat.categories) == {
+            "not_infected_by_contact",
+            "without_assort",
         }
 
 
@@ -228,12 +262,12 @@ def test_create_group_codes_names(contact_models, assort_bys, expectation, expec
             id="test with random model",
         ),
         pytest.param(
-            pd.DataFrame({"a": [2, 4, 1, 3, -1]}, dtype="category"),
-            {"cm": ["a"]},
-            {"cm": {"assort_by": ["a"], "is_recurrent": True}},
+            pd.DataFrame({"b": [2, 4, 1, 3, -1]}, dtype="category"),
+            {"cm": ["b"]},
+            {"cm": {"assort_by": ["b"], "is_recurrent": True}},
             pd.DataFrame(
                 {
-                    "a": pd.Series([2, 4, 1, 3, -1]).astype("category"),
+                    "b": pd.Series([2, 4, 1, 3, -1]).astype("category"),
                     "group_codes_cm": np.int32([1, 3, 0, 2, -1]),
                 }
             ),
@@ -242,14 +276,14 @@ def test_create_group_codes_names(contact_models, assort_bys, expectation, expec
         ),
         pytest.param(
             pd.DataFrame(
-                {"a": [2, 4, 1, 3, -1], "b": [1, 1, 2, 2, 1]}, dtype="category"
+                {"c": [2, 4, 1, 3, -1], "d": [1, 1, 2, 2, 1]}, dtype="category"
             ),
-            {"cm": ["a", "b"]},
-            {"cm": {"assort_by": ["a", "b"], "is_recurrent": False}},
+            {"cm": ["c", "d"]},
+            {"cm": {"assort_by": ["c", "d"], "is_recurrent": False}},
             pd.DataFrame(
                 {
-                    "a": pd.Series([2, 4, 1, 3, -1]).astype("category"),
-                    "b": pd.Series([1, 1, 2, 2, 1]).astype("category"),
+                    "c": pd.Series([2, 4, 1, 3, -1]).astype("category"),
+                    "d": pd.Series([1, 1, 2, 2, 1]).astype("category"),
                     "group_codes_cm": np.int32([2, 4, 1, 3, 0]),
                 }
             ),
@@ -262,11 +296,11 @@ def test_create_group_codes_names(contact_models, assort_bys, expectation, expec
             id="test random model with multiple variables.",
         ),
         pytest.param(
-            pd.DataFrame({"a": [2, 4, 1, 3, -1]}),
-            {"cm": ["a"]},
-            {"cm": {"assort_by": ["a"], "is_recurrent": True, "is_factorized": True}},
-            pd.DataFrame({"a": np.int32([2, 4, 1, 3, -1])}),
-            {"cm": {"name": "a", "groups": [1, 2, 3, 4]}},
+            pd.DataFrame({"e": [2, 4, 1, 3, -1]}).astype("category"),
+            {"cm": ["e"]},
+            {"cm": {"assort_by": ["e"], "is_recurrent": True, "is_factorized": True}},
+            pd.DataFrame({"e": np.int32([2, 4, 1, 3, -1])}).astype("int32"),
+            {"cm": {"name": "e", "groups": [1, 2, 3, 4]}},
             id="test recurrent model with already factorized variable",
         ),
     ],
@@ -351,3 +385,24 @@ def test_prepare_susceptibility_factor(model, states, expectation, expected):
     with expectation:
         result = _prepare_susceptibility_factor(model, states, None, 0)
         assert (result == expected).all()
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "contact_models, expectation, expected",
+    [
+        ({"cm": {}}, pytest.warns(UserWarning, match="Not specifying"), {"cm": []}),
+        ({"cm": {"assort_by": False}}, does_not_raise(), {"cm": []}),
+        ({"cm": {"assort_by": "age"}}, does_not_raise(), {"cm": ["age"]}),
+        ({"cm": {"assort_by": ["age"]}}, does_not_raise(), {"cm": ["age"]}),
+        (
+            {"cm": {"assort_by": {"age"}}},
+            pytest.raises(ValueError, match="'assort_by' for"),
+            None,
+        ),
+    ],
+)
+def test_process_assort_bys(contact_models, expectation, expected):
+    with expectation:
+        result = _process_assort_bys(contact_models)
+        assert result == expected

@@ -1,7 +1,10 @@
+from contextlib import ExitStack as does_not_raise  # noqa: N813
+
 import numpy as np
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
+from sid.config import DTYPE_GROUP_TRANSITION_PROBABILITIES
 from sid.matching_probabilities import _create_transition_matrix_from_own_prob
 from sid.matching_probabilities import _einsum_kronecker_product
 from sid.matching_probabilities import _join_transition_matrices
@@ -61,7 +64,7 @@ def test_create_cumulative_group_transition_probabilities(
     assort_probs["value"] = [0.5, 0.9]
     params = params.append(assort_probs)
 
-    _, groups = factorize_assortative_variables(initial_states, assort_by, False)
+    _, groups = factorize_assortative_variables(initial_states, assort_by)
 
     transition_matrix = create_cumulative_group_transition_probabilities(
         states=initial_states,
@@ -71,6 +74,56 @@ def test_create_cumulative_group_transition_probabilities(
         groups=groups,
     )
     np.testing.assert_allclose(transition_matrix, expected.cumsum(axis=1))
+    assert transition_matrix.dtype == DTYPE_GROUP_TRANSITION_PROBABILITIES
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "own_prob, group_names, expectation, expected",
+    [
+        (
+            0.9,
+            ["a", "b"],
+            does_not_raise(),
+            pd.DataFrame(
+                index=["a", "b"],
+                columns=["a", "b"],
+                data=[[0.9, 0.1], [0.1, 0.9]],
+                dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES,
+            ),
+        ),
+        (
+            pd.Series([0.9, 0.7], index=["a", "b"]),
+            None,
+            does_not_raise(),
+            pd.DataFrame(
+                index=["a", "b"],
+                columns=["a", "b"],
+                data=[[0.9, 0.1], [0.3, 0.7]],
+                dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES,
+            ),
+        ),
+        (
+            pd.Series([0.9, 0.7, 0.4], index=["a", "b", "c"]),
+            ["b", "c"],
+            does_not_raise(),
+            pd.DataFrame(
+                index=["b", "c"],
+                columns=["b", "c"],
+                data=[[0.7, 0.3], [0.6, 0.4]],
+                dtype=DTYPE_GROUP_TRANSITION_PROBABILITIES,
+            ),
+        ),
+        (0.5, None, pytest.raises(ValueError, match="Pass either"), None),
+    ],
+)
+def test_create_transition_matrix_own_prob(
+    own_prob, group_names, expectation, expected
+):
+    with expectation:
+        result = _create_transition_matrix_from_own_prob(own_prob, group_names)
+        assert result.equals(expected)
+        assert (result.dtypes == DTYPE_GROUP_TRANSITION_PROBABILITIES).all()
 
 
 @pytest.mark.unit
@@ -79,9 +132,10 @@ def test_einsum_kronecker_product_threefold():
     trans_mats = [np.random.uniform(0, 1, size=(2, 2)) for _ in range(3)]
 
     expected = np.kron(np.kron(*trans_mats[:2]), trans_mats[2])
-    calculated = _einsum_kronecker_product(*trans_mats).astype("float32")
+    calculated = _einsum_kronecker_product(*trans_mats)
 
     np.testing.assert_allclose(calculated, expected, rtol=1e-06)
+    assert calculated.dtype == DTYPE_GROUP_TRANSITION_PROBABILITIES
 
 
 @pytest.mark.unit
@@ -90,6 +144,7 @@ def test_einsum_kronecker_product_fourfold():
     trans_mats = [np.random.uniform(0, 1, size=(2, 2)) for _ in range(4)]
 
     expected = np.kron(np.kron(np.kron(*trans_mats[:2]), trans_mats[2]), trans_mats[3])
-    calculated = _einsum_kronecker_product(*trans_mats).astype("float32")
+    calculated = _einsum_kronecker_product(*trans_mats)
 
     np.testing.assert_allclose(calculated, expected, rtol=1e-06)
+    assert calculated.dtype == DTYPE_GROUP_TRANSITION_PROBABILITIES
