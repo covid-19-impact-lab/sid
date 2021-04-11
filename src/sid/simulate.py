@@ -39,8 +39,10 @@ from sid.pathogenesis import draw_course_of_disease
 from sid.policies import apply_contact_policies
 from sid.rapid_tests import apply_reactions_to_rapid_tests
 from sid.rapid_tests import perform_rapid_tests
+from sid.seasonality import prepare_seasonality_factor
 from sid.shared import factorize_assortative_variables
 from sid.shared import separate_contact_model_names
+from sid.susceptibility import prepare_susceptibility_factor
 from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
@@ -77,6 +79,7 @@ def get_simulate_func(
     vaccination_models: Optional[Callable] = None,
     rapid_test_models: Optional[Dict[str, Dict[str, Any]]] = None,
     rapid_test_reaction_models: Optional[Dict[str, Dict[str, Any]]] = None,
+    seasonality_factor_model: Optional[Callable] = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -194,6 +197,9 @@ def get_simulate_func(
             ``"start"`` and ``"end"`` date. It must have a function under ``"model"``
             which accepts ``states``, ``params``,  ``"contacts"``  and ``seed`` and
             returns a modified copy of contacts.
+        seasonality_factor_model (Optional[Callable]): A model which takes in and
+            ``params`` and ``dates`` signaling the whole duration of the simulation and
+            returns a factor for each day which scales all infection probabilities.
 
     Returns:
         Callable: Simulates dataset based on parameters.
@@ -323,6 +329,7 @@ def get_simulate_func(
         vaccination_models=vaccination_models,
         rapid_test_models=rapid_test_models,
         rapid_test_reaction_models=rapid_test_reaction_models,
+        seasonality_factor_model=seasonality_factor_model,
     )
     return sim_func
 
@@ -348,6 +355,7 @@ def _simulate(
     vaccination_models,
     rapid_test_models,
     rapid_test_reaction_models,
+    seasonality_factor_model,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -400,6 +408,9 @@ def _simulate(
         rapid_test_reaction_models (Optional[Dict[str, Dict[str, Any]]]): A dictionary
             holding rapid tests reaction models which allow to change calculated
             contacts based on the results of rapid tests.
+        seasonality_factor_model (Optional[Callable]): A model which takes in and
+            ``params`` and ``dates`` signaling the whole duration of the simulation and
+            returns a factor for each day which scales all infection probabilities.
 
     Returns:
         result (Dict[str, dask.dataframe]): The simulation result which includes the
@@ -420,11 +431,18 @@ def _simulate(
         )
     )
 
-    susceptibility_factor = _prepare_susceptibility_factor(
-        susceptibility_factor_model,
-        initial_states,
-        params,
-        next(seed),
+    susceptibility_factor = prepare_susceptibility_factor(
+        susceptibility_factor_model=susceptibility_factor_model,
+        initial_states=initial_states,
+        params=params,
+        seed=seed,
+    )
+
+    seasonality_factor = prepare_seasonality_factor(
+        seasonality_factor_model=seasonality_factor_model,
+        params=params,
+        dates=duration["dates"],
+        seed=seed,
     )
 
     states = initial_states
@@ -511,6 +529,7 @@ def _simulate(
             group_codes_info=group_codes_info,
             susceptibility_factor=susceptibility_factor,
             virus_strains=virus_strains,
+            seasonality_factor=seasonality_factor[date],
             seed=seed,
         )
         (
@@ -1137,62 +1156,3 @@ def _add_additional_information_to_states(
         states["susceptibility_factor"] = susceptibility_factor
 
     return states
-
-
-def _prepare_susceptibility_factor(
-    susceptibility_factor_model: Optional[Callable],
-    initial_states: pd.DataFrame,
-    params: pd.DataFrame,
-    seed: int,
-) -> np.ndarray:
-    """Prepare the multiplier for infection probabilities.
-
-    The multiplier defines individual susceptibility which can be used to let infection
-    probabilities vary by age.
-
-    If not multiplier is given, all individuals have the same susceptibility. Otherwise,
-    a custom function generates multipliers for the infection probability for each
-    individual.
-
-    Args:
-        susceptibility_factor_model (Optional[Callable]): The custom function
-            which computes individual multipliers with states, parameters and a seed.
-        initial_states (pandas.DataFrame): The initial states.
-        params (pandas.DataFrame): The parameters.
-        seed (int): An integer which can be used by the user for reproducibility.
-
-    Returns: susceptibility_factor (numpy.ndarray): An array with a
-        multiplier for each individual between 0 and 1.
-
-    """
-    if susceptibility_factor_model is None:
-        susceptibility_factor = np.ones(len(initial_states))
-    else:
-        susceptibility_factor = susceptibility_factor_model(
-            initial_states, params, seed
-        )
-        if not isinstance(susceptibility_factor, (pd.Series, np.ndarray)):
-            raise ValueError(
-                "'susceptibility_factor_model' must return a pd.Series or a "
-                "np.ndarray."
-            )
-        elif len(susceptibility_factor) != len(initial_states):
-            raise ValueError(
-                "The 'susceptibility_factor' must be given for each " "individual."
-            )
-        elif isinstance(susceptibility_factor, pd.Series):
-            susceptibility_factor = susceptibility_factor.to_numpy()
-
-        # Make sure the highest multiplier is set to one so that random contacts only
-        # need to be reduced by the infection probability of the contact model.
-        susceptibility_factor = susceptibility_factor / susceptibility_factor.max()
-
-        if (
-            not (0 <= susceptibility_factor).all()
-            and (susceptibility_factor <= 1).all()
-        ):
-            raise ValueError(
-                "The infection probability multiplier needs to be between 0 and 1."
-            )
-
-    return susceptibility_factor

@@ -71,6 +71,8 @@ def setup_households_w_one_infection():
 
     virus_strains = {"names": ["base_strain"], "factors": np.ones(1)}
 
+    seasonality_factor = 1
+
     return (
         states,
         contacts,
@@ -80,6 +82,7 @@ def setup_households_w_one_infection():
         group_codes_info,
         susceptibility_factor,
         virus_strains,
+        seasonality_factor,
     )
 
 
@@ -96,6 +99,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         group_codes_info,
         susceptibility_factor,
         virus_strains,
+        seasonality_factor,
     ) = setup_households_w_one_infection
 
     (
@@ -114,6 +118,7 @@ def test_calculate_infections_only_recurrent_all_participate(
         group_codes_info=group_codes_info,
         susceptibility_factor=susceptibility_factor,
         virus_strains=virus_strains,
+        seasonality_factor=seasonality_factor,
         seed=itertools.count(),
     )
 
@@ -143,6 +148,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
         group_codes_info,
         susceptibility_factor,
         virus_strains,
+        seasonality_factor,
     ) = setup_households_w_one_infection
 
     recurrent_contacts[0] = 0
@@ -163,6 +169,7 @@ def test_calculate_infections_only_recurrent_sick_skips(
         group_codes_info=group_codes_info,
         susceptibility_factor=susceptibility_factor,
         virus_strains=virus_strains,
+        seasonality_factor=seasonality_factor,
         seed=itertools.count(),
     )
 
@@ -189,6 +196,7 @@ def test_calculate_infections_only_recurrent_one_skips(
         group_codes_info,
         susceptibility_factor,
         virus_strains,
+        seasonality_factor,
     ) = setup_households_w_one_infection
 
     # 2nd person does not participate in household meeting
@@ -210,6 +218,7 @@ def test_calculate_infections_only_recurrent_one_skips(
         group_codes_info=group_codes_info,
         susceptibility_factor=susceptibility_factor,
         virus_strains=virus_strains,
+        seasonality_factor=seasonality_factor,
         seed=itertools.count(),
     )
 
@@ -236,6 +245,7 @@ def test_calculate_infections_only_recurrent_one_immune(
         group_codes_info,
         susceptibility_factor,
         virus_strains,
+        seasonality_factor,
     ) = setup_households_w_one_infection
 
     states.loc[1, "immune"] = True
@@ -256,6 +266,7 @@ def test_calculate_infections_only_recurrent_one_immune(
         group_codes_info=group_codes_info,
         susceptibility_factor=susceptibility_factor,
         virus_strains=virus_strains,
+        seasonality_factor=seasonality_factor,
         seed=itertools.count(),
     )
 
@@ -276,6 +287,7 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
         *_,
         susceptibility_factor,
         virus_strains,
+        seasonality_factor,
     ) = setup_households_w_one_infection
 
     random_contacts[0] = 1
@@ -306,6 +318,7 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
         group_codes_info={"non_rec": {"name": "group_codes_non_rec"}},
         susceptibility_factor=susceptibility_factor,
         virus_strains=virus_strains,
+        seasonality_factor=seasonality_factor,
         seed=itertools.count(),
     )
 

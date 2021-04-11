@@ -1,3 +1,4 @@
+import itertools
 import math
 from contextlib import ExitStack as does_not_raise  # noqa: N813
 
@@ -11,10 +12,10 @@ from sid.config import INDEX_NAMES
 from sid.simulate import _add_default_duration_to_models
 from sid.simulate import _create_group_codes_and_info
 from sid.simulate import _create_group_codes_names
-from sid.simulate import _prepare_susceptibility_factor
 from sid.simulate import _process_assort_bys
 from sid.simulate import _process_initial_states
 from sid.simulate import get_simulate_func
+from sid.susceptibility import prepare_susceptibility_factor
 from sid.validation import validate_params
 
 
@@ -383,7 +384,7 @@ def test_skipping_factorization_of_assort_by_variable_works(
 )
 def test_prepare_susceptibility_factor(model, states, expectation, expected):
     with expectation:
-        result = _prepare_susceptibility_factor(model, states, None, 0)
+        result = prepare_susceptibility_factor(model, states, None, itertools.count())
         assert (result == expected).all()
 
 
