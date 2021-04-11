@@ -887,8 +887,6 @@ def _create_group_codes_and_info(
 
     for model_name, assort_by in assort_bys.items():
         is_factorized = contact_models[model_name].get("is_factorized", False)
-        is_recurrent = contact_models[model_name]["is_recurrent"]
-        is_factorized = contact_models[model_name].get("is_factorized", False)
         group_code_name = group_codes_names[model_name]
 
         # Create the group code column if it is not available or if it exists - meaning
@@ -897,7 +895,7 @@ def _create_group_codes_and_info(
             group_code_name in states.columns and not is_factorized
         ):
             states[group_code_name], groups = factorize_assortative_variables(
-                states, assort_by, is_recurrent=is_recurrent
+                states, assort_by
             )
         elif group_code_name in states.columns and is_factorized:
             states[group_code_name] = states[group_code_name].astype(DTYPE_GROUP_CODE)

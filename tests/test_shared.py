@@ -38,7 +38,7 @@ NP_ARRAY_WITH_SINGLE_TUPLE[0] = (0,)
 def test_factorize_assortative_variables(
     initial_states, assort_by, expected_codes, expected_uniques
 ):
-    codes, uniques = factorize_assortative_variables(initial_states, assort_by, None)
+    codes, uniques = factorize_assortative_variables(initial_states, assort_by)
     assert (codes == expected_codes).all()
     assert (uniques == expected_uniques).all()
 
