@@ -11,7 +11,7 @@ def load_epidemiological_parameters():
     return pd.read_csv(ROOT_DIR / "covid_epi_params.csv", index_col=INDEX_NAMES)
 
 
-def factorize_assortative_variables(states, assort_by, is_recurrent):  # noqa: U100
+def factorize_assortative_variables(states, assort_by):
     """Factorize assortative variables.
 
     This function forms unique values by combining the different values of assortative
