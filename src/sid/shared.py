@@ -1,5 +1,3 @@
-import warnings
-
 import numba as nb
 import numpy as np
 import pandas as pd
@@ -11,14 +9,6 @@ from sid.config import ROOT_DIR
 def load_epidemiological_parameters():
     """Load epidemiological_parameters."""
     return pd.read_csv(ROOT_DIR / "covid_epi_params.csv", index_col=INDEX_NAMES)
-
-
-def get_epidemiological_parameters():
-    warnings.warn(
-        "This function will soon be deprecated. Use load_epidemiological_parameters "
-        "instead."
-    )
-    return load_epidemiological_parameters()
 
 
 def factorize_assortative_variables(states, assort_by, is_recurrent):
@@ -60,7 +50,7 @@ def factorize_assortative_variables(states, assort_by, is_recurrent):
         )
         group_codes = group_codes.astype(DTYPE_GROUP_CODE)
     else:
-        group_codes = np.zeros(len(states), dtype=np.uint8)
+        group_codes = np.zeros(len(states), dtype=DTYPE_GROUP_CODE)
         group_codes_values = [(0,)]
 
     return group_codes, group_codes_values
@@ -104,6 +94,7 @@ def random_choice(choices, probabilities=None, decimals=5):
         pass
     else:
         raise TypeError(f"'choices' has invalid type {type(choices)}.")
+    choices = np.atleast_2d(choices)
 
     if probabilities is None:
         n_choices = choices.shape[-1]
@@ -111,10 +102,13 @@ def random_choice(choices, probabilities=None, decimals=5):
         probabilities = np.broadcast_to(probabilities, choices.shape)
     elif isinstance(probabilities, (pd.Series, pd.DataFrame)):
         probabilities = probabilities.to_numpy()
+    elif isinstance(probabilities, (dict, list, tuple)):
+        probabilities = np.array(list(probabilities))
     elif isinstance(probabilities, np.ndarray):
         pass
     else:
         raise TypeError(f"'probabilities' has invalid type {type(probabilities)}.")
+    probabilities = np.atleast_2d(probabilities)
 
     cumulative_distribution = probabilities.cumsum(axis=1)
     # Probabilities often do not sum to one but 0.99999999999999999.
@@ -135,8 +129,8 @@ def random_choice(choices, probabilities=None, decimals=5):
     return out
 
 
-@nb.njit
-def boolean_choice(truth_probability):
+@nb.njit  # pragma: no cover
+def boolean_choice(truth_probability):  # pragma: no cover
     """Sample boolean value with probability given for ``True``.
 
     Args:

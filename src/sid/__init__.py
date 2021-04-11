@@ -5,7 +5,6 @@ from sid.colors import get_colors
 from sid.initial_conditions import sample_initial_immunity
 from sid.initial_conditions import sample_initial_infections
 from sid.msm import get_msm_func
-from sid.shared import get_epidemiological_parameters
 from sid.shared import load_epidemiological_parameters
 from sid.simulate import get_simulate_func
 from sid.time import get_date
@@ -24,7 +23,6 @@ __all__ = [
     "sample_initial_immunity",
     "get_colors",
     "get_date",
-    "get_epidemiological_parameters",
     "get_msm_func",
     "get_simulate_func",
     "load_epidemiological_parameters",
