@@ -36,7 +36,7 @@ def test_create_group_indexer(states, group_code_name, expected):
 
 
 @pytest.fixture()
-def setup_households_w_one_infection():
+def households_w_one_infected():
     states = pd.DataFrame(
         {
             "infectious": [True] + [False] * 7,
@@ -48,8 +48,6 @@ def setup_households_w_one_infection():
             "virus_strain": pd.Series(["base_strain"] + [pd.NA] * 7, dtype="category"),
         }
     )
-
-    contacts = np.ones((len(states), 1), dtype=bool)
 
     params = pd.DataFrame(
         columns=["value"],
@@ -67,61 +65,38 @@ def setup_households_w_one_infection():
 
     group_codes_info = {"households": {"name": "group_codes_households"}}
 
-    susceptibility_factor = np.ones(len(states))
-
     virus_strains = {"names": ["base_strain"], "factors": np.ones(1)}
 
-    seasonality_factor = 1
-
-    return (
-        states,
-        contacts,
-        params,
-        indexers,
-        assortative_matching_cum_probs,
-        group_codes_info,
-        susceptibility_factor,
-        virus_strains,
-        seasonality_factor,
-    )
+    return {
+        "states": states,
+        "recurrent_contacts": np.ones((len(states), 1), dtype=bool),
+        "random_contacts": None,
+        "params": params,
+        "indexers": indexers,
+        "assortative_matching_cum_probs": assortative_matching_cum_probs,
+        "group_codes_info": group_codes_info,
+        "susceptibility_factor": np.ones(len(states)),
+        "virus_strains": virus_strains,
+        "seasonality_factor": 1,
+    }
 
 
 @pytest.mark.integration
 def test_calculate_infections_only_recurrent_all_participate(
-    setup_households_w_one_infection,
+    households_w_one_infected,
 ):
-    (
-        states,
-        recurrent_contacts,
-        params,
-        indexers,
-        assortative_matching_cum_probs,
-        group_codes_info,
-        susceptibility_factor,
-        virus_strains,
-        seasonality_factor,
-    ) = setup_households_w_one_infection
-
     (
         calc_infected,
         calc_n_has_additionally_infected,
         calc_missed_contacts,
         was_infected_by,
     ) = calculate_infections_by_contacts(
-        states=states,
-        recurrent_contacts=recurrent_contacts,
-        random_contacts=None,
-        params=params,
-        indexers=indexers,
-        assortative_matching_cum_probs=assortative_matching_cum_probs,
+        **households_w_one_infected,
         contact_models={"households": {"is_recurrent": True}},
-        group_codes_info=group_codes_info,
-        susceptibility_factor=susceptibility_factor,
-        virus_strains=virus_strains,
-        seasonality_factor=seasonality_factor,
         seed=itertools.count(),
     )
 
+    states = households_w_one_infected["states"]
     exp_infected = pd.Series([-1] + [0] * 3 + [-1] * 4, dtype="int8")
     exp_infection_counter = pd.Series([3] + [0] * 7, dtype="int32")
     exp_immune = pd.Series([True] * 4 + [False] * 4)
@@ -137,21 +112,9 @@ def test_calculate_infections_only_recurrent_all_participate(
 
 @pytest.mark.integration
 def test_calculate_infections_only_recurrent_sick_skips(
-    setup_households_w_one_infection,
+    households_w_one_infected,
 ):
-    (
-        states,
-        recurrent_contacts,
-        params,
-        indexers,
-        assortative_matching_cum_probs,
-        group_codes_info,
-        susceptibility_factor,
-        virus_strains,
-        seasonality_factor,
-    ) = setup_households_w_one_infection
-
-    recurrent_contacts[0] = 0
+    households_w_one_infected["recurrent_contacts"][0] = 0
 
     (
         calc_infected,
@@ -159,17 +122,8 @@ def test_calculate_infections_only_recurrent_sick_skips(
         calc_missed_contacts,
         was_infected_by,
     ) = calculate_infections_by_contacts(
-        states=states,
-        recurrent_contacts=recurrent_contacts,
-        random_contacts=None,
-        params=params,
-        indexers=indexers,
-        assortative_matching_cum_probs=assortative_matching_cum_probs,
+        **households_w_one_infected,
         contact_models={"households": {"is_recurrent": True}},
-        group_codes_info=group_codes_info,
-        susceptibility_factor=susceptibility_factor,
-        virus_strains=virus_strains,
-        seasonality_factor=seasonality_factor,
         seed=itertools.count(),
     )
 
@@ -185,22 +139,10 @@ def test_calculate_infections_only_recurrent_sick_skips(
 
 @pytest.mark.integration
 def test_calculate_infections_only_recurrent_one_skips(
-    setup_households_w_one_infection,
+    households_w_one_infected,
 ):
-    (
-        states,
-        recurrent_contacts,
-        params,
-        indexers,
-        assortative_matching_cum_probs,
-        group_codes_info,
-        susceptibility_factor,
-        virus_strains,
-        seasonality_factor,
-    ) = setup_households_w_one_infection
-
     # 2nd person does not participate in household meeting
-    recurrent_contacts[1] = 0
+    households_w_one_infected["recurrent_contacts"][1] = 0
 
     (
         calc_infected,
@@ -208,17 +150,8 @@ def test_calculate_infections_only_recurrent_one_skips(
         calc_missed_contacts,
         was_infected_by,
     ) = calculate_infections_by_contacts(
-        states=states,
-        recurrent_contacts=recurrent_contacts,
-        random_contacts=None,
-        params=params,
-        indexers=indexers,
-        assortative_matching_cum_probs=assortative_matching_cum_probs,
+        **households_w_one_infected,
         contact_models={"households": {"is_recurrent": True}},
-        group_codes_info=group_codes_info,
-        susceptibility_factor=susceptibility_factor,
-        virus_strains=virus_strains,
-        seasonality_factor=seasonality_factor,
         seed=itertools.count(),
     )
 
@@ -234,21 +167,9 @@ def test_calculate_infections_only_recurrent_one_skips(
 
 @pytest.mark.integration
 def test_calculate_infections_only_recurrent_one_immune(
-    setup_households_w_one_infection,
+    households_w_one_infected,
 ):
-    (
-        states,
-        recurrent_contacts,
-        params,
-        indexers,
-        assortative_matching_cum_probs,
-        group_codes_info,
-        susceptibility_factor,
-        virus_strains,
-        seasonality_factor,
-    ) = setup_households_w_one_infection
-
-    states.loc[1, "immune"] = True
+    households_w_one_infected["states"].loc[1, "immune"] = True
 
     (
         calc_infected,
@@ -256,17 +177,8 @@ def test_calculate_infections_only_recurrent_one_immune(
         calc_missed_contacts,
         was_infected_by,
     ) = calculate_infections_by_contacts(
-        states=states,
-        recurrent_contacts=recurrent_contacts,
-        random_contacts=None,
-        params=params,
-        indexers=indexers,
-        assortative_matching_cum_probs=assortative_matching_cum_probs,
+        **households_w_one_infected,
         contact_models={"households": {"is_recurrent": True}},
-        group_codes_info=group_codes_info,
-        susceptibility_factor=susceptibility_factor,
-        virus_strains=virus_strains,
-        seasonality_factor=seasonality_factor,
         seed=itertools.count(),
     )
 
@@ -280,16 +192,8 @@ def test_calculate_infections_only_recurrent_one_immune(
 
 
 @pytest.mark.integration
-def test_calculate_infections_only_non_recurrent(setup_households_w_one_infection):
-    (
-        states,
-        random_contacts,
-        *_,
-        susceptibility_factor,
-        virus_strains,
-        seasonality_factor,
-    ) = setup_households_w_one_infection
-
+def test_calculate_infections_only_non_recurrent(households_w_one_infected):
+    random_contacts = households_w_one_infected.pop("recurrent_contacts")
     random_contacts[0] = 1
 
     params = pd.DataFrame(
@@ -297,6 +201,7 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
         data=1,
         index=pd.MultiIndex.from_tuples([("infection_prob", "non_rec", "non_rec")]),
     )
+    states = households_w_one_infected["states"]
     indexers = {"random": nb.typed.List()}
     indexers["random"].append(create_group_indexer(states, ["group_codes_non_rec"]))
     assortative_matching_cum_probs = nb.typed.List()
@@ -308,17 +213,17 @@ def test_calculate_infections_only_non_recurrent(setup_households_w_one_infectio
         calc_missed_contacts,
         was_infected_by,
     ) = calculate_infections_by_contacts(
-        states=states,
-        recurrent_contacts=None,
+        states=households_w_one_infected["states"],
         random_contacts=random_contacts,
+        recurrent_contacts=None,
         params=params,
         indexers=indexers,
         assortative_matching_cum_probs=assortative_matching_cum_probs,
         contact_models={"non_rec": {"is_recurrent": False}},
         group_codes_info={"non_rec": {"name": "group_codes_non_rec"}},
-        susceptibility_factor=susceptibility_factor,
-        virus_strains=virus_strains,
-        seasonality_factor=seasonality_factor,
+        susceptibility_factor=households_w_one_infected["susceptibility_factor"],
+        virus_strains=households_w_one_infected["virus_strains"],
+        seasonality_factor=households_w_one_infected["seasonality_factor"],
         seed=itertools.count(),
     )
 
