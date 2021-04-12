@@ -34,22 +34,21 @@ def prepare_seasonality_factor(
             params=params, dates=dates, seed=next(seed)
         )
 
-        if not isinstance(seasonality_factor, (pd.Series, np.ndarray)):
+        if isinstance(seasonality_factor, pd.Series):
+            seasonality_factor = seasonality_factor.reindex(dates)
+        elif isinstance(seasonality_factor, np.ndarray):
+            seasonality_factor = pd.Series(index=dates, data=seasonality_factor)
+        else:
             raise ValueError(
-                "'seasonality_factor_model' must return a pd.Series or a np.ndarray."
+                "'seasonality_factor_model' must return a pd.Series or a np.ndarray "
+                "with 'dates' as index and seasonality factors as data."
             )
-        elif len(seasonality_factor) != len(dates):
-            raise ValueError(
-                "The 'seasonality_factor' must be given for each individual."
-            )
-        elif isinstance(seasonality_factor, pd.Series):
-            seasonality_factor = seasonality_factor.to_numpy()
 
         # Make sure the highest multiplier is set to one so that random contacts only
         # need to be reduced by the infection probability of the contact model.
         seasonality_factor = seasonality_factor / seasonality_factor.max()
 
-        if not (0 <= seasonality_factor).all() and (seasonality_factor <= 1).all():
+        if not seasonality_factor.between(0, 1).all():
             raise ValueError(
                 "The seasonality factors need to lie in the interval [0, 1]."
             )
