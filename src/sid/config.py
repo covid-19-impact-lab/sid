@@ -81,8 +81,3 @@ DEFAULT_VIRUS_STRAINS = {"names": ["base_strain"], "factors": np.array([1])}
 
 
 SID_TIME_START = pd.Timestamp("2019-01-01")
-
-
-KNOWS_INFECTIOUS = "knows_immune & infectious"
-RECEIVES_POSITIVE_TEST = "received_test_result & immune"
-IS_NEWLY_DECEASED = "cd_dead_true == 0"

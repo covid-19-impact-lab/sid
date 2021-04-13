@@ -5,11 +5,9 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from sid.config import IS_NEWLY_DECEASED
-from sid.config import KNOWS_INFECTIOUS
-from sid.config import RECEIVES_POSITIVE_TEST
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.countdowns import COUNTDOWNS
+from sid.shared import fast_condition_evaluator
 from sid.virus_strains import categorize_factorized_infections
 from sid.virus_strains import combine_first_factorized_infections
 
@@ -23,6 +21,7 @@ def update_states(
     to_be_processed_tests: Optional[pd.Series],
     newly_vaccinated: pd.Series,
     seed: itertools.count,
+    derived_state_variables,
 ):
     """Update the states with new infections and advance it by one period.
 
@@ -42,6 +41,11 @@ def update_states(
         newly_vaccinated (Optional[pandas.Series]): A series which indicates newly
             vaccinated people.
         seed (itertools.count): Seed counter to control randomness.
+        derived_state_variables (Dict[str, str]): A dictionary that maps
+            names of state variables to pandas evaluation strings that generate derived
+            state variables, i.e. state variables that can be calculated from the
+            existing state variables.
+
 
     Returns: states (pandas.DataFrame): Updated states with reduced countdown lengths,
         newly started countdowns, and killed people over the ICU limit.
@@ -56,12 +60,14 @@ def update_states(
     states = _kill_people_over_icu_limit(states, params, next(seed))
 
     # important: this has to be called after _kill_people_over_icu_limit!
-    states["newly_deceased"] = states.eval(IS_NEWLY_DECEASED)
+    states["newly_deceased"] = states["cd_dead_true"] == 0
 
     if to_be_processed_tests is not None:
         states = _update_info_on_new_tests(states, to_be_processed_tests)
 
     states = _update_info_on_new_vaccinations(states, newly_vaccinated)
+
+    states = _update_derived_state_variables(states, derived_state_variables)
 
     return states
 
@@ -146,13 +152,15 @@ def _update_info_on_new_tests(
     # For everyone who received a test result, the countdown for the test processing
     # has expired. If you have a positive test result (received_test_result &
     # immune) you will leave the state of knowing until your immunity expires.
-    states["new_known_case"] = states.eval(RECEIVES_POSITIVE_TEST)
+    states["new_known_case"] = states["received_test_result"] & states["immune"]
     states.loc[states["new_known_case"], "knows_immune"] = True
     states.loc[states["new_known_case"], "cd_knows_immune_false"] = states.loc[
         states["new_known_case"], "cd_immune_false"
     ]
 
-    new_knows_infectious = states.eval(KNOWS_INFECTIOUS) & states["new_known_case"]
+    new_knows_infectious = (
+        states["knows_immune"] & states["infectious"] & states["new_known_case"]
+    )
     states.loc[new_knows_infectious, "knows_infectious"] = True
     states.loc[new_knows_infectious, "cd_knows_infectious_false"] = states.loc[
         new_knows_infectious, "cd_infectious_false"
@@ -175,4 +183,10 @@ def _update_info_on_new_vaccinations(
         newly_vaccinated, "cd_is_immune_by_vaccine_draws"
     ]
 
+    return states
+
+
+def _update_derived_state_variables(states, derived_state_variables):
+    for var, condition in derived_state_variables.items():
+        states[var] = fast_condition_evaluator(states, condition)
     return states

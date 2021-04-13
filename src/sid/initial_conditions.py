@@ -135,6 +135,7 @@ def sample_initial_distribution_of_infections_and_immunity(
     virus_strains: Dict[str, Any],
     vaccination_models: Optional[Callable],
     seed: itertools.count,
+    derived_state_variables: Dict[str, str],
 ):
     """Sample the initial distribution of infections and immunity.
 
@@ -199,6 +200,11 @@ def sample_initial_distribution_of_infections_and_immunity(
             with arguments ``states``, ``params``, and a ``seed`` which returns boolean
             indicators for individuals who received a vaccination.
         seed (itertools.count): The seed counter.
+        derived_state_variables (Dict[str, str]): A dictionary that maps
+            names of state variables to pandas evaluation strings that generate derived
+            state variables, i.e. state variables that can be calculated from the
+            existing state variables.
+
 
     Returns:
         states (pandas.DataFrame): The states with sampled infections and immunity.
@@ -262,6 +268,7 @@ def sample_initial_distribution_of_infections_and_immunity(
             virus_strains=virus_strains,
             newly_vaccinated=newly_vaccinated,
             seed=seed,
+            derived_state_variables=derived_state_variables,
         )
 
     # Remove date information because when it is available, we assume the simulation is
