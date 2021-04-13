@@ -16,6 +16,7 @@ all releases are available on `Anaconda.org
 - :gh:`95` enhances the documentation and fixes resuming simulations.
 - :gh:`96` changes the initialization of countdowns and removes draws created for
   countdowns without randomness.
+- :gh:`106` allows policies to affect all contacts and not a single contact model.
 
 
 0.0.3 - 2021-03-23
