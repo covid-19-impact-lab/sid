@@ -1,13 +1,10 @@
 import itertools
-from typing import Any
 from typing import Callable
-from typing import Dict
 from typing import Optional
 
 import numpy as np
 import pandas as pd
 from sid.shared import boolean_choices
-from sid.shared import separate_contact_model_names
 from sid.validation import validate_return_is_series_or_ndarray
 
 
@@ -16,23 +13,11 @@ def perform_rapid_tests(
     states: pd.DataFrame,
     params: pd.DataFrame,
     rapid_test_models: Optional[Callable],
-    recurrent_contacts: np.ndarray,
-    random_contacts: np.ndarray,
-    contact_models: Dict[str, Dict[str, Any]],
+    contacts: pd.DataFrame,
     seed: itertools.count,
 ) -> pd.DataFrame:
     """Perform testing with rapid tests."""
     if rapid_test_models:
-        recurrent_names, random_names = separate_contact_model_names(contact_models)
-
-        recurrent_contacts = pd.DataFrame(
-            recurrent_contacts, index=states.index, columns=recurrent_names
-        )
-        random_contacts = pd.DataFrame(
-            random_contacts, index=states.index, columns=random_names
-        )
-        contacts = pd.concat([recurrent_contacts, random_contacts], axis=1)
-
         receives_rapid_test = _compute_who_receives_rapid_tests(
             date=date,
             states=states,
@@ -58,17 +43,11 @@ def apply_reactions_to_rapid_tests(
     states,
     params,
     rapid_test_reaction_models,
-    recurrent_contacts,
-    random_contacts,
-    contact_models,
+    contacts,
     seed,
 ):
     """Apply reactions to rapid_tests."""
     if rapid_test_reaction_models:
-        recurrent_names, random_names = separate_contact_model_names(contact_models)
-
-        contacts = pd.concat([recurrent_contacts, random_contacts], axis=1)
-
         for model in rapid_test_reaction_models.values():
             loc = model.get("loc", params.index)
             func = model["model"]
@@ -81,10 +60,7 @@ def apply_reactions_to_rapid_tests(
                     seed=next(seed),
                 )
 
-        recurrent_contacts = contacts[recurrent_names]
-        random_contacts = contacts[random_names]
-
-    return recurrent_contacts, random_contacts
+    return contacts
 
 
 def _compute_who_receives_rapid_tests(
