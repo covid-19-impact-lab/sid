@@ -105,7 +105,11 @@ def _update_info_on_newly_infected(
     newly_virus_strain = categorize_factorized_infections(
         combined_newly_infected, virus_strains
     )
-    states["virus_strain"] = states["virus_strain"].fillna(newly_virus_strain)
+
+    needs_replacement = newly_virus_strain.notnull() & states["virus_strain"].isnull()
+    states["virus_strain"] = states["virus_strain"].where(
+        ~needs_replacement, newly_virus_strain
+    )
 
     locs = states["newly_infected"]
     states.loc[states["newly_infected"], "immune"] = True
