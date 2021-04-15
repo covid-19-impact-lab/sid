@@ -67,7 +67,7 @@ def update_states(
 
     states = _update_info_on_new_vaccinations(states, newly_vaccinated)
 
-    states = _update_derived_state_variables(states, derived_state_variables)
+    states = update_derived_state_variables(states, derived_state_variables)
 
     return states
 
@@ -190,7 +190,7 @@ def _update_info_on_new_vaccinations(
     return states
 
 
-def _update_derived_state_variables(states, derived_state_variables):
+def update_derived_state_variables(states, derived_state_variables):
     for var, condition in derived_state_variables.items():
         states[var] = fast_condition_evaluator(states, condition)
     return states

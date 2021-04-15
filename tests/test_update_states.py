@@ -4,9 +4,9 @@ import pytest
 from pandas.testing import assert_series_equal
 from sid.config import INDEX_NAMES
 from sid.update_states import _kill_people_over_icu_limit
-from sid.update_states import _update_derived_state_variables
 from sid.update_states import _update_info_on_new_tests
 from sid.update_states import _update_info_on_new_vaccinations
+from sid.update_states import update_derived_state_variables
 
 
 @pytest.mark.unit
@@ -130,6 +130,6 @@ def test_update_derived_state_variables():
     states = pd.DataFrame()
     states["a"] = np.arange(5)
     derived_state_variables = {"b": "a <= 3"}
-    calculated = _update_derived_state_variables(states, derived_state_variables)["b"]
+    calculated = update_derived_state_variables(states, derived_state_variables)["b"]
     expected = pd.Series([True, True, True, True, False], name="b")
     assert_series_equal(calculated, expected)

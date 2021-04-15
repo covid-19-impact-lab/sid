@@ -20,6 +20,7 @@ from sid.config import DTYPE_VIRUS_STRAIN
 from sid.contacts import boolean_choice
 from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
+from sid.update_states import update_derived_state_variables
 from sid.update_states import update_states
 from sid.vaccination import vaccinate_individuals
 
@@ -239,6 +240,9 @@ def sample_initial_distribution_of_infections_and_immunity(
 
     else:
         spread_out_virus_strains = initial_conditions["initial_infections"]
+
+    # this is necessary to make derived state variables usable in testing models
+    states = update_derived_state_variables(states, derived_state_variables)
 
     for burn_in_date in initial_conditions["burn_in_periods"]:
 
