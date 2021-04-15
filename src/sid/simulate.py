@@ -77,6 +77,7 @@ def get_simulate_func(
     vaccination_models: Optional[Callable] = None,
     rapid_test_models: Optional[Dict[str, Dict[str, Any]]] = None,
     rapid_test_reaction_models: Optional[Dict[str, Dict[str, Any]]] = None,
+    derived_state_variables: Optional[Dict[str, str]] = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -194,6 +195,10 @@ def get_simulate_func(
             ``"start"`` and ``"end"`` date. It must have a function under ``"model"``
             which accepts ``states``, ``params``,  ``"contacts"``  and ``seed`` and
             returns a modified copy of contacts.
+        derived_state_variables (Optional[Dict[str, str]]): A dictionary that maps
+            names of state variables to pandas evaluation strings that generate derived
+            state variables, i.e. state variables that can be calculated from the
+            existing state variables.
 
     Returns:
         Callable: Simulates dataset based on parameters.
@@ -218,6 +223,8 @@ def get_simulate_func(
         rapid_test_models = {}
     if vaccination_models is None:
         vaccination_models = {}
+    if derived_state_variables is None:
+        derived_state_variables = {}
 
     initial_states = initial_states.copy(deep=True)
     params = params.copy(deep=True)
@@ -288,6 +295,7 @@ def get_simulate_func(
             virus_strains=virus_strains,
             vaccination_models=vaccination_models,
             seed=startup_seed,
+            derived_state_variables=derived_state_variables,
         )
 
     initial_states, group_codes_info = _create_group_codes_and_info(
@@ -323,6 +331,7 @@ def get_simulate_func(
         vaccination_models=vaccination_models,
         rapid_test_models=rapid_test_models,
         rapid_test_reaction_models=rapid_test_reaction_models,
+        derived_state_variables=derived_state_variables,
     )
     return sim_func
 
@@ -348,6 +357,7 @@ def _simulate(
     vaccination_models,
     rapid_test_models,
     rapid_test_reaction_models,
+    derived_state_variables,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -400,6 +410,10 @@ def _simulate(
         rapid_test_reaction_models (Optional[Dict[str, Dict[str, Any]]]): A dictionary
             holding rapid tests reaction models which allow to change calculated
             contacts based on the results of rapid tests.
+        derived_state_variables (Dict[str, str]): A dictionary that maps
+            names of state variables to pandas evaluation strings that generate derived
+            state variables, i.e. state variables that can be calculated from the
+            existing state variables.
 
     Returns:
         result (Dict[str, dask.dataframe]): The simulation result which includes the
@@ -542,6 +556,7 @@ def _simulate(
             virus_strains=virus_strains,
             newly_vaccinated=newly_vaccinated,
             seed=seed,
+            derived_state_variables=derived_state_variables,
         )
 
         states = _add_additional_information_to_states(
