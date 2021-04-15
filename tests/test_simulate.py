@@ -11,7 +11,6 @@ from sid.config import INDEX_NAMES
 from sid.simulate import _add_default_duration_to_models
 from sid.simulate import _create_group_codes_and_info
 from sid.simulate import _create_group_codes_names
-from sid.simulate import _prepare_susceptibility_factor
 from sid.simulate import _process_assort_bys
 from sid.simulate import _process_initial_states
 from sid.simulate import get_simulate_func
@@ -357,34 +356,6 @@ def test_skipping_factorization_of_assort_by_variable_works(
 
     assert "group_codes_households" not in time_series
     assert "group_codes_households" not in last_states
-
-
-@pytest.mark.unit
-@pytest.mark.parametrize(
-    "model, states, expectation, expected",
-    [
-        (None, [0] * 100, does_not_raise(), np.ones(100)),
-        (
-            lambda *x: True,
-            None,
-            pytest.raises(ValueError, match="'susceptibility_factor_model"),
-            None,
-        ),
-        (
-            lambda *x: pd.Series([1]),
-            [1, 1],
-            pytest.raises(ValueError, match="The 'susceptibility_factor"),
-            None,
-        ),
-        (lambda *x: pd.Series([1]), [1], does_not_raise(), [1]),
-        (lambda *x: np.ones(1), [1], does_not_raise(), [1]),
-        (lambda *x: np.array([1, 2]), [1, 1], does_not_raise(), [0.5, 1]),
-    ],
-)
-def test_prepare_susceptibility_factor(model, states, expectation, expected):
-    with expectation:
-        result = _prepare_susceptibility_factor(model, states, None, 0)
-        assert (result == expected).all()
 
 
 @pytest.mark.unit

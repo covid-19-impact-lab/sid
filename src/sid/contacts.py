@@ -72,6 +72,7 @@ def calculate_infections_by_contacts(
     group_codes_info: Dict[str, Dict[str, Any]],
     susceptibility_factor: np.ndarray,
     virus_strains: Dict[str, Any],
+    seasonality_factor: float,
     seed: itertools.count,
 ) -> Tuple[pd.Series, pd.Series, pd.DataFrame]:
     """Calculate infections from contacts.
@@ -100,10 +101,12 @@ def calculate_infections_by_contacts(
         group_codes_info (Dict[str, Dict[str, Any]]): The name of the group code column
             for each contact model.
         susceptibility_factor (np.ndarray): A multiplier which scales the infection
-            probability.
+            probability due to susceptibility.
         virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
             ``"factors"`` holding the different contagiousness factors of multiple
             viruses.
+        seasonality_factor (float): A multiplier which scales the infection
+            probabilities due to seasonality.
         seed (itertools.count): Seed counter to control randomness.
 
     Returns:
@@ -133,11 +136,17 @@ def calculate_infections_by_contacts(
         [group_codes_info[cm]["name"] for cm in random_models]
     ].to_numpy()
 
-    infection_probabilities_recurrent = np.array(
-        [params.loc[("infection_prob", cm, cm), "value"] for cm in recurrent_models]
+    seasonal_infection_probabilities_recurrent = (
+        np.array(
+            [params.loc[("infection_prob", cm, cm), "value"] for cm in recurrent_models]
+        )
+        * seasonality_factor
     )
-    infection_probabilities_random = np.array(
-        [params.loc[("infection_prob", cm, cm), "value"] for cm in random_models]
+    seasonal_infection_probabilities_random = (
+        np.array(
+            [params.loc[("infection_prob", cm, cm), "value"] for cm in random_models]
+        )
+        * seasonality_factor
     )
 
     infection_counter = np.zeros(len(states), dtype=DTYPE_INFECTION_COUNTER)
@@ -149,17 +158,17 @@ def calculate_infections_by_contacts(
             immune,
             was_infected_by_recurrent,
         ) = _calculate_infections_by_recurrent_contacts(
-            recurrent_contacts,
-            infectious,
-            immune,
-            virus_strain,
-            group_codes_recurrent,
-            indexers["recurrent"],
-            infection_probabilities_recurrent,
-            susceptibility_factor,
-            virus_strains["factors"],
-            infection_counter,
-            next(seed),
+            recurrent_contacts=recurrent_contacts,
+            infectious=infectious,
+            immune=immune,
+            virus_strain=virus_strain,
+            group_codes=group_codes_recurrent,
+            indexers=indexers["recurrent"],
+            infection_probs=seasonal_infection_probabilities_recurrent,
+            susceptibility_factor=susceptibility_factor,
+            contagiousness_factor=virus_strains["factors"],
+            infection_counter=infection_counter,
+            seed=next(seed),
         )
     else:
         was_infected_by_recurrent = None
@@ -167,7 +176,7 @@ def calculate_infections_by_contacts(
 
     if random_models:
         random_contacts = _reduce_random_contacts_with_infection_probs(
-            random_contacts, infection_probabilities_random, next(seed)
+            random_contacts, seasonal_infection_probabilities_random, next(seed)
         )
 
         (
@@ -177,17 +186,17 @@ def calculate_infections_by_contacts(
             missed,
             was_infected_by_random,
         ) = _calculate_infections_by_random_contacts(
-            random_contacts,
-            infectious,
-            immune,
-            virus_strain,
-            group_codes_random,
-            assortative_matching_cum_probs,
-            indexers["random"],
-            susceptibility_factor,
-            virus_strains["factors"],
-            infection_counter,
-            next(seed),
+            random_contacts=random_contacts,
+            infectious=infectious,
+            immune=immune,
+            virus_strain=virus_strain,
+            group_codes=group_codes_random,
+            assortative_matching_cum_probs=assortative_matching_cum_probs,
+            indexers=indexers["random"],
+            susceptibility_factor=susceptibility_factor,
+            contagiousness_factor=virus_strains["factors"],
+            infection_counter=infection_counter,
+            seed=next(seed),
         )
 
         missed_contacts = pd.DataFrame(

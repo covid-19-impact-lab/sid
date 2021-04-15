@@ -16,6 +16,12 @@ all releases are available on `Anaconda.org
 - :gh:`95` enhances the documentation and fixes resuming simulations.
 - :gh:`96` changes the initialization of countdowns and removes draws created for
   countdowns without randomness.
+- :gh:`97` improves the test coverage.
+- :gh:`98` fixes typo.
+- :gh:`99` and :gh:`103` simplify ``factorize_assortative_variables``.
+- :gh:`101` removes ``"is_active"`` from policies.
+- :gh:`102` separates the calculation of contacts from applying policies.
+- :gh:`104` implements a seasonality factor which scales infection probabilities.
 - :gh:`106` allows policies to affect all contacts and not a single contact model.
 
 
