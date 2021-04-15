@@ -20,6 +20,7 @@ from sid.config import DTYPE_VIRUS_STRAIN
 from sid.contacts import boolean_choice
 from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
+from sid.update_states import update_derived_state_variables
 from sid.update_states import update_states
 from sid.vaccination import vaccinate_individuals
 
@@ -135,6 +136,7 @@ def sample_initial_distribution_of_infections_and_immunity(
     virus_strains: Dict[str, Any],
     vaccination_models: Optional[Callable],
     seed: itertools.count,
+    derived_state_variables: Dict[str, str],
 ):
     """Sample the initial distribution of infections and immunity.
 
@@ -199,6 +201,11 @@ def sample_initial_distribution_of_infections_and_immunity(
             with arguments ``states``, ``params``, and a ``seed`` which returns boolean
             indicators for individuals who received a vaccination.
         seed (itertools.count): The seed counter.
+        derived_state_variables (Dict[str, str]): A dictionary that maps
+            names of state variables to pandas evaluation strings that generate derived
+            state variables, i.e. state variables that can be calculated from the
+            existing state variables.
+
 
     Returns:
         states (pandas.DataFrame): The states with sampled infections and immunity.
@@ -234,6 +241,9 @@ def sample_initial_distribution_of_infections_and_immunity(
     else:
         spread_out_virus_strains = initial_conditions["initial_infections"]
 
+    # this is necessary to make derived state variables usable in testing models
+    states = update_derived_state_variables(states, derived_state_variables)
+
     for burn_in_date in initial_conditions["burn_in_periods"]:
 
         states["date"] = burn_in_date
@@ -262,6 +272,7 @@ def sample_initial_distribution_of_infections_and_immunity(
             virus_strains=virus_strains,
             newly_vaccinated=newly_vaccinated,
             seed=seed,
+            derived_state_variables=derived_state_variables,
         )
 
     # Remove date information because when it is available, we assume the simulation is
