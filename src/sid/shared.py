@@ -180,3 +180,13 @@ def separate_contact_model_names(contact_models):
     random_models = [c for c in contact_models if not contact_models[c]["is_recurrent"]]
 
     return recurrent_models, random_models
+
+
+def fast_condition_evaluator(df, condition):
+    if callable(condition):
+        out = condition(df)
+    elif isinstance(condition, str):
+        out = df.eval(condition)
+    else:
+        raise ValueError()
+    return out

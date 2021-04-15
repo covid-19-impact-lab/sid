@@ -80,6 +80,7 @@ def get_simulate_func(
     rapid_test_models: Optional[Dict[str, Dict[str, Any]]] = None,
     rapid_test_reaction_models: Optional[Dict[str, Dict[str, Any]]] = None,
     seasonality_factor_model: Optional[Callable] = None,
+    derived_state_variables: Optional[Dict[str, str]] = None,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -200,6 +201,10 @@ def get_simulate_func(
         seasonality_factor_model (Optional[Callable]): A model which takes in and
             ``params`` and ``dates`` signaling the whole duration of the simulation and
             returns a factor for each day which scales all infection probabilities.
+        derived_state_variables (Optional[Dict[str, str]]): A dictionary that maps
+            names of state variables to pandas evaluation strings that generate derived
+            state variables, i.e. state variables that can be calculated from the
+            existing state variables.
 
     Returns:
         Callable: Simulates dataset based on parameters.
@@ -224,6 +229,8 @@ def get_simulate_func(
         rapid_test_models = {}
     if vaccination_models is None:
         vaccination_models = {}
+    if derived_state_variables is None:
+        derived_state_variables = {}
 
     initial_states = initial_states.copy(deep=True)
     params = params.copy(deep=True)
@@ -294,6 +301,7 @@ def get_simulate_func(
             virus_strains=virus_strains,
             vaccination_models=vaccination_models,
             seed=startup_seed,
+            derived_state_variables=derived_state_variables,
         )
 
     initial_states, group_codes_info = _create_group_codes_and_info(
@@ -330,6 +338,7 @@ def get_simulate_func(
         rapid_test_models=rapid_test_models,
         rapid_test_reaction_models=rapid_test_reaction_models,
         seasonality_factor_model=seasonality_factor_model,
+        derived_state_variables=derived_state_variables,
     )
     return sim_func
 
@@ -356,6 +365,7 @@ def _simulate(
     rapid_test_models,
     rapid_test_reaction_models,
     seasonality_factor_model,
+    derived_state_variables,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -411,6 +421,10 @@ def _simulate(
         seasonality_factor_model (Optional[Callable]): A model which takes in and
             ``params`` and ``dates`` signaling the whole duration of the simulation and
             returns a factor for each day which scales all infection probabilities.
+        derived_state_variables (Dict[str, str]): A dictionary that maps
+            names of state variables to pandas evaluation strings that generate derived
+            state variables, i.e. state variables that can be calculated from the
+            existing state variables.
 
     Returns:
         result (Dict[str, dask.dataframe]): The simulation result which includes the
@@ -561,6 +575,7 @@ def _simulate(
             virus_strains=virus_strains,
             newly_vaccinated=newly_vaccinated,
             seed=seed,
+            derived_state_variables=derived_state_variables,
         )
 
         states = _add_additional_information_to_states(

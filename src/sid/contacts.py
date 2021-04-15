@@ -61,7 +61,7 @@ def calculate_contacts(
         if model["is_recurrent"]:
             recurrent_contacts[model_name] = model_specific_contacts.astype(bool)
         else:
-            random_contacts[model_name] = model_specific_contacts
+            random_contacts[model_name] = model_specific_contacts.astype(float)
 
     random_contacts = None if random_contacts.empty else random_contacts
     recurrent_contacts = None if recurrent_contacts.empty else recurrent_contacts

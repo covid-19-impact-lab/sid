@@ -195,6 +195,7 @@ def test_scale_and_spread_initial_infections(
             DEFAULT_VIRUS_STRAINS,
             {},
             seed,
+            {},
         )
         assert result["ever_infected"].equals(expected)
 
@@ -305,6 +306,7 @@ def test_scale_and_spread_initial_infections_w_testing_models(initial_states, pa
         virus_strains=DEFAULT_VIRUS_STRAINS,
         vaccination_models={},
         seed=itertools.count(),
+        derived_state_variables={},
     )
 
     assert df["ever_infected"].sum() == 70_000
