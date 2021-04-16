@@ -55,6 +55,8 @@ def calculate_contacts(
 
         if model["is_recurrent"]:
             model_specific_contacts = model_specific_contacts.astype(bool)
+        else:
+            model_specific_contacts = model_specific_contacts.astype(float)
 
         contacts[model_name] = model_specific_contacts
 
@@ -618,7 +620,8 @@ def post_process_contacts(contacts, states, contact_models):
 
     # Dead people and ICU patients don't have contacts.
     has_no_contacts = states["needs_icu"] | states["dead"]
-    contacts.loc[has_no_contacts] = 0
+    contacts.loc[has_no_contacts, random_models] = 0
+    contacts.loc[has_no_contacts, recurrent_models] = False
 
     if random_models:
         random_contacts = (
