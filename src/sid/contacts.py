@@ -55,9 +55,6 @@ def calculate_contacts(
 
         if model["is_recurrent"]:
             model_specific_contacts = model_specific_contacts.astype(bool)
-        else:
-            model_specific_contacts = model_specific_contacts.astype(float)
-
         contacts[model_name] = model_specific_contacts
 
     return contacts
@@ -624,11 +621,22 @@ def post_process_contacts(contacts, states, contact_models):
     contacts.loc[has_no_contacts, recurrent_models] = False
 
     if random_models:
-        random_contacts = (
-            contacts[random_models]
-            .apply(lambda x: _sum_preserving_round(x.to_numpy()))
-            .astype(dtype=DTYPE_N_CONTACTS)
-        )
+        random_contacts = contacts[random_models]
+        for col in random_contacts:
+            if pd.api.types.is_integer_dtype(random_contacts[col]):
+                pass
+            elif pd.api.types.is_float_dtype(random_contacts[col]):
+                random_contacts[col] = _sum_preserving_round(
+                    random_contacts[col].to_numpy()
+                )
+            else:
+                raise ValueError(
+                    f"{col} contacts became dtype {random_contacts[col].dtype} "
+                    "after applying the policies and the reactions to rapid tests. "
+                    "Only float or int are allowed."
+                )
+
+            random_contacts[col] = random_contacts[col].astype(dtype=DTYPE_N_CONTACTS)
     else:
         random_contacts = None
 
