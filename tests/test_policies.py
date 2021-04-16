@@ -57,24 +57,23 @@ def test_calculate_contacts_no_policy(states_all_alive, contact_models):
         [[1, i < first_half] for i in range(len(states_all_alive))],
         dtype=DTYPE_N_CONTACTS,
     )
-    recurrent_contacts, random_contacts = calculate_contacts(
+    contacts = calculate_contacts(
         contact_models=contact_models,
         states=states_all_alive,
         params=params,
         seed=itertools.count(),
     )
 
-    recurrent_contacts, random_contacts = apply_contact_policies(
+    contacts = apply_contact_policies(
         contact_policies=contact_policies,
-        recurrent_contacts=recurrent_contacts,
-        random_contacts=random_contacts,
+        contacts=contacts,
         states=states_all_alive,
         date=date,
         seed=itertools.count(),
     )
 
     recurrent_contacts, random_contacts = post_process_contacts(
-        recurrent_contacts, random_contacts, states_all_alive, contact_models
+        contacts, states_all_alive, contact_models
     )
 
     assert recurrent_contacts is None
@@ -97,24 +96,23 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
     expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
     expected[:first_half, 1] = 1
 
-    recurrent_contacts, random_contacts = calculate_contacts(
+    contacts = calculate_contacts(
         contact_models=contact_models,
         states=states_all_alive,
         params=params,
         seed=itertools.count(),
     )
 
-    recurrent_contacts, random_contacts = apply_contact_policies(
+    contacts = apply_contact_policies(
         contact_policies=contact_policies,
-        recurrent_contacts=recurrent_contacts,
-        random_contacts=random_contacts,
+        contacts=contacts,
         states=states_all_alive,
         date=date,
         seed=itertools.count(),
     )
 
     recurrent_contacts, random_contacts = post_process_contacts(
-        recurrent_contacts, random_contacts, states_all_alive, contact_models
+        contacts, states_all_alive, contact_models
     )
 
     assert recurrent_contacts is None
@@ -122,7 +120,7 @@ def test_calculate_contacts_policy_inactive(states_all_alive, contact_models):
 
 
 @pytest.mark.integration
-def test_calculate_contacts_policy_active(states_all_alive, contact_models):
+def test_calculate_contacts_policy_model_active(states_all_alive, contact_models):
     contact_policies = {
         "noone_meets": {
             "affected_contact_model": "first_half_meet",
@@ -134,28 +132,68 @@ def test_calculate_contacts_policy_active(states_all_alive, contact_models):
     date = pd.Timestamp("2020-09-29")
     params = pd.DataFrame()
     expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
-    recurrent_contacts, random_contacts = calculate_contacts(
+    contacts = calculate_contacts(
         contact_models=contact_models,
         states=states_all_alive,
         params=params,
         seed=itertools.count(),
     )
 
-    recurrent_contacts, random_contacts = apply_contact_policies(
+    contacts = apply_contact_policies(
         contact_policies=contact_policies,
-        recurrent_contacts=recurrent_contacts,
-        random_contacts=random_contacts,
+        contacts=contacts,
         states=states_all_alive,
         date=date,
         seed=itertools.count(),
     )
 
     recurrent_contacts, random_contacts = post_process_contacts(
-        recurrent_contacts, random_contacts, states_all_alive, contact_models
+        contacts, states_all_alive, contact_models
     )
 
     assert recurrent_contacts is None
     assert (random_contacts.to_numpy() == expected).all()
+
+
+@pytest.mark.integration
+def test_calculate_contacts_policy_scalar_active(states_all_alive):
+    contact_models = {
+        "ten": {
+            "model": lambda params, states, seed: pd.Series(10, index=states.index),
+            "is_recurrent": False,
+        }
+    }
+    contact_policies = {
+        "noone_meets": {
+            "affected_contact_model": "ten",
+            "start": pd.Timestamp("2020-09-01"),
+            "end": pd.Timestamp("2020-09-30"),
+            "policy": 0.5,
+        },
+    }
+    date = pd.Timestamp("2020-09-29")
+    params = pd.DataFrame()
+    contacts = calculate_contacts(
+        contact_models=contact_models,
+        states=states_all_alive,
+        params=params,
+        seed=itertools.count(),
+    )
+
+    contacts = apply_contact_policies(
+        contact_policies=contact_policies,
+        contacts=contacts,
+        states=states_all_alive,
+        date=date,
+        seed=itertools.count(),
+    )
+
+    recurrent_contacts, random_contacts = post_process_contacts(
+        contacts, states_all_alive, contact_models
+    )
+
+    assert recurrent_contacts is None
+    assert (random_contacts.to_numpy() == 5).all()
 
 
 @pytest.mark.integration
@@ -177,24 +215,23 @@ def test_calculate_contacts_policy_active_policy_func(states_all_alive, contact_
     params = pd.DataFrame()
     expected = np.tile([1, 0], (len(states_all_alive), 1)).astype(DTYPE_N_CONTACTS)
     expected[2:4, 1] = 1
-    recurrent_contacts, random_contacts = calculate_contacts(
+    contacts = calculate_contacts(
         contact_models=contact_models,
         states=states_all_alive,
         params=params,
         seed=itertools.count(),
     )
 
-    recurrent_contacts, random_contacts = apply_contact_policies(
+    contacts = apply_contact_policies(
         contact_policies=contact_policies,
-        recurrent_contacts=recurrent_contacts,
-        random_contacts=random_contacts,
+        contacts=contacts,
         states=states_all_alive,
         date=date,
         seed=itertools.count(),
     )
 
     recurrent_contacts, random_contacts = post_process_contacts(
-        recurrent_contacts, random_contacts, states_all_alive, contact_models
+        contacts, states_all_alive, contact_models
     )
 
     assert recurrent_contacts is None
@@ -227,24 +264,23 @@ def test_calculate_contacts_with_dead(states_with_dead, contact_models):
         ],
         dtype=DTYPE_N_CONTACTS,
     )
-    recurrent_contacts, random_contacts = calculate_contacts(
+    contacts = calculate_contacts(
         contact_models=contact_models,
         states=states_with_dead,
         params=params,
         seed=itertools.count(),
     )
 
-    recurrent_contacts, random_contacts = apply_contact_policies(
+    contacts = apply_contact_policies(
         contact_policies=contact_policies,
-        recurrent_contacts=recurrent_contacts,
-        random_contacts=random_contacts,
+        contacts=contacts,
         states=states_with_dead,
         date=date,
         seed=itertools.count(),
     )
 
     recurrent_contacts, random_contacts = post_process_contacts(
-        recurrent_contacts, random_contacts, states_with_dead, contact_models
+        contacts, states_with_dead, contact_models
     )
 
     assert recurrent_contacts is None

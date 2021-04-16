@@ -22,6 +22,7 @@ all releases are available on `Anaconda.org
 - :gh:`101` removes ``"is_active"`` from policies.
 - :gh:`102` separates the calculation of contacts from applying policies.
 - :gh:`104` implements a seasonality factor which scales infection probabilities.
+- :gh:`106` allows policies to affect all contacts and not a single contact model.
 
 
 0.0.3 - 2021-03-23

@@ -25,7 +25,7 @@ def calculate_contacts(
     states: pd.DataFrame,
     params: pd.DataFrame,
     seed: itertools.count,
-) -> Tuple[pd.DataFrame]:
+) -> pd.DataFrame:
     """Calculate number of contacts of different types.
 
     Args:
@@ -36,16 +36,11 @@ def calculate_contacts(
         seed (itertools.count): The seed counter.
 
     Returns:
-        A tuple containing the following entries:
-
-        - recurrent_contacts (pandas.DataFrame): A DataFrame with boolean entries for
-          each person and recurrent contact model.
-        - random_contacts (pandas.DataFrame): An DataFrame with integer entries
-          indicating the number of contacts for each person and random contact model.
+        contacts (pandas.DataFrame): A DataFrame with columns for each active contact
+            model and the number of contacts.
 
     """
-    random_contacts = pd.DataFrame(index=states.index)
-    recurrent_contacts = pd.DataFrame(index=states.index)
+    contacts = pd.DataFrame(index=states.index)
 
     for model_name, model in contact_models.items():
         loc = model.get("loc", params.index)
@@ -59,14 +54,13 @@ def calculate_contacts(
         )
 
         if model["is_recurrent"]:
-            recurrent_contacts[model_name] = model_specific_contacts.astype(bool)
+            model_specific_contacts = model_specific_contacts.astype(bool)
         else:
-            random_contacts[model_name] = model_specific_contacts.astype(float)
+            model_specific_contacts = model_specific_contacts.astype(float)
 
-    random_contacts = None if random_contacts.empty else random_contacts
-    recurrent_contacts = None if recurrent_contacts.empty else recurrent_contacts
+        contacts[model_name] = model_specific_contacts
 
-    return recurrent_contacts, random_contacts
+    return contacts
 
 
 def calculate_infections_by_contacts(
@@ -615,7 +609,7 @@ def create_group_indexer(
     return indexer
 
 
-def post_process_contacts(recurrent_contacts, random_contacts, states, contact_models):
+def post_process_contacts(contacts, states, contact_models):
     """Post-process contacts.
 
     The number of contacts for random models is rounded such that the sum of contacts is
@@ -626,19 +620,22 @@ def post_process_contacts(recurrent_contacts, random_contacts, states, contact_m
 
     # Dead people and ICU patients don't have contacts.
     has_no_contacts = states["needs_icu"] | states["dead"]
-    if random_contacts is not None:
-        random_contacts.loc[has_no_contacts] = 0
-    if recurrent_contacts is not None:
-        recurrent_contacts.loc[has_no_contacts] = False
+    contacts.loc[has_no_contacts, random_models] = 0
+    contacts.loc[has_no_contacts, recurrent_models] = False
 
-    if random_contacts is not None:
-        random_contacts = random_contacts.apply(
-            lambda x: _sum_preserving_round(x.to_numpy())
+    if random_models:
+        random_contacts = (
+            contacts[random_models]
+            .apply(lambda x: _sum_preserving_round(x.to_numpy()))
+            .astype(dtype=DTYPE_N_CONTACTS)
         )
-        random_contacts = random_contacts[random_models].astype(dtype=DTYPE_N_CONTACTS)
+    else:
+        random_contacts = None
 
-    if recurrent_contacts is not None:
-        recurrent_contacts = recurrent_contacts[recurrent_models].astype(dtype="bool")
+    if recurrent_models:
+        recurrent_contacts = contacts[recurrent_models].astype(dtype="bool")
+    else:
+        recurrent_contacts = None
 
     return recurrent_contacts, random_contacts
 
