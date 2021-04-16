@@ -15,7 +15,7 @@ from sid.time import get_date
 COMMON_ARGS = ("states", "params", "seed")
 
 NECESSARY_CONTACT_MODEL_KEYS = ("is_recurrent", "model", "assort_by")
-NECESSARY_CONTACT_POLICY_KEYS = ("policy",)
+NECESSARY_CONTACT_POLICY_KEYS = ("affected_contact_model", "policy")
 
 
 def validate_params(params: pd.DataFrame) -> None:
@@ -154,8 +154,8 @@ def validate_contact_policies(contact_policies, contact_models):
                 f"{missing_keys}."
             )
 
-        affected_model = policy.get("affected_contact_model")
-        if affected_model is not None and affected_model not in contact_models:
+        affected_model = policy["affected_contact_model"]
+        if affected_model not in contact_models:
             raise ValueError(
                 f"The contact policy '{name}' affects the contact model "
                 f"'{affected_model}' which is unknown."
@@ -163,7 +163,7 @@ def validate_contact_policies(contact_policies, contact_models):
 
         if callable(policy["policy"]):
             _validate_model_function(
-                name, "contact_policies", policy["policy"], COMMON_ARGS + ("contacts",)
+                name, "contact_policies", policy["policy"], COMMON_ARGS
             )
         elif isinstance(policy["policy"], (float, int)):
             if contact_models[affected_model]["is_recurrent"]:

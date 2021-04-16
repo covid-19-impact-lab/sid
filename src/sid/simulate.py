@@ -473,16 +473,17 @@ def _simulate(
         states["date"] = date
         states["period"] = timestamp_to_sid_period(date)
 
-        contacts = calculate_contacts(
+        recurrent_contacts, random_contacts = calculate_contacts(
             contact_models=contact_models,
             states=states,
             params=params,
             seed=seed,
         )
 
-        contacts = apply_contact_policies(
+        recurrent_contacts, random_contacts = apply_contact_policies(
             contact_policies=contact_policies,
-            contacts=contacts,
+            recurrent_contacts=recurrent_contacts,
+            random_contacts=random_contacts,
             states=states,
             date=date,
             seed=seed,
@@ -493,21 +494,26 @@ def _simulate(
             states=states,
             params=params,
             rapid_test_models=rapid_test_models,
-            contacts=contacts,
+            recurrent_contacts=recurrent_contacts,
+            random_contacts=random_contacts,
+            contact_models=contact_models,
             seed=seed,
         )
 
-        contacts = apply_reactions_to_rapid_tests(
+        recurrent_contacts, random_contacts = apply_reactions_to_rapid_tests(
             date=date,
             states=states,
             params=params,
             rapid_test_reaction_models=rapid_test_reaction_models,
-            contacts=contacts,
+            recurrent_contacts=recurrent_contacts,
+            random_contacts=random_contacts,
+            contact_models=contact_models,
             seed=seed,
         )
 
         recurrent_contacts, random_contacts = post_process_contacts(
-            contacts=contacts,
+            recurrent_contacts=recurrent_contacts,
+            random_contacts=random_contacts,
             states=states,
             contact_models=contact_models,
         )

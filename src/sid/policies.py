@@ -2,6 +2,7 @@
 import itertools
 from typing import Any
 from typing import Dict
+from typing import Tuple
 
 import pandas as pd
 from sid.validation import validate_return_is_series_or_ndarray
@@ -9,36 +10,40 @@ from sid.validation import validate_return_is_series_or_ndarray
 
 def apply_contact_policies(
     contact_policies: Dict[str, Dict[str, Any]],
-    contacts: pd.DataFrame,
+    recurrent_contacts: pd.DataFrame,
+    random_contacts: pd.DataFrame,
     states: pd.DataFrame,
     date: pd.Timestamp,
     seed: itertools.count,
-) -> pd.DataFrame:
+) -> Tuple[pd.DataFrame]:
     """Apply policies to contacts."""
-    for name, policy in contact_policies.items():
-        if policy["start"] <= date <= policy["end"]:
-            func = policy["policy"]
+    for contacts in [recurrent_contacts, random_contacts]:
+        if contacts is None:
+            continue
 
-            affected_cm = policy.get("affected_contact_model")
-            affected_contacts = (
-                contacts if affected_cm is None else contacts[affected_cm]
-            )
+        for name, policy in contact_policies.items():
 
-            if isinstance(policy["policy"], (float, int)):
-                affected_contacts = affected_contacts * policy["policy"]
-            else:
-                affected_contacts = func(
-                    states=states,
-                    contacts=affected_contacts,
-                    seed=next(seed),
-                )
+            affected_cm = policy["affected_contact_model"]
+            if affected_cm in contacts.columns:
+                if policy["start"] <= date <= policy["end"]:
+                    func = policy["policy"]
+                    model_specific_contacts = contacts[affected_cm]
 
-            if affected_cm is None:
-                contacts = affected_contacts
-            else:
-                affected_contacts = validate_return_is_series_or_ndarray(
-                    affected_contacts, name, "contact_policies", states.index
-                )
-                contacts[affected_cm] = affected_contacts
+                    if isinstance(policy["policy"], (float, int)):
+                        model_specific_contacts = (
+                            model_specific_contacts * policy["policy"]
+                        )
+                    else:
+                        model_specific_contacts = func(
+                            states=states,
+                            contacts=model_specific_contacts,
+                            seed=next(seed),
+                        )
 
-    return contacts
+                    model_specific_contacts = validate_return_is_series_or_ndarray(
+                        model_specific_contacts, name, "contact_policies", states.index
+                    )
+
+                    contacts[affected_cm] = model_specific_contacts
+
+    return recurrent_contacts, random_contacts

@@ -32,6 +32,19 @@ from sid.validation import validate_vaccination_models
         pytest.param(
             {
                 "model": {
+                    "policy": None,
+                    "start": None,
+                    "end": None,
+                    "affected_contact_model": None,
+                }
+            },
+            {},
+            pytest.raises(ValueError, match="The contact policy 'model' affects"),
+            id="test affected model is present",
+        ),
+        pytest.param(
+            {
+                "model": {
                     "policy": lambda x: None,
                     "start": None,
                     "end": None,
@@ -80,19 +93,6 @@ from sid.validation import validate_vaccination_models
             {"model": {"is_recurrent": False}},
             pytest.raises(ValueError, match="The 'policy' entry of contact policy"),
             id="test invalid policy.",
-        ),
-        pytest.param(
-            {
-                "model": {
-                    "policy": lambda states, params, seed, contacts: 1,
-                    "start": None,
-                    "end": None,
-                    "affected_contact_model": None,
-                }
-            },
-            {},
-            does_not_raise(),
-            id="test contact policy on all contacts",
         ),
     ],
 )
