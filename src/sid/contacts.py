@@ -623,13 +623,17 @@ def post_process_contacts(contacts, states, contact_models):
     if random_models:
         random_contacts = contacts[random_models]
 
-        integers = random_contacts.select_dtypes(include=np.integer).columns
-        random_contacts[integers] = random_contacts[integers].astype(DTYPE_N_CONTACTS)
+        integers = random_contacts.select_dtypes(include=np.integer).columns.tolist()
+        if integers:
+            random_contacts[integers] = random_contacts[integers].astype(
+                DTYPE_N_CONTACTS
+            )
 
-        floats = random_contacts.select_dtypes(include=np.floating).columns
-        random_contacts[floats] = random_contacts[floats].apply(
-            lambda x: _sum_preserving_round(x.to_numpy()).astype(DTYPE_N_CONTACTS)
-        )
+        floats = random_contacts.select_dtypes(include=np.floating).columns.tolist()
+        if floats:
+            random_contacts[floats] = random_contacts[floats].apply(
+                lambda x: _sum_preserving_round(x.to_numpy()).astype(DTYPE_N_CONTACTS)
+            )
 
         no_integers = random_contacts.select_dtypes(exclude=np.integer).columns.tolist()
         if no_integers:
