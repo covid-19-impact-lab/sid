@@ -622,21 +622,23 @@ def post_process_contacts(contacts, states, contact_models):
 
     if random_models:
         random_contacts = contacts[random_models]
-        for col in random_contacts:
-            if pd.api.types.is_integer_dtype(random_contacts[col]):
-                pass
-            elif pd.api.types.is_float_dtype(random_contacts[col]):
-                random_contacts[col] = _sum_preserving_round(
-                    random_contacts[col].to_numpy()
-                )
-            else:
-                raise ValueError(
-                    f"{col} contacts became dtype {random_contacts[col].dtype} "
-                    "after applying the policies and the reactions to rapid tests. "
-                    "Only float or int are allowed."
-                )
 
-            random_contacts[col] = random_contacts[col].astype(dtype=DTYPE_N_CONTACTS)
+        integers = random_contacts.select_dtypes(include=np.integer).columns
+        random_contacts[integers] = random_contacts[integers].astype(DTYPE_N_CONTACTS)
+
+        floats = random_contacts.select_dtypes(include=np.floating).columns
+        random_contacts[floats] = random_contacts[floats].apply(
+            lambda x: _sum_preserving_round(x.to_numpy()).astype(DTYPE_N_CONTACTS)
+        )
+
+        no_integers = random_contacts.select_dtypes(exclude=np.integer).columns.tolist()
+        if no_integers:
+            dtype_mapping = random_contacts[no_integers].dtypes.to_dict()
+            raise ValueError(
+                "The following contacts should be integers or floats, but they have a "
+                f"different dtype.\n\n{dtype_mapping}"
+            )
+
     else:
         random_contacts = None
 
