@@ -55,9 +55,6 @@ def calculate_contacts(
 
         if model["is_recurrent"]:
             model_specific_contacts = model_specific_contacts.astype(bool)
-        else:
-            model_specific_contacts = model_specific_contacts.astype(float)
-
         contacts[model_name] = model_specific_contacts
 
     return contacts
@@ -624,11 +621,28 @@ def post_process_contacts(contacts, states, contact_models):
     contacts.loc[has_no_contacts, recurrent_models] = False
 
     if random_models:
-        random_contacts = (
-            contacts[random_models]
-            .apply(lambda x: _sum_preserving_round(x.to_numpy()))
-            .astype(dtype=DTYPE_N_CONTACTS)
-        )
+        random_contacts = contacts[random_models]
+
+        integers = random_contacts.select_dtypes(include=np.integer).columns.tolist()
+        if integers:
+            random_contacts[integers] = random_contacts[integers].astype(
+                DTYPE_N_CONTACTS
+            )
+
+        floats = random_contacts.select_dtypes(include=np.floating).columns.tolist()
+        if floats:
+            random_contacts[floats] = random_contacts[floats].apply(
+                lambda x: _sum_preserving_round(x.to_numpy()).astype(DTYPE_N_CONTACTS)
+            )
+
+        no_integers = random_contacts.select_dtypes(exclude=np.integer).columns.tolist()
+        if no_integers:
+            dtype_mapping = random_contacts[no_integers].dtypes.to_dict()
+            raise ValueError(
+                "The following contacts should be integers or floats, but they have a "
+                f"different dtype.\n\n{dtype_mapping}"
+            )
+
     else:
         random_contacts = None
 
