@@ -52,7 +52,7 @@ repos:
     -   id: blacken-docs
         additional_dependencies: [black]
 -   repo: https://github.com/PyCQA/flake8
-    rev: 3.9.0
+    rev: 3.9.1
     hooks:
     -   id: flake8
         types: [python]
@@ -72,7 +72,7 @@ repos:
             Pygments,
         ]
 - repo: https://github.com/nbQA-dev/nbQA
-  rev: 0.6.0
+  rev: 0.7.0
   hooks:
     -   id: nbqa-black
     -   id: nbqa-pyupgrade
