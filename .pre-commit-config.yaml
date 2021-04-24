@@ -13,11 +13,22 @@ repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
     hooks:
-    -   id: check-merge-conflict
-    -   id: debug-statements
-    -   id: end-of-file-fixer
     -   id: check-added-large-files
         args: ['--maxkb=500']
+    -   id: check-case-conflict
+    -   id: check-merge-conflict
+    -   id: check-vcs-permalinks
+    -   id: check-yaml
+        exclude: meta.yaml
+    -   id: debug-statements
+    -   id: end-of-file-fixer
+    -   id: fix-byte-order-marker
+    -   id: forbid-new-submodules
+    -   id: mixed-line-ending
+    -   id: no-commit-to-branch
+        args: [--branch, main]
+    -   id: trailing-whitespace
+        exclude: (interrogate_badge\.svg)
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.8.0  # Use the ref you want to point at
     hooks:
@@ -32,7 +43,7 @@ repos:
     -   id: rst-inline-touching-normal
     -   id: text-unicode-replacement-char
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.12.0
+    rev: v2.13.0
     hooks:
     -   id: pyupgrade
         args: [--py36-plus]
@@ -41,6 +52,10 @@ repos:
     hooks:
     -   id: reorder-python-imports
         types: [python]
+-   repo: https://github.com/asottile/setup-cfg-fmt
+    rev: v1.17.0
+    hooks:
+    -   id: setup-cfg-fmt
 -   repo: https://github.com/psf/black
     rev: 20.8b1
     hooks:

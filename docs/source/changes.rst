@@ -26,6 +26,8 @@ all releases are available on `Anaconda.org
 - :gh:`107` allows compute derived state variables which can be used across model
   features to save some computations.
 - :gh:`108` enhances dtype conversion of random contact models.
+- :gh:`110` fixes a ``SettingWithCopy`` warning in ``contacts.py``.
+- :gh:`111` leads the migration from ``versioneer`` to ``setuptools_scm``.
 
 
 0.0.3 - 2021-03-23
