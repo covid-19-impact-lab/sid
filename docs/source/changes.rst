@@ -7,7 +7,7 @@ all releases are available on `Anaconda.org
 <https://anaconda.org/covid-19-impact-lab/sid>`_.
 
 
-0.0.4 - 2021-xx-xx
+0.0.4 - 2021-04-24
 ------------------
 
 - :gh:`92` adds an interface for rapid tests.
