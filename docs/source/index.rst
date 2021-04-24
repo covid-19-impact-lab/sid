@@ -11,7 +11,7 @@ sid
    :end-before: end-installation
 
 More information can be found in the `discussion paper <https://www.iza.org/
-publications/ dp/13899>`_ or in the four following chapters of the documentation.
+publications/dp/13899>`_ or in the four following chapters of the documentation.
 
 
 Documentation

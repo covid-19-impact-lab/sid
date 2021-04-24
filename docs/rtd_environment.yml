@@ -4,6 +4,9 @@ channels:
 
 dependencies:
   - python >= 3.6
+  - pip
+  - setuptools_scm
+  - toml
 
   # Sphinx dependencies.
   - furo
@@ -24,3 +27,6 @@ dependencies:
   - python-snappy
   - seaborn
   - tqdm
+
+  - pip:
+    - ../

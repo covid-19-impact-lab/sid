@@ -37,9 +37,6 @@ sid
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
-.. image:: https://sid-dev.readthedocs.io/en/latest/_static/images/interrogate_badge.svg
-    :target: https://github.com/econchick/interrogate
-
 .. end-badges
 
 
