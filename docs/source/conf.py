@@ -18,7 +18,7 @@ copyright = f"2020-{year}, Janos Gabler, Tobias Raabe, Klara Röhrl"  # noqa: A0
 author = "Janos Gabler, Tobias Raabe, Klara Röhrl"
 
 # The version, including alpha/beta/rc tags, but not commit hash and datestamps
-release = get_distribution("sid").version.split("+")[0]
+release = get_distribution("sid-dev").version.split("+")[0]
 # The short X.Y version.
 version = release
 
