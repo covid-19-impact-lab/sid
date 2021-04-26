@@ -7,7 +7,7 @@ all releases are available on `Anaconda.org
 <https://anaconda.org/covid-19-impact-lab/sid>`_.
 
 
-0.0.4 - 2021-xx-xx
+0.0.4 - 2021-04-24
 ------------------
 
 - :gh:`92` adds an interface for rapid tests.
@@ -26,6 +26,8 @@ all releases are available on `Anaconda.org
 - :gh:`107` allows compute derived state variables which can be used across model
   features to save some computations.
 - :gh:`108` enhances dtype conversion of random contact models.
+- :gh:`110` fixes a ``SettingWithCopy`` warning in ``contacts.py``.
+- :gh:`111` leads the migration from ``versioneer`` to ``setuptools_scm``.
 
 
 0.0.3 - 2021-03-23

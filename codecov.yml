@@ -25,5 +25,3 @@ coverage:
 ignore:
   - ".tox/**/*"
   - "setup.py"
-  - "versioneer.py"
-  - "src/sid/_version.py"

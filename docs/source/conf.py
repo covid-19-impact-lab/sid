@@ -1,30 +1,23 @@
-# Configuration file for the Sphinx documentation builder.
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
+# Configuration file for the Sphinx documentation builder. This file only contains a
+# selection of the most common options. For a full list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
-# -- Path setup --------------------------------------------------------------
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-import os
-import sys
-from datetime import datetime
+import datetime as dt
 
-
-sys.path.insert(0, os.path.abspath("../../src"))
-
-
-import sid  # noqa: E402
+from pkg_resources import get_distribution
 
 
 # -- Project information -----------------------------------------------------
 
 project = "sid"
-year = datetime.now().year
+year = dt.datetime.now().year
 copyright = f"2020-{year}, Janos Gabler, Tobias Raabe, Klara Röhrl"  # noqa: A001
 author = "Janos Gabler, Tobias Raabe, Klara Röhrl"
-version = sid.__version__
-release = version
+
+# The version, including alpha/beta/rc tags, but not commit hash and datestamps
+release = get_distribution("sid-dev").version.split("+")[0]
+# The short X.Y version.
+version = release
+
 
 # -- General configuration ---------------------------------------------------
 
@@ -146,7 +139,7 @@ html_show_sphinx = True
 html_show_copyright = True
 
 html_theme_options = {
-    "sidebar_hide_name": True,
+    "sidebar_hide_name": False,
     "navigation_with_keys": True,
 }
 

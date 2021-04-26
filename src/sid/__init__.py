@@ -11,14 +11,16 @@ from sid.time import get_date
 from sid.time import sid_period_to_timestamp
 from sid.time import timestamp_to_sid_period
 
-from ._version import get_versions
-
-
-__version__ = get_versions()["version"]
-del get_versions
+try:
+    from ._version import version as __version__
+except ImportError:
+    # broken installation, we don't even try unknown only works because we do poor mans
+    # version compare
+    __version__ = "unknown"
 
 
 __all__ = [
+    "__version__",
     "sample_initial_infections",
     "sample_initial_immunity",
     "get_colors",
