@@ -3,6 +3,11 @@
 Policies
 ========
 
+.. seealso::
+
+    For a hands-on example on how to specify contact policies, look at the `tutorial
+    about contact policies <../tutorials/how_to_specify_policies.ipynb>`_.
+
 In sid we can implement nearly any type of policy as a modification of the
 :ref:`contact_models`. However, to keep things separable and modular, policies can also
 specified outside the contact models in a separate, specialized ``contact_policies``
@@ -33,14 +38,11 @@ To specify when the policy is active, you have three options:
 
   .. code-block:: python
 
-    {
-        "1st_lockdown_school": {
-            "affected_contact_model": "school",
-            "policy": 0,
-            "start": "2020-03-22",
-            "end": "2020-04-20",
-        },
-    }
-
-For an example on how to specify contact policies, look at the `contact policies
-tutorial <../tutorials/how_to_specify_policies.ipynb>`_
+      {
+          "1st_lockdown_school": {
+              "affected_contact_model": "school",
+              "policy": 0,
+              "start": "2020-03-22",
+              "end": "2020-04-20",
+          },
+      }
