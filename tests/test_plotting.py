@@ -35,4 +35,4 @@ POLICIES_FOR_GANTT_CHART = {
 
 
 def test_plot_policy_gantt_chart():
-    fig, ax = plot_policy_gantt_chart(POLICIES_FOR_GANTT_CHART)
+    plot_policy_gantt_chart(POLICIES_FOR_GANTT_CHART)

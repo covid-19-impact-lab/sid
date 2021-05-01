@@ -47,10 +47,12 @@ def get_colors(palette, number, as_cmap=False, skip_dark=0, skip_bright=0):
     elif palette in ["blue", "red", "green", "yellow", "orange", "purple"]:
         res = _get_mono_colors(palette, number, skip_dark, skip_bright)
     else:
-        if number > 12:
-            raise ValueError("Too many colors requested.")
         if palette == "categorical":
-            triangle = {i + 1: CAT_LIST[: i + 1] for i in range(12)}
+            triangle = {
+                i + 1: (CAT_LIST * (number // 12 + 1))[: i + 1] for i in range(number)
+            }
+        elif palette == "ordered" and number > 12:
+            raise ValueError("Too many colors requested.")
         elif palette == "ordered":
             triangle = ORDERED
         else:

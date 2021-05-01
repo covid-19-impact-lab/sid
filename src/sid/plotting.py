@@ -3,7 +3,9 @@ import pandas as pd
 from sid.colors import get_colors
 
 
-def plot_policy_gantt_chart(policies, title=None, bar_height=0.8, alpha=0.5):
+def plot_policy_gantt_chart(
+    policies, title=None, bar_height=0.8, alpha=0.5, colors="categorical"
+):
     """Plot a Gantt chart of the policies."""
     if isinstance(policies, dict):
         df = pd.DataFrame(policies).T.reset_index().rename(columns={"index": "name"})
@@ -13,13 +15,13 @@ def plot_policy_gantt_chart(policies, title=None, bar_height=0.8, alpha=0.5):
         raise ValueError("'policies' should be either a dict or pandas.DataFrame.")
 
     df = _complete_dates(df)
-    df = _add_color_to_gantt_groups(df)
+    df = _add_color_to_gantt_groups(df, colors)
     df = _add_positions(df)
 
     _, ax = plt.subplots(figsize=(12, df["position"].max() + 1))
     for _, row in df.iterrows():
-        start = pd.Timestamp(row["start"])
-        end = pd.Timestamp(row["end"])
+        start = row["start"]
+        end = row["end"]
         ax.broken_barh(
             xranges=[(start, end - start)],
             yrange=(row["position"] - 0.5 * bar_height, bar_height),
@@ -53,11 +55,11 @@ def _complete_dates(df):
     return df
 
 
-def _add_color_to_gantt_groups(df):
+def _add_color_to_gantt_groups(df, colors):
     """Add a color for each affected contact model."""
     n_colors = len(df["affected_contact_model"].unique())
-    colors = get_colors("categorical", n_colors)
-    acm_to_color = dict(zip(df["affected_contact_model"].unique(), colors))
+    colors_ = get_colors(colors, n_colors)
+    acm_to_color = dict(zip(df["affected_contact_model"].unique(), colors_))
     df["color"] = df["affected_contact_model"].replace(acm_to_color)
 
     return df
