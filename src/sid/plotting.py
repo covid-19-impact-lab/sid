@@ -38,8 +38,9 @@ def plot_policy_gantt_chart(policies, title=None, bar_height=0.8, alpha=0.5):
     positions, labels = _create_y_ticks_and_labels(df)
     ax.set_yticks(positions)
     ax.set_yticklabels(labels)
+
     if title is not None:
-        ax.set_title(title.replace("_", " ").title())
+        ax.set_title(title)
 
     return ax
 
