@@ -4,6 +4,7 @@ from sid.colors import get_colors
 
 
 def plot_policy_gantt_chart(policies, title=None, bar_height=0.8, alpha=0.5):
+    """Plot a Gantt chart of the policies."""
     if isinstance(policies, dict):
         df = pd.DataFrame(policies).T.reset_index().rename(columns={"index": "name"})
     elif isinstance(policies, pd.DataFrame):
@@ -15,7 +16,7 @@ def plot_policy_gantt_chart(policies, title=None, bar_height=0.8, alpha=0.5):
     df = _add_color_to_gantt_groups(df)
     df = _add_positions(df)
 
-    fig, ax = plt.subplots(figsize=(12, df["position"].max() + 1))
+    _, ax = plt.subplots(figsize=(12, df["position"].max() + 1))
     for _, row in df.iterrows():
         start = pd.Timestamp(row["start"])
         end = pd.Timestamp(row["end"])
@@ -40,7 +41,7 @@ def plot_policy_gantt_chart(policies, title=None, bar_height=0.8, alpha=0.5):
     if title is not None:
         ax.set_title(title.replace("_", " ").title())
 
-    return fig, ax
+    return ax
 
 
 def _complete_dates(df):
