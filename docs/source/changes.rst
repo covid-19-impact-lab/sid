@@ -7,6 +7,12 @@ all releases are available on `Anaconda.org
 <https://anaconda.org/covid-19-impact-lab/sid>`_.
 
 
+0.0.5 - 2021-xx-xx
+------------------
+
+- :gh:`112` implements a gantt chart to visualize policies.
+
+
 0.0.4 - 2021-04-24
 ------------------
 
