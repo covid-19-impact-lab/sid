@@ -77,7 +77,7 @@ def households_w_one_infected():
         "group_codes_info": group_codes_info,
         "susceptibility_factor": np.ones(len(states)),
         "virus_strains": virus_strains,
-        "seasonality_factor": 1,
+        "seasonality_factor": pd.Series([1], index=["households"]),
     }
 
 
@@ -223,7 +223,7 @@ def test_calculate_infections_only_non_recurrent(households_w_one_infected):
         group_codes_info={"non_rec": {"name": "group_codes_non_rec"}},
         susceptibility_factor=households_w_one_infected["susceptibility_factor"],
         virus_strains=households_w_one_infected["virus_strains"],
-        seasonality_factor=households_w_one_infected["seasonality_factor"],
+        seasonality_factor=pd.Series([1], index=["non_rec"]),
         seed=itertools.count(),
     )
 
