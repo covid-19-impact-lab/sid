@@ -200,7 +200,10 @@ def get_simulate_func(
             returns a modified copy of contacts.
         seasonality_factor_model (Optional[Callable]): A model which takes in and
             ``params`` and ``dates`` signaling the whole duration of the simulation and
-            returns a factor for each day which scales all infection probabilities.
+            returns a DataFrame with a factor for each day and contact model which
+            scales the corresponding infection probability. If seasonality patterns are
+            the same for all contact models, the model can return a Series instead
+            of a DataFrame.
         derived_state_variables (Optional[Dict[str, str]]): A dictionary that maps
             names of state variables to pandas evaluation strings that generate derived
             state variables, i.e. state variables that can be calculated from the
@@ -457,6 +460,7 @@ def _simulate(
         params=params,
         dates=duration["dates"],
         seed=seed,
+        contact_models=contact_models,
     )
 
     states = initial_states
@@ -537,7 +541,7 @@ def _simulate(
             group_codes_info=group_codes_info,
             susceptibility_factor=susceptibility_factor,
             virus_strains=virus_strains,
-            seasonality_factor=seasonality_factor[date],
+            seasonality_factor=seasonality_factor.loc[date],
             seed=seed,
         )
         (

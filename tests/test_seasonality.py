@@ -38,31 +38,31 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "model, params, dates, expectation, expected",
+    "model, params, dates, expectation, expected, contact_models",
     [
         pytest.param(
             None,
             None,
             pd.date_range("2020-01-01", periods=2),
             does_not_raise(),
-            pd.Series(index=pd.date_range("2020-01-01", periods=2), data=1),
+            pd.DataFrame(
+                index=pd.date_range("2020-01-01", periods=2),
+                data=1,
+                columns=["meet_two_people"],
+            ),
+            {"meet_two_people": {}},
         ),
         pytest.param(
             lambda params, dates, seed: pd.Series(index=dates, data=[1, 2, 3]),
             None,
             pd.date_range("2020-01-01", periods=3),
             does_not_raise(),
-            pd.Series(
+            pd.DataFrame(
                 index=pd.date_range("2020-01-01", periods=3),
                 data=np.array([1, 2, 3]) / 3,
+                columns=["meet_two_people"],
             ),
-        ),
-        pytest.param(
-            lambda params, dates, seed: np.ones(len(dates)),
-            None,
-            pd.date_range("2020-01-01", periods=2),
-            does_not_raise(),
-            pd.Series(index=pd.date_range("2020-01-01", periods=2), data=1.0),
+            {"meet_two_people": {}},
         ),
         pytest.param(
             lambda params, dates, seed: None,
@@ -70,6 +70,7 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
             pd.date_range("2020-01-01", periods=2),
             pytest.raises(ValueError, match="'seasonality_factor_model'"),
             None,
+            {"meet_two_people": {}},
         ),
         pytest.param(
             lambda params, dates, seed: pd.Series(
@@ -79,10 +80,38 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
             pd.date_range("2020-01-01", periods=2),
             pytest.raises(ValueError, match="The seasonality factors"),
             None,
+            {"meet_two_people": {}},
         ),
     ],
 )
-def test_prepare_seasonality_factor(model, params, dates, expectation, expected):
+def test_prepare_seasonality_factor(
+    model, params, dates, expectation, expected, contact_models
+):
     with expectation:
-        result = prepare_seasonality_factor(model, params, dates, itertools.count())
+        result = prepare_seasonality_factor(
+            model, params, dates, itertools.count(), contact_models
+        )
         assert result.equals(expected)
+
+
+def test_prepare_seasonality_factor_with_dataframe_return():
+    def _model(params, dates, seed):
+        df = pd.DataFrame(index=dates)
+        df["households"] = [0.8, 0.8, 1]
+        df["leisure"] = [0.5, 0.5, 1]
+        return df
+
+    result = prepare_seasonality_factor(
+        seasonality_factor_model=_model,
+        params=None,
+        dates=pd.date_range("2021-04-01", "2021-04-03"),
+        seed=itertools.count(),
+        contact_models={"households": {}, "leisure": {}, "work": {}},
+    )
+    expected = pd.DataFrame(
+        data=[[0.8, 0.5, 1.0]] * 2 + [[1, 1, 1]],
+        columns=["households", "leisure", "work"],
+        index=pd.date_range("2021-04-01", "2021-04-03"),
+    )
+
+    pd.testing.assert_frame_equal(result, expected)
