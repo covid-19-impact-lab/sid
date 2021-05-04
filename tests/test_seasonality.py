@@ -92,3 +92,26 @@ def test_prepare_seasonality_factor(
             model, params, dates, itertools.count(), contact_models
         )
         assert result.equals(expected)
+
+
+def test_prepare_seasonality_factor_with_dataframe_return():
+    def _model(params, dates, seed):
+        df = pd.DataFrame(index=dates)
+        df["households"] = [0.8, 0.8, 1]
+        df["leisure"] = [0.5, 0.5, 1]
+        return df
+
+    result = prepare_seasonality_factor(
+        seasonality_factor_model=_model,
+        params=None,
+        dates=pd.date_range("2021-04-01", "2021-04-03"),
+        seed=itertools.count(),
+        contact_models={"households": {}, "leisure": {}, "work": {}},
+    )
+    expected = pd.DataFrame(
+        data=[[0.8, 0.5, 1.0]] * 2 + [[1, 1, 1]],
+        columns=["households", "leisure", "work"],
+        index=pd.date_range("2021-04-01", "2021-04-03"),
+    )
+
+    pd.testing.assert_frame_equal(result, expected)
