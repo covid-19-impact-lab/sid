@@ -32,7 +32,7 @@ def prepare_seasonality_factor(
 
     """
     if seasonality_factor_model is None:
-        factor = pd.DataFrame(index=dates, columns=contact_models.keys(), data=1)
+        factor = pd.DataFrame(index=dates, columns=contact_models, data=1)
     else:
         raw_factor = seasonality_factor_model(
             params=params, dates=dates, seed=next(seed)
@@ -43,8 +43,7 @@ def prepare_seasonality_factor(
             factor = pd.concat([raw_factor] * len(contact_models), axis=1)
             factor.columns = contact_models.keys()
         elif isinstance(raw_factor, pd.DataFrame):
-            factor = pd.DataFrame(index=dates, columns=contact_models.keys(), data=1)
-            factor.update(raw_factor)
+            factor = raw_factor.reindex(index=dates, columns=contact_models)
         else:
             raise ValueError(
                 "'seasonality_factor_model' must return a pd.Series or DataFrame "
