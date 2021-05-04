@@ -34,9 +34,9 @@ cd_symptoms_true,60-69,2,0.315
 cd_symptoms_true,70-79,-1,0.31
 cd_symptoms_true,70-79,1,0.345
 cd_symptoms_true,70-79,2,0.345
-cd_symptoms_true,80-100,-1,0.31
-cd_symptoms_true,80-100,1,0.345
-cd_symptoms_true,80-100,2,0.345
+cd_symptoms_true,80-100,-1,0.25
+cd_symptoms_true,80-100,1,0.375
+cd_symptoms_true,80-100,2,0.375
 cd_symptoms_false,all,15,0.1
 cd_symptoms_false,all,18,0.3
 cd_symptoms_false,all,22,0.3
