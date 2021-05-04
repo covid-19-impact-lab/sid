@@ -104,8 +104,8 @@ def calculate_infections_by_contacts(
         virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
             ``"factors"`` holding the different contagiousness factors of multiple
             viruses.
-        seasonality_factor (float): A multiplier which scales the infection
-            probabilities due to seasonality.
+        seasonality_factor (pandas.Series): A multiplier which scales the infection
+            probabilities due to seasonality. The index are the factor model names.
         seed (itertools.count): Seed counter to control randomness.
 
     Returns:
