@@ -1,6 +1,8 @@
 """This module contains the code related to seasonality."""
 import itertools
+from typing import Any
 from typing import Callable
+from typing import Dict
 from typing import Optional
 
 import numpy as np
@@ -12,6 +14,7 @@ def prepare_seasonality_factor(
     params: pd.DataFrame,
     dates: pd.DatetimeIndex,
     seed: itertools.count,
+    contact_models: Dict[str, Dict[str, Any]],
 ) -> np.ndarray:
     """Prepare the seasonality factor.
 
@@ -21,6 +24,7 @@ def prepare_seasonality_factor(
         params (pd.DataFrame): The parameters.
         dates (pd.DatetimeIndex): All simulated days.
         seed (itertools.count): A seed counter
+        contact_models (Dict[str, Dict[str, Any]]): See :ref:`contact_models`.
 
     Returns:
         seasonality_factor (np.ndarray): Factors for the infection probabilities of each
@@ -28,29 +32,32 @@ def prepare_seasonality_factor(
 
     """
     if seasonality_factor_model is None:
-        seasonality_factor = pd.Series(index=dates, data=1)
+        factor = pd.DataFrame(index=dates, columns=contact_models.keys(), data=1)
     else:
-        seasonality_factor = seasonality_factor_model(
+        raw_factor = seasonality_factor_model(
             params=params, dates=dates, seed=next(seed)
         )
 
-        if isinstance(seasonality_factor, pd.Series):
-            seasonality_factor = seasonality_factor.reindex(dates)
-        elif isinstance(seasonality_factor, np.ndarray):
-            seasonality_factor = pd.Series(index=dates, data=seasonality_factor)
+        if isinstance(raw_factor, pd.Series):
+            raw_factor = raw_factor.reindex(dates)
+            factor = pd.concat([raw_factor] * len(contact_models), axis=1)
+            factor.columns = contact_models.keys()
+        elif isinstance(raw_factor, pd.DataFrame):
+            factor = pd.DataFrame(index=dates, columns=contact_models.keys(), data=1)
+            factor.update(raw_factor)
         else:
             raise ValueError(
-                "'seasonality_factor_model' must return a pd.Series or a np.ndarray "
+                "'seasonality_factor_model' must return a pd.Series or DataFrame "
                 "with 'dates' as index and seasonality factors as data."
             )
 
         # Make sure the highest multiplier is set to one so that random contacts only
         # need to be reduced by the infection probability of the contact model.
-        seasonality_factor = seasonality_factor / seasonality_factor.max()
+        for col in factor:
+            factor[col] = factor[col] / factor[col].max()
+            if not factor[col].between(0, 1).all():
+                raise ValueError(
+                    "The seasonality factors need to lie in the interval [0, 1]."
+                )
 
-        if not seasonality_factor.between(0, 1).all():
-            raise ValueError(
-                "The seasonality factors need to lie in the interval [0, 1]."
-            )
-
-    return seasonality_factor
+    return factor

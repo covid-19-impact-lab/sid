@@ -457,6 +457,7 @@ def _simulate(
         params=params,
         dates=duration["dates"],
         seed=seed,
+        contact_models=contact_models,
     )
 
     states = initial_states
@@ -537,7 +538,7 @@ def _simulate(
             group_codes_info=group_codes_info,
             susceptibility_factor=susceptibility_factor,
             virus_strains=virus_strains,
-            seasonality_factor=seasonality_factor[date],
+            seasonality_factor=seasonality_factor.loc[date],
             seed=seed,
         )
         (

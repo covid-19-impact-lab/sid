@@ -71,7 +71,7 @@ def calculate_infections_by_contacts(
     group_codes_info: Dict[str, Dict[str, Any]],
     susceptibility_factor: np.ndarray,
     virus_strains: Dict[str, Any],
-    seasonality_factor: float,
+    seasonality_factor: pd.Series,
     seed: itertools.count,
 ) -> Tuple[pd.Series, pd.Series, pd.DataFrame]:
     """Calculate infections from contacts.
@@ -135,17 +135,17 @@ def calculate_infections_by_contacts(
         [group_codes_info[cm]["name"] for cm in random_models]
     ].to_numpy()
 
-    seasonal_infection_probabilities_recurrent = (
-        np.array(
-            [params.loc[("infection_prob", cm, cm), "value"] for cm in recurrent_models]
-        )
-        * seasonality_factor
+    seasonal_infection_probabilities_recurrent = np.array(
+        [
+            params.loc[("infection_prob", cm, cm), "value"] * seasonality_factor[cm]
+            for cm in recurrent_models
+        ]
     )
-    seasonal_infection_probabilities_random = (
-        np.array(
-            [params.loc[("infection_prob", cm, cm), "value"] for cm in random_models]
-        )
-        * seasonality_factor
+    seasonal_infection_probabilities_random = np.array(
+        [
+            params.loc[("infection_prob", cm, cm), "value"] * seasonality_factor[cm]
+            for cm in random_models
+        ]
     )
 
     infection_counter = np.zeros(len(states), dtype=DTYPE_INFECTION_COUNTER)
