@@ -1,50 +1,86 @@
-import matplotlib.pyplot as plt
+import holoviews as hv
 import pandas as pd
+from bokeh.models import HoverTool
 from sid.colors import get_colors
+from sid.policies import compute_pseudo_effect_sizes_of_policies
+
+
+hv.extension("bokeh")
+
+
+DEFAULT_FIGURE_KWARGS = {"height": 400, "width": 600}
 
 
 def plot_policy_gantt_chart(
-    policies, title=None, bar_height=0.8, alpha=0.5, colors="categorical"
+    policies,
+    effects=False,
+    title=None,  # noqa: U100
+    bar_height=0.8,  # noqa: U100
+    colors="categorical",
+    fig_kwargs=None,
 ):
     """Plot a Gantt chart of the policies."""
+    if fig_kwargs is None:
+        fig_kwargs = {}
+    fig_kwargs = {**DEFAULT_FIGURE_KWARGS, **fig_kwargs}
+
     if isinstance(policies, dict):
-        df = pd.DataFrame(policies).T.reset_index().rename(columns={"index": "name"})
+        df = (
+            pd.DataFrame(policies)
+            .T.reset_index()
+            .rename(columns={"index": "name"})
+            .astype({"start": "datetime64", "end": "datetime64"})
+            .drop(columns="policy")
+        )
     elif isinstance(policies, pd.DataFrame):
         df = policies
     else:
         raise ValueError("'policies' should be either a dict or pandas.DataFrame.")
 
+    if effects:
+        effect_kwargs = effects if isinstance(effects, dict) else {}
+        effects = compute_pseudo_effect_sizes_of_policies(
+            policies=policies, **effect_kwargs
+        )
+        effects_s = pd.DataFrame(
+            [{"policy": name, "effect": effects[name]["mean"]} for name in effects]
+        ).set_index("policy")["effect"]
+        df = df.merge(effects_s, left_on="name", right_index=True)
+        df["alpha"] = (1 - df["effect"] + 0.1) / 1.1
+    else:
+        df["alpha"] = 1
+
+    df = df.reset_index()
     df = _complete_dates(df)
     df = _add_color_to_gantt_groups(df, colors)
     df = _add_positions(df)
 
-    _, ax = plt.subplots(figsize=(12, df["position"].max() + 1))
-    for _, row in df.iterrows():
-        start = row["start"]
-        end = row["end"]
-        ax.broken_barh(
-            xranges=[(start, end - start)],
-            yrange=(row["position"] - 0.5 * bar_height, bar_height),
-            edgecolors=row["color"],
-            facecolors=row["color"],
-            alpha=alpha,
-            label=row["name"],
-        )
+    segments = hv.Segments(
+        df,
+        [
+            hv.Dimension("start", label="Date"),
+            hv.Dimension("position", label="Affected contact model"),
+            "end",
+            "position",
+        ],
+    )
+    y_ticks_and_labels = list(zip(*_create_y_ticks_and_labels(df)))
 
-        ax.text(
-            start + (end - start) * 0.1,
-            row["position"] + 0.375 - 0.5 * bar_height,
-            row["name"],
-        )
+    tooltips = [("Name", "@name")]
+    if effects:
+        tooltips.append(("Effect", "@effect"))
+    hover = HoverTool(tooltips=tooltips)
 
-    positions, labels = _create_y_ticks_and_labels(df)
-    ax.set_yticks(positions)
-    ax.set_yticklabels(labels)
+    gantt_opts = segments.opts(
+        line_width=12,
+        color="color",
+        alpha="alpha",
+        tools=[hover],
+        yticks=y_ticks_and_labels,
+        **fig_kwargs,
+    )
 
-    if title is not None:
-        ax.set_title(title)
-
-    return ax
+    return gantt_opts
 
 
 def _complete_dates(df):
@@ -90,7 +126,10 @@ def _add_positions(df):
     positions = df.groupby("affected_contact_model", group_keys=False).apply(
         _add_within_group_positions
     )
-    df["position"] = positions
+    df["position_local"] = positions
+    df["position"] = df.groupby(
+        ["affected_contact_model", "position_local"], sort=True
+    ).ngroup()
 
     return df
 
