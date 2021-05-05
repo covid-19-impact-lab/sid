@@ -1,3 +1,5 @@
+import itertools
+
 import holoviews as hv
 import pandas as pd
 from bokeh.models import HoverTool
@@ -5,10 +7,7 @@ from sid.colors import get_colors
 from sid.policies import compute_pseudo_effect_sizes_of_policies
 
 
-hv.extension("bokeh")
-
-
-DEFAULT_FIGURE_KWARGS = {"height": 400, "width": 600}
+DEFAULT_FIGURE_KWARGS = {"height": 400, "width": 600, "line_width": 12}
 
 
 def plot_policy_gantt_chart(
@@ -55,6 +54,8 @@ def plot_policy_gantt_chart(
     df = _add_color_to_gantt_groups(df, colors)
     df = _add_positions(df)
 
+    hv.extension("bokeh", logo=False)
+
     segments = hv.Segments(
         df,
         [
@@ -72,7 +73,6 @@ def plot_policy_gantt_chart(
     hover = HoverTool(tooltips=tooltips)
 
     gantt_opts = segments.opts(
-        line_width=12,
         color="color",
         alpha="alpha",
         tools=[hover],
@@ -93,8 +93,7 @@ def _complete_dates(df):
 
 def _add_color_to_gantt_groups(df, colors):
     """Add a color for each affected contact model."""
-    n_colors = len(df["affected_contact_model"].unique())
-    colors_ = get_colors(colors, n_colors)
+    colors_ = itertools.cycle(get_colors(colors, 4))
     acm_to_color = dict(zip(df["affected_contact_model"].unique(), colors_))
     df["color"] = df["affected_contact_model"].replace(acm_to_color)
 
