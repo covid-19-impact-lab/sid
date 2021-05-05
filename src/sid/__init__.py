@@ -1,5 +1,6 @@
 import logging
 
+from sid import plotting
 from sid import statistics
 from sid.colors import get_colors
 from sid.initial_conditions import sample_initial_immunity
@@ -28,6 +29,7 @@ __all__ = [
     "get_msm_func",
     "get_simulate_func",
     "load_epidemiological_parameters",
+    "plotting",
     "sid_period_to_timestamp",
     "timestamp_to_sid_period",
     "statistics",
