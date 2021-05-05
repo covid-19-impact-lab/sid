@@ -20,6 +20,7 @@ dependencies:
   - bokeh
   - dask
   - fastparquet
+  - holoviews
   - numba >=0.48
   - pandas >=1
   - python-snappy
