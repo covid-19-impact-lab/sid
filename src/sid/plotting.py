@@ -12,7 +12,6 @@ DEFAULT_FIGURE_KWARGS = {
     "width": 600,
     "line_width": 12,
     "title": "Gantt Chart of Policies",
-    "bar_height": 0.8,
 }
 
 
@@ -76,7 +75,7 @@ def plot_policy_gantt_chart(
         tooltips.append(("Effect", "@effect"))
     hover = HoverTool(tooltips=tooltips)
 
-    gantt_opts = segments.opts(
+    gantt = segments.opts(
         color="color",
         alpha="alpha",
         tools=[hover],
@@ -84,7 +83,7 @@ def plot_policy_gantt_chart(
         **fig_kwargs,
     )
 
-    return gantt_opts
+    return gantt
 
 
 def _complete_dates(df):
