@@ -51,8 +51,6 @@ def get_colors(palette, number, as_cmap=False, skip_dark=0, skip_bright=0):
             raise ValueError("Too many colors requested.")
         if palette == "categorical":
             triangle = {i + 1: CAT_LIST[: i + 1] for i in range(12)}
-        elif palette == "ordered" and number > 12:
-            raise ValueError("Too many colors requested.")
         elif palette == "ordered":
             triangle = ORDERED
         else:

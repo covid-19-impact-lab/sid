@@ -7,14 +7,18 @@ from sid.colors import get_colors
 from sid.policies import compute_pseudo_effect_sizes_of_policies
 
 
-DEFAULT_FIGURE_KWARGS = {"height": 400, "width": 600, "line_width": 12}
+DEFAULT_FIGURE_KWARGS = {
+    "height": 400,
+    "width": 600,
+    "line_width": 12,
+    "title": "Gantt Chart of Policies",
+    "bar_height": 0.8,
+}
 
 
 def plot_policy_gantt_chart(
     policies,
     effects=False,
-    title=None,  # noqa: U100
-    bar_height=0.8,  # noqa: U100
     colors="categorical",
     fig_kwargs=None,
 ):
@@ -84,6 +88,7 @@ def plot_policy_gantt_chart(
 
 
 def _complete_dates(df):
+    """Complete dates."""
     for column in ("start", "end"):
         df[column] = pd.to_datetime(df[column])
     df["start"] = df["start"].fillna(df["start"].min())
@@ -101,6 +106,14 @@ def _add_color_to_gantt_groups(df, colors):
 
 
 def _add_positions(df):
+    """Add positions.
+
+    This functions computes the positions of policies, displayed as segments on the time
+    line. For example, if two policies affecting the same contact model have an
+    overlapping time windows, the segments are stacked and drawn onto different
+    horizontal lines.
+
+    """
     min_position = 0
 
     def _add_within_group_positions(df):
@@ -134,6 +147,7 @@ def _add_positions(df):
 
 
 def _create_y_ticks_and_labels(df):
+    """Create the positions and their related labels for the y axis."""
     pos_per_group = df.groupby("position", as_index=False).first()
     mean_pos_per_group = (
         pos_per_group.groupby("affected_contact_model")["position"].mean().reset_index()
