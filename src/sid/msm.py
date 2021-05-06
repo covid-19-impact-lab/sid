@@ -191,13 +191,17 @@ def get_diag_weighting_matrix(empirical_moments, weights=None):
         weights = _harmonize_input(weights)
 
         # Reindex weights to ensure they are assigned to the correct moments in
-        # the msm function.
-        weights = {
-            name: weight.reindex_like(empirical_moments[name])
-            for name, weight in weights.items()
-        }
+        # the msm function and convert scalars to pandas objects
+        cleaned = {}
+        for name, weight in weights.items():
+            if np.isscalar(weight):
+                nonscalar = empirical_moments[name].copy(deep=True)
+                nonscalar[:] = weight
+                cleaned[name] = nonscalar
+            else:
+                cleaned[name] = weight.reindex_like(empirical_moments[name])
 
-        flat_weights = _flatten_index(weights)
+        flat_weights = _flatten_index(cleaned)
 
     return np.diag(flat_weights)
 
@@ -225,19 +229,10 @@ def get_flat_moments(empirical_moments):
 
 
 def _harmonize_input(data):
-    """Harmonize different types of inputs by turning all inputs into dicts.
-
-    - pandas.DataFrames/Series and callable functions will turn into a list containing a
-      single item (i.e. the input).
-    - Dictionaries will be sorted according to keys and then turn into a list containing
-      the dictionary entries.
-
-    """
-    # Convert single DataFrames, Series or function into list containing one item.
+    """Harmonize different types of inputs by turning all inputs into dicts."""
     if isinstance(data, (pd.DataFrame, pd.Series)) or callable(data):
         data = {0: data}
 
-    # Sort dictionary according to keys and turn into list.
     elif isinstance(data, dict):
         pass
 
