@@ -15,7 +15,6 @@ References:
        of Asset Prices. Econometrica, 61(4), 929-952.
 
 """
-import copy
 import functools
 
 import numpy as np
@@ -61,8 +60,6 @@ def get_msm_func(
 
     if not _is_diagonal(weighting_matrix):
         raise ValueError("weighting_matrix must be diagonal.")
-
-    empirical_moments = copy.deepcopy(empirical_moments)
 
     empirical_moments = _harmonize_input(empirical_moments)
     calc_moments = _harmonize_input(calc_moments)
@@ -140,8 +137,6 @@ def _msm(
     except `params` attached to it.
 
     """
-    empirical_moments = copy.deepcopy(empirical_moments)
-
     df = simulate(params)
 
     simulated_moments = {name: func(df) for name, func in calc_moments.items()}
@@ -158,11 +153,8 @@ def _msm(
     flat_empirical_moments = _flatten_index(empirical_moments)
     flat_simulated_moments = _flatten_index(simulated_moments)
 
-    # Order is important to manfred.
     moment_errors = flat_simulated_moments - flat_empirical_moments
 
-    # Return moment errors as indexed DataFrame or calculate weighted square product of
-    # moment errors depending on return_scalar.
     root_contribs = np.sqrt(np.diagonal(weighting_matrix)) * moment_errors
     value = np.sum(root_contribs ** 2)
 
@@ -198,8 +190,6 @@ def get_diag_weighting_matrix(empirical_moments, weights=None):
         (numpy.ndarray): Array contains a diagonal weighting matrix.
 
     """
-    weights = copy.deepcopy(weights)
-    empirical_moments = copy.deepcopy(empirical_moments)
     empirical_moments = _harmonize_input(empirical_moments)
 
     # Use identity matrix if no weights are specified.
@@ -242,7 +232,6 @@ def get_flat_moments(empirical_moments):
             index.
 
     """
-    empirical_moments = copy.deepcopy(empirical_moments)
     empirical_moments = _harmonize_input(empirical_moments)
     flat_empirical_moments = _flatten_index(empirical_moments)
 
