@@ -28,6 +28,7 @@ def get_msm_func(
     empirical_moments,
     replace_nans,
     weighting_matrix=None,
+    additional_outputs=None,
 ):
     """Get the msm function.
 
@@ -46,6 +47,9 @@ def get_msm_func(
         weighting_matrix (numpy.ndarray): Square matrix of dimension (NxN) with N
             denoting the number of empirical_moments. Used to weight squared moment
             errors.
+        additional_outputs (dict or None): Dictionary of functions. Each function is
+            evaluated on the output of the simulate function and the result is
+            saved in the output dictionary of the msm function.
 
     Returns:
         msm_func (callable): MSM function where all arguments except the parameter
@@ -89,6 +93,25 @@ def get_msm_func(
             "the number of sets of empirical moments."
         )
 
+    if additional_outputs is not None:
+        if not _is_dict_of_callables(additional_outputs):
+            raise ValueError("additional_outputs must be a dict of callables.")
+    else:
+        additional_outputs = {}
+
+    invalid_keys = {
+        "value",
+        "root_contributions",
+        "root_contributions",
+        "empirical_moments",
+        "simulated_moments",
+    }
+
+    invalid = invalid_keys.intersection(additional_outputs)
+
+    if invalid:
+        raise ValueError("Invalid keys in additional_outputs: {invalid}")
+
     msm_func = functools.partial(
         _msm,
         simulate=simulate,
@@ -96,6 +119,7 @@ def get_msm_func(
         empirical_moments=empirical_moments,
         replace_nans=replace_nans,
         weighting_matrix=weighting_matrix,
+        additional_outputs=additional_outputs,
     )
 
     return msm_func
@@ -108,6 +132,7 @@ def _msm(
     empirical_moments,
     replace_nans,
     weighting_matrix,
+    additional_outputs,
 ):
     """The MSM criterion function.
 
@@ -147,6 +172,9 @@ def _msm(
         "empirical_moments": empirical_moments,
         "simulated_moments": simulated_moments,
     }
+
+    for name, func in additional_outputs.items():
+        out[name] = func(df)
 
     return out
 
@@ -264,3 +292,11 @@ def _flatten_index(data):
 def _is_diagonal(mat):
     """Check if the matrix is diagonal."""
     return not np.count_nonzero(mat - np.diag(np.diagonal(mat)))
+
+
+def _is_dict_of_callables(candidate):
+    out = isinstance(candidate, dict)
+    for value in candidate.values():
+        if not callable(value):
+            out = False
+    return out

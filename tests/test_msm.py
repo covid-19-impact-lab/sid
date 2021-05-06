@@ -22,7 +22,13 @@ def dummy_calc_moments(df):
 @pytest.mark.end_to_end
 def test_estimation_with_msm():
     s = pd.Series([1, 2])
-    msm_func = get_msm_func(dummy_simulate, dummy_calc_moments, s, lambda x: x)
+    msm_func = get_msm_func(
+        simulate=dummy_simulate,
+        calc_moments=dummy_calc_moments,
+        empirical_moments=s,
+        replace_nans=lambda x: x,
+        additional_outputs={"sr": lambda x: x},
+    )
 
     result = msm_func(None)
     expected = {
@@ -30,6 +36,7 @@ def test_estimation_with_msm():
         "root_contributions": pd.Series([0.0, 0.0], ["0_0", "0_1"]),
         "empirical_moments": {0: s},
         "simulated_moments": {0: s},
+        "sr": pd.Series([1, 2]),
     }
 
     for k, v in result.items():
