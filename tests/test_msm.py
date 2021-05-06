@@ -46,7 +46,7 @@ def test_estimation_with_msm():
 @pytest.mark.integration
 @pytest.mark.parametrize(
     "empirical_moments, weights, expected",
-    [([pd.Series([1]), pd.Series([2])], None, np.eye(2))],
+    [({"a": pd.Series([1]), "b": pd.Series([2])}, None, np.eye(2))],
 )
 def test_get_diag_weighting_matrix(empirical_moments, weights, expected):
     result = get_diag_weighting_matrix(empirical_moments, weights)
@@ -54,8 +54,8 @@ def test_get_diag_weighting_matrix(empirical_moments, weights, expected):
 
 
 def test_get_diag_weighting_matrix_with_scalar_weights():
-    emp_moms = [pd.Series([1, 2]), pd.Series([2, 3, 4])]
-    weights = [0.3, 0.7]
+    emp_moms = {0: pd.Series([1, 2]), 1: pd.Series([2, 3, 4])}
+    weights = {0: 0.3, 1: 0.7}
     result = get_diag_weighting_matrix(emp_moms, weights)
     expected = np.diag([0.3] * 2 + [0.7] * 3)
     assert np.all(result == expected)
@@ -65,7 +65,7 @@ def test_get_diag_weighting_matrix_with_scalar_weights():
 @pytest.mark.parametrize(
     "moments, expected",
     [
-        ([pd.Series([1]), pd.Series([2])], pd.Series([1, 2], ["0_0", "1_0"])),
+        ({0: pd.Series([1]), 1: pd.Series([2])}, pd.Series([1, 2], ["0_0", "1_0"])),
         (
             {"a": pd.DataFrame([[1, 2]], columns=["b", "c"])},
             pd.Series([1, 2], ["a_b_0", "a_c_0"]),
@@ -89,9 +89,7 @@ def _func():  # pragma: no cover
         (pd.DataFrame([[1]]), does_not_raise(), {0: pd.DataFrame([[1]])}),
         (_func, does_not_raise(), {0: _func}),
         ({1: 2}, does_not_raise(), {1: 2}),
-        ([1, 2, 3], does_not_raise(), {0: 1, 1: 2, 2: 3}),
-        ((1, 2, 3), does_not_raise(), {0: 1, 1: 2, 2: 3}),
-        ({1, 2}, pytest.raises(ValueError, match="Function only accepts"), None),
+        ({1, 2}, pytest.raises(ValueError, match="Moments must be"), None),
     ],
 )
 def test_harmonize_input(data, expectation, expected):

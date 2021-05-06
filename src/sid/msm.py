@@ -34,16 +34,11 @@ def get_msm_func(
     Args:
         simulate (callable): Function which accepts parameters and returns simulated
             data.
-        calc_moments (callable or list): Function(s) used to calculate simulated
-            moments. Must match structure of empirical moments i.e. if empirical_moments
-            is a list of pandas.DataFrames, calc_moments must be a list of the same
-            length containing functions that correspond to the moments in
-            empirical_moments.
-        empirical_moments (pandas.DataFrame or pandas.Series or dict or list): Contains
-            the empirical moments calculated for the observed data. Moments should be
-            saved to pandas.DataFrame or pandas.Series that can either be passed to the
-            function directly or as items of a list or dictionary. Index of
-            pandas.DataFrames can be of type MultiIndex, but columns cannot.
+        calc_moments (callable or dict): Function(s) used to calculate simulated
+            moments. If it is a dictionary, it must have the same keys as
+            empirical_moments
+        empirical_moments (pandas.DataFrame or pandas.Series or dict): One pandas
+            object or a dictionary of pandas objects with empirical moments.
         replace_nans (callable or list): Functions(s) specifying how to handle NaNs in
             simulated_moments. Must match structure of empirical_moments. Exception: If
             only one replacement function is specified, it will be used on all sets of
@@ -51,8 +46,6 @@ def get_msm_func(
         weighting_matrix (numpy.ndarray): Square matrix of dimension (NxN) with N
             denoting the number of empirical_moments. Used to weight squared moment
             errors.
-        return_scalar (bool): Indicates whether to return moment error
-            vector (False) or weighted square product of moment error vector (True).
 
     Returns:
         msm_func (callable): MSM function where all arguments except the parameter
@@ -236,13 +229,9 @@ def _harmonize_input(data):
     elif isinstance(data, dict):
         pass
 
-    elif isinstance(data, (tuple, list)):
-        data = {i: data_ for i, data_ in enumerate(data)}
-
     else:
         raise ValueError(
-            "Function only accepts lists, dictionaries, functions, Series and "
-            "DataFrames as inputs."
+            "Moments must be pandas objects or dictionaries of pandas objects."
         )
 
     return data
