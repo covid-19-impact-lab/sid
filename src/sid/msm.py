@@ -104,9 +104,9 @@ def get_msm_func(
         "simulated_moments",
     }
 
-    invalid = invalid_keys.intersection(additional_outputs)
+    invalid_present = invalid_keys.intersection(additional_outputs)
 
-    if invalid:
+    if invalid_present:
         raise ValueError("Invalid keys in additional_outputs: {invalid}")
 
     msm_func = functools.partial(
