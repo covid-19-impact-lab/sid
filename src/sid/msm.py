@@ -258,6 +258,7 @@ def _flatten_index(data):
     data_flat = []
 
     for name, series_or_df in data.items():
+        series_or_df = series_or_df.copy(deep=True)
         series_or_df.index = series_or_df.index.map(str)
         # Unstack DataFrames and Series to add columns/Series name to index.
         if isinstance(series_or_df, pd.DataFrame):
