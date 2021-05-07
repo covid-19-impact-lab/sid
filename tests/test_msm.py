@@ -22,7 +22,13 @@ def dummy_calc_moments(df):
 @pytest.mark.end_to_end
 def test_estimation_with_msm():
     s = pd.Series([1, 2])
-    msm_func = get_msm_func(dummy_simulate, dummy_calc_moments, s, lambda x: x)
+    msm_func = get_msm_func(
+        simulate=dummy_simulate,
+        calc_moments=dummy_calc_moments,
+        empirical_moments=s,
+        replace_nans=lambda x: x,
+        additional_outputs={"sr": lambda x: x},
+    )
 
     result = msm_func(None)
     expected = {
@@ -30,6 +36,7 @@ def test_estimation_with_msm():
         "root_contributions": pd.Series([0.0, 0.0], ["0_0", "0_1"]),
         "empirical_moments": {0: s},
         "simulated_moments": {0: s},
+        "sr": pd.Series([1, 2]),
     }
 
     for k, v in result.items():
@@ -46,10 +53,18 @@ def test_estimation_with_msm():
 @pytest.mark.integration
 @pytest.mark.parametrize(
     "empirical_moments, weights, expected",
-    [([pd.Series([1]), pd.Series([2])], None, np.eye(2))],
+    [({"a": pd.Series([1]), "b": pd.Series([2])}, None, np.eye(2))],
 )
 def test_get_diag_weighting_matrix(empirical_moments, weights, expected):
     result = get_diag_weighting_matrix(empirical_moments, weights)
+    assert np.all(result == expected)
+
+
+def test_get_diag_weighting_matrix_with_scalar_weights():
+    emp_moms = {0: pd.Series([1, 2]), 1: pd.Series([2, 3, 4])}
+    weights = {0: 0.3, 1: 0.7}
+    result = get_diag_weighting_matrix(emp_moms, weights)
+    expected = np.diag([0.3] * 2 + [0.7] * 3)
     assert np.all(result == expected)
 
 
@@ -57,7 +72,7 @@ def test_get_diag_weighting_matrix(empirical_moments, weights, expected):
 @pytest.mark.parametrize(
     "moments, expected",
     [
-        ([pd.Series([1]), pd.Series([2])], pd.Series([1, 2], ["0_0", "1_0"])),
+        ({0: pd.Series([1]), 1: pd.Series([2])}, pd.Series([1, 2], ["0_0", "1_0"])),
         (
             {"a": pd.DataFrame([[1, 2]], columns=["b", "c"])},
             pd.Series([1, 2], ["a_b_0", "a_c_0"]),
@@ -81,9 +96,7 @@ def _func():  # pragma: no cover
         (pd.DataFrame([[1]]), does_not_raise(), {0: pd.DataFrame([[1]])}),
         (_func, does_not_raise(), {0: _func}),
         ({1: 2}, does_not_raise(), {1: 2}),
-        ([1, 2, 3], does_not_raise(), {0: 1, 1: 2, 2: 3}),
-        ((1, 2, 3), does_not_raise(), {0: 1, 1: 2, 2: 3}),
-        ({1, 2}, pytest.raises(ValueError, match="Function only accepts"), None),
+        ({1, 2}, pytest.raises(ValueError, match="Moments must be"), None),
     ],
 )
 def test_harmonize_input(data, expectation, expected):
