@@ -283,9 +283,5 @@ def _is_diagonal(mat):
     return not np.count_nonzero(mat - np.diag(np.diagonal(mat)))
 
 
-def _is_dict_of_callables(candidate):
-    out = isinstance(candidate, dict)
-    for value in candidate.values():
-        if not callable(value):
-            out = False
-    return out
+def _is_dict_of_callables(x):
+    return isinstance(x, dict) and all(callable(value) for value in x.values())
