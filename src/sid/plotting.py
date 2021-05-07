@@ -22,23 +22,47 @@ DEFAULT_IR_PER_CM_KWARGS = {
 }
 
 
-def plot_infection_rates_by_contact_models(time_series, fig_kwargs=None):
+def plot_infection_rates_by_contact_models(df_or_time_series, fig_kwargs=None):
     """Plot infection rates by contact models."""
-    if "channel_infected_by_contact" not in time_series:
-        raise ValueError(ERROR_MISSING_CHANNEL)
-
     fig_kwargs = (
         DEFAULT_IR_PER_CM_KWARGS
         if fig_kwargs is None
         else {**DEFAULT_IR_PER_CM_KWARGS, **fig_kwargs}
     )
 
+    if _is_data_prepared_for_heatmap(df_or_time_series):
+        df = df_or_time_series
+    else:
+        df = prepare_data_for_infection_rates_by_contact_models(df_or_time_series)
+
+    hv.extension("bokeh")
+
+    heatmap = hv.HeatMap(df)
+    plot = heatmap.opts(**fig_kwargs)
+
+    return plot
+
+
+def _is_data_prepared_for_heatmap(df):
+    """Is the data prepared for the heatmap plot."""
+    return (
+        isinstance(df, pd.DataFrame)
+        and df.columns.isin(["date", "channel_infected_by_contact", "share"]).all()
+        and not df["channel_infected_by_contact"].isin("not_infected_by_contact").any()
+    )
+
+
+def prepare_data_for_infection_rates_by_contact_models(time_series):
+    """Prepare the data for the heatmap plot."""
     if isinstance(time_series, pd.DataFrame):
         df = time_series[["date", "channel_infected_by_contact"]]
     elif isinstance(time_series, dd.core.DataFrame):
         df = time_series[["date", "channel_infected_by_contact"]].compute()
     else:
         raise ValueError("'time_series' must be either pd.DataFrame or dask.dataframe.")
+
+    if "channel_infected_by_contact" not in time_series:
+        raise ValueError(ERROR_MISSING_CHANNEL)
 
     df = (
         df.groupby(["date", "channel_infected_by_contact"])
@@ -50,9 +74,4 @@ def plot_infection_rates_by_contact_models(time_series, fig_kwargs=None):
     df = df.drop(columns="n")
     df = df.query("channel_infected_by_contact != 'not_infected_by_contact'")
 
-    hv.extension("bokeh")
-
-    heatmap = hv.HeatMap(df)
-    plot = heatmap.opts(**fig_kwargs)
-
-    return plot
+    return df

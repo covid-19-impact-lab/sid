@@ -93,7 +93,7 @@ copybutton_prompt_is_regexp = True
 
 
 # Configuration for nbsphinx.
-nbsphinx_execute = "never"
+nbsphinx_execute = "auto"
 
 
 # -- Options for HTML output -----------------------------------------------------------
