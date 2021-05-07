@@ -153,7 +153,7 @@ def _create_y_ticks_and_labels(df):
         pos_per_group.groupby("affected_contact_model")["position"].mean().reset_index()
     )
     return mean_pos_per_group["position"], mean_pos_per_group["affected_contact_model"]
-  
+
 
 ERROR_MISSING_CHANNEL = (
     "'channel_infected_by_contact' is necessary to plot infection rates by contact "
