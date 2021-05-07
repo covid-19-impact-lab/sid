@@ -15,7 +15,6 @@ References:
        of Asset Prices. Econometrica, 61(4), 929-952.
 
 """
-import copy
 import functools
 
 import numpy as np
@@ -28,22 +27,18 @@ def get_msm_func(
     empirical_moments,
     replace_nans,
     weighting_matrix=None,
+    additional_outputs=None,
 ):
     """Get the msm function.
 
     Args:
         simulate (callable): Function which accepts parameters and returns simulated
             data.
-        calc_moments (callable or list): Function(s) used to calculate simulated
-            moments. Must match structure of empirical moments i.e. if empirical_moments
-            is a list of pandas.DataFrames, calc_moments must be a list of the same
-            length containing functions that correspond to the moments in
-            empirical_moments.
-        empirical_moments (pandas.DataFrame or pandas.Series or dict or list): Contains
-            the empirical moments calculated for the observed data. Moments should be
-            saved to pandas.DataFrame or pandas.Series that can either be passed to the
-            function directly or as items of a list or dictionary. Index of
-            pandas.DataFrames can be of type MultiIndex, but columns cannot.
+        calc_moments (callable or dict): Function(s) used to calculate simulated
+            moments. If it is a dictionary, it must have the same keys as
+            empirical_moments
+        empirical_moments (pandas.DataFrame or pandas.Series or dict): One pandas
+            object or a dictionary of pandas objects with empirical moments.
         replace_nans (callable or list): Functions(s) specifying how to handle NaNs in
             simulated_moments. Must match structure of empirical_moments. Exception: If
             only one replacement function is specified, it will be used on all sets of
@@ -51,8 +46,9 @@ def get_msm_func(
         weighting_matrix (numpy.ndarray): Square matrix of dimension (NxN) with N
             denoting the number of empirical_moments. Used to weight squared moment
             errors.
-        return_scalar (bool): Indicates whether to return moment error
-            vector (False) or weighted square product of moment error vector (True).
+        additional_outputs (dict or None): Dictionary of functions. Each function is
+            evaluated on the output of the simulate function and the result is
+            saved in the output dictionary of the msm function.
 
     Returns:
         msm_func (callable): MSM function where all arguments except the parameter
@@ -64,8 +60,6 @@ def get_msm_func(
 
     if not _is_diagonal(weighting_matrix):
         raise ValueError("weighting_matrix must be diagonal.")
-
-    empirical_moments = copy.deepcopy(empirical_moments)
 
     empirical_moments = _harmonize_input(empirical_moments)
     calc_moments = _harmonize_input(calc_moments)
@@ -96,6 +90,25 @@ def get_msm_func(
             "the number of sets of empirical moments."
         )
 
+    if additional_outputs is not None:
+        if not _is_dict_of_callables(additional_outputs):
+            raise ValueError("additional_outputs must be a dict of callables.")
+    else:
+        additional_outputs = {}
+
+    invalid_keys = {
+        "value",
+        "root_contributions",
+        "root_contributions",
+        "empirical_moments",
+        "simulated_moments",
+    }
+
+    invalid_present = invalid_keys.intersection(additional_outputs)
+
+    if invalid_present:
+        raise ValueError("Invalid keys in additional_outputs: {invalid}")
+
     msm_func = functools.partial(
         _msm,
         simulate=simulate,
@@ -103,6 +116,7 @@ def get_msm_func(
         empirical_moments=empirical_moments,
         replace_nans=replace_nans,
         weighting_matrix=weighting_matrix,
+        additional_outputs=additional_outputs,
     )
 
     return msm_func
@@ -115,6 +129,7 @@ def _msm(
     empirical_moments,
     replace_nans,
     weighting_matrix,
+    additional_outputs,
 ):
     """The MSM criterion function.
 
@@ -122,8 +137,6 @@ def _msm(
     except `params` attached to it.
 
     """
-    empirical_moments = copy.deepcopy(empirical_moments)
-
     df = simulate(params)
 
     simulated_moments = {name: func(df) for name, func in calc_moments.items()}
@@ -140,11 +153,8 @@ def _msm(
     flat_empirical_moments = _flatten_index(empirical_moments)
     flat_simulated_moments = _flatten_index(simulated_moments)
 
-    # Order is important to manfred.
     moment_errors = flat_simulated_moments - flat_empirical_moments
 
-    # Return moment errors as indexed DataFrame or calculate weighted square product of
-    # moment errors depending on return_scalar.
     root_contribs = np.sqrt(np.diagonal(weighting_matrix)) * moment_errors
     value = np.sum(root_contribs ** 2)
 
@@ -154,6 +164,9 @@ def _msm(
         "empirical_moments": empirical_moments,
         "simulated_moments": simulated_moments,
     }
+
+    for name, func in additional_outputs.items():
+        out[name] = func(df)
 
     return out
 
@@ -177,8 +190,6 @@ def get_diag_weighting_matrix(empirical_moments, weights=None):
         (numpy.ndarray): Array contains a diagonal weighting matrix.
 
     """
-    weights = copy.deepcopy(weights)
-    empirical_moments = copy.deepcopy(empirical_moments)
     empirical_moments = _harmonize_input(empirical_moments)
 
     # Use identity matrix if no weights are specified.
@@ -191,13 +202,17 @@ def get_diag_weighting_matrix(empirical_moments, weights=None):
         weights = _harmonize_input(weights)
 
         # Reindex weights to ensure they are assigned to the correct moments in
-        # the msm function.
-        weights = {
-            name: weight.reindex_like(empirical_moments[name])
-            for name, weight in weights.items()
-        }
+        # the msm function and convert scalars to pandas objects
+        cleaned = {}
+        for name, weight in weights.items():
+            if np.isscalar(weight):
+                nonscalar = empirical_moments[name].copy(deep=True)
+                nonscalar[:] = weight
+                cleaned[name] = nonscalar
+            else:
+                cleaned[name] = weight.reindex_like(empirical_moments[name])
 
-        flat_weights = _flatten_index(weights)
+        flat_weights = _flatten_index(cleaned)
 
     return np.diag(flat_weights)
 
@@ -217,7 +232,6 @@ def get_flat_moments(empirical_moments):
             index.
 
     """
-    empirical_moments = copy.deepcopy(empirical_moments)
     empirical_moments = _harmonize_input(empirical_moments)
     flat_empirical_moments = _flatten_index(empirical_moments)
 
@@ -225,29 +239,16 @@ def get_flat_moments(empirical_moments):
 
 
 def _harmonize_input(data):
-    """Harmonize different types of inputs by turning all inputs into dicts.
-
-    - pandas.DataFrames/Series and callable functions will turn into a list containing a
-      single item (i.e. the input).
-    - Dictionaries will be sorted according to keys and then turn into a list containing
-      the dictionary entries.
-
-    """
-    # Convert single DataFrames, Series or function into list containing one item.
+    """Harmonize different types of inputs by turning all inputs into dicts."""
     if isinstance(data, (pd.DataFrame, pd.Series)) or callable(data):
         data = {0: data}
 
-    # Sort dictionary according to keys and turn into list.
     elif isinstance(data, dict):
         pass
 
-    elif isinstance(data, (tuple, list)):
-        data = {i: data_ for i, data_ in enumerate(data)}
-
     else:
         raise ValueError(
-            "Function only accepts lists, dictionaries, functions, Series and "
-            "DataFrames as inputs."
+            "Moments must be pandas objects or dictionaries of pandas objects."
         )
 
     return data
@@ -258,6 +259,7 @@ def _flatten_index(data):
     data_flat = []
 
     for name, series_or_df in data.items():
+        series_or_df = series_or_df.copy(deep=True)
         series_or_df.index = series_or_df.index.map(str)
         # Unstack DataFrames and Series to add columns/Series name to index.
         if isinstance(series_or_df, pd.DataFrame):
@@ -279,3 +281,7 @@ def _flatten_index(data):
 def _is_diagonal(mat):
     """Check if the matrix is diagonal."""
     return not np.count_nonzero(mat - np.diag(np.diagonal(mat)))
+
+
+def _is_dict_of_callables(x):
+    return isinstance(x, dict) and all(callable(value) for value in x.values())
