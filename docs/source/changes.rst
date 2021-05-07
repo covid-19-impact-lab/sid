@@ -11,6 +11,8 @@ all releases are available on `Anaconda.org
 ------------------
 
 - :gh:`113` implements a gantt chart to visualize policies.
+- :gh:`115` allows to have heterogeneous effects of seasonality on contact models.
+- :gh:`116` adds a plot to investigate which contact model caused how many infections.
 
 
 0.0.4 - 2021-04-24
