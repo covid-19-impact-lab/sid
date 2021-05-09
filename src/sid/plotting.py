@@ -55,23 +55,27 @@ def _is_data_prepared_for_heatmap(df):
 def prepare_data_for_infection_rates_by_contact_models(time_series):
     """Prepare the data for the heatmap plot."""
     if isinstance(time_series, pd.DataFrame):
-        df = time_series[["date", "channel_infected_by_contact"]]
-    elif isinstance(time_series, dd.core.DataFrame):
-        df = time_series[["date", "channel_infected_by_contact"]].compute()
-    else:
+        time_series = dd.from_pandas(time_series, npartitions=1)
+    elif not isinstance(time_series, dd.core.DataFrame):
         raise ValueError("'time_series' must be either pd.DataFrame or dask.dataframe.")
 
     if "channel_infected_by_contact" not in time_series:
         raise ValueError(ERROR_MISSING_CHANNEL)
 
-    df = (
-        df.groupby(["date", "channel_infected_by_contact"])
+    time_series = (
+        time_series[["date", "channel_infected_by_contact"]]
+        .groupby(["date", "channel_infected_by_contact"])
         .size()
         .reset_index()
         .rename(columns={0: "n"})
+        .assign(
+            share=lambda x: x["n"]
+            / x.groupby("date")["n"].transform("sum", meta=("n", "f8")),
+        )
+        .drop(columns="n")
+        .query("channel_infected_by_contact != 'not_infected_by_contact'")
     )
-    df["share"] = df["n"] / df.groupby(["date"])["n"].transform("sum")
-    df = df.drop(columns="n")
-    df = df.query("channel_infected_by_contact != 'not_infected_by_contact'")
+    if isinstance(time_series, dd.core.DataFrame):
+        time_series = time_series.compute()
 
-    return df
+    return time_series
