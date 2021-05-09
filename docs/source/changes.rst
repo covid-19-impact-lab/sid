@@ -7,12 +7,13 @@ all releases are available on `Anaconda.org
 <https://anaconda.org/covid-19-impact-lab/sid>`_.
 
 
-0.0.5 - 2021-xx-xx
+0.0.5 - 2021-05-09
 ------------------
 
 - :gh:`113` implements a gantt chart to visualize policies.
 - :gh:`115` allows to have heterogeneous effects of seasonality on contact models.
-- :gh:`116` adds a plot to investigate which contact model caused how many infections.
+- :gh:`116` adds a plot to investigate which contact model caused how many infections
+  and :gh:`118` makes the data preparation more performant.
 
 
 0.0.4 - 2021-04-24
