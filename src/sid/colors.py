@@ -108,9 +108,9 @@ def _mono_list_to_triangle(mono_list):
 CAT_LIST = [
     "#547482",
     "#C87259",
-    "#C2D8C2",
     "#F1B05D",
     "#818662",
+    "#C2D8C2",
     "#6C4A4D",
     "#7A8C87",
     "#EE8445",

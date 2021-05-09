@@ -14,4 +14,5 @@ simple model and show you how to use sid to simulate your own model.
    how_to_reduce_memory_consumption
    how_to_resume_a_simulation
    how_to_simulate_multiple_virus_strains
+   how_to_visualize
    how_to_plot_infection_rates_by_contact_models
