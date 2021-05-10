@@ -200,7 +200,9 @@ def _is_data_prepared_for_heatmap(df):
     return (
         isinstance(df, pd.DataFrame)
         and df.columns.isin(["date", "channel_infected_by_contact", "share"]).all()
-        and not df["channel_infected_by_contact"].isin("not_infected_by_contact").any()
+        and not df["channel_infected_by_contact"]
+        .isin(["not_infected_by_contact"])
+        .any()
     )
 
 
