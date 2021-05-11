@@ -145,7 +145,7 @@ def _create_sensitivity(states, sensitivity_params, receives_test_and_is_infecti
             sensitivity depends on the time since infectiousness started. Missing values
             for `cd_infectious_true` are filled with the value of the most negative
             index. For example, if you want to have a sensitivity of 50% on the day an
-            individual develops symptoms and 90% on every later day, you would specify
+            individual becomes infectious and 90% on every later day, you would specify
             as index [0, -1] and [0.5, 0.9] as values.
             If there is only one entry, the index must be ["sensitivity"] and this
             sensitivity is used for all infectious individuals.
