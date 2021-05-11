@@ -1,4 +1,5 @@
 import itertools
+import warnings
 from typing import Callable
 from typing import Optional
 
@@ -111,9 +112,14 @@ def _sample_test_outcome(states, receives_rapid_test, params, seed):
     is_tested_positive = pd.Series(index=states.index, data=False)
 
     receives_test_and_is_infectious = states["infectious"] & receives_rapid_test
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", message="indexing past lexsort depth may impact performance."
+        )
+        sensitivity_params = params.loc[("rapid_test", "sensitivity"), "value"]
     sensitivity = _create_sensitivity(
         states,
-        sensitivity_params=params.loc[("rapid_test", "sensitivity"), "value"],
+        sensitivity_params=sensitivity_params,
         receives_test_and_is_infectious=receives_test_and_is_infectious,
     )
     is_truly_positive = boolean_choices(sensitivity)
@@ -144,23 +150,18 @@ def _create_sensitivity(states, sensitivity_params, receives_test_and_is_infecti
             If there is only one entry, the index must be ["sensitivity"] and this
             sensitivity is used for all infectious individuals.
 
-    Returns:
-        sensitivity (numpy.ndarray or )
     """
     if len(sensitivity_params) == 1:
         sensitivity_value = sensitivity_params["sensitivity"]
         sensitivity = np.full(receives_test_and_is_infectious.sum(), sensitivity_value)
     else:
-        # make sure we loop 0, -1, -2 etc.
-        sensitivity_values = sensitivity_params.sort_index(ascending=False)
-        sensitivity = pd.Series(np.nan, index=states.index)
-        for day_since_infectious, sensitivity_value in sensitivity_values.items():
+        last_sensitivity_value = sensitivity_params[sensitivity_params.index.min()]
+        # It is irrelevant what value is set for people who are not infectious (yet)
+        # as they are removed through receives_test_and_is_infectious.
+        sensitivity = pd.Series(last_sensitivity_value, index=states.index)
+        for day_since_infectious, sensitivity_value in sensitivity_params.items():
             at_current_day = states["cd_infectious_true"] == day_since_infectious
             sensitivity[at_current_day] = sensitivity_value
-        # no need to handle people with positive countdowns because they will be dropped
-        # when we reduce to receives_test_and_is_infectious. So we can simply fill with
-        # the last value for those after the latest given day since infectiousness .
-        sensitivity = sensitivity.fillna(sensitivity_value)
         sensitivity = sensitivity[receives_test_and_is_infectious]
     return sensitivity
 

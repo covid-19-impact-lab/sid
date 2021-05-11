@@ -160,14 +160,15 @@ def test_sample_test_outcome_with_sensitivity(params):
 def test_sample_test_outcome_with_sensitivity_time_dependent(params):
     n_individuals = 10_000_000
 
-    receives_rapid_test = np.ones(n_individuals).astype(bool)
-    cd_infectious_true = np.random.choice([0, -1, -2], n_individuals, True)
+    cd_infectious_true = np.random.choice([1, 0, -1, -2], n_individuals, True)
     states = pd.DataFrame(
         {
-            "infectious": receives_rapid_test,
+            "infectious": cd_infectious_true <= 0,
             "cd_infectious_true": cd_infectious_true,
         }
     )
+    receives_rapid_test = np.ones(n_individuals).astype(bool)
+    receives_rapid_test[:1000] = False
 
     params = params.drop([("rapid_test", "sensitivity")])
     params.loc[("rapid_test", "sensitivity", 0)] = 0.5
@@ -176,16 +177,28 @@ def test_sample_test_outcome_with_sensitivity_time_dependent(params):
     is_tested_positive = _sample_test_outcome(
         states, receives_rapid_test, params, itertools.count()
     )
+    assert not is_tested_positive[:1000].any()
+    expected_share_false_positive = (
+        1 - params.loc[("rapid_test", "specificity", "specificity"), "value"]
+    )
+    res_share_false_positive = is_tested_positive[
+        states["cd_infectious_true"] > 0 & receives_rapid_test
+    ].mean()
+    assert np.isclose(
+        expected_share_false_positive, res_share_false_positive, atol=1e-3
+    )
 
     first_day_share_positive = is_tested_positive[
-        states["cd_infectious_true"] == 0
+        states["cd_infectious_true"] == 0 & receives_rapid_test
     ].mean()
     assert np.isclose(
         first_day_share_positive,
         0.5,
         atol=1e-3,
     )
-    later_share_positive = is_tested_positive[states["cd_infectious_true"] < 0].mean()
+    later_share_positive = is_tested_positive[
+        states["cd_infectious_true"] < 0 & receives_rapid_test
+    ].mean()
     assert np.isclose(
         later_share_positive,
         0.9,
