@@ -108,14 +108,15 @@ def _sample_test_outcome(states, receives_rapid_test, params, seed):
 
     """
     np.random.seed(next(seed))
-
     is_tested_positive = pd.Series(index=states.index, data=False)
 
-    sensitivity = params.loc[("rapid_test", "sensitivity", "sensitivity"), "value"]
     receives_test_and_is_infectious = states["infectious"] & receives_rapid_test
-    is_truly_positive = boolean_choices(
-        np.full(receives_test_and_is_infectious.sum(), sensitivity)
+    sensitivity = _create_sensitivity(
+        states,
+        sensitivity_params=params.loc[("rapid_test", "sensitivity"), "value"],
+        receives_test_and_is_infectious=receives_test_and_is_infectious,
     )
+    is_truly_positive = boolean_choices(sensitivity)
 
     specificity = params.loc[("rapid_test", "specificity", "specificity"), "value"]
     receives_test_and_is_not_infectious = ~states["infectious"] & receives_rapid_test
@@ -127,6 +128,41 @@ def _sample_test_outcome(states, receives_rapid_test, params, seed):
     is_tested_positive.loc[receives_test_and_is_not_infectious] = is_falsely_positive
 
     return is_tested_positive
+
+
+def _create_sensitivity(states, sensitivity_params, receives_test_and_is_infectious):
+    """Create the sensitivity for each individual.
+
+    Args:
+        sensitivity_params (pandas.Series): The index are the values of
+            `cd_infectious_true` if there is more than one entry. In that case the
+            sensitivity depends on the time since infectiousness started. Missing values
+            for `cd_infectious_true` are filled with the value of the most negative
+            index. For example, if you want to have a sensitivity of 50% on the day an
+            individual develops symptoms and 90% on every later day, you would specify
+            as index [0, -1] and [0.5, 0.9] as values.
+            If there is only one entry, the index must be ["sensitivity"] and this
+            sensitivity is used for all infectious individuals.
+
+    Returns:
+        sensitivity (numpy.ndarray or )
+    """
+    if len(sensitivity_params) == 1:
+        sensitivity_value = sensitivity_params["sensitivity"]
+        sensitivity = np.full(receives_test_and_is_infectious.sum(), sensitivity_value)
+    else:
+        # make sure we loop 0, -1, -2 etc.
+        sensitivity_values = sensitivity_params.sort_index(ascending=False)
+        sensitivity = pd.Series(np.nan, index=states.index)
+        for day_since_infectious, sensitivity_value in sensitivity_values.items():
+            at_current_day = states["cd_infectious_true"] == day_since_infectious
+            sensitivity[at_current_day] = sensitivity_value
+        # no need to handle people with positive countdowns because they will be dropped
+        # when we reduce to receives_test_and_is_infectious. So we can simply fill with
+        # the last value for those after the latest given day since infectiousness .
+        sensitivity = sensitivity.fillna(sensitivity_value)
+        sensitivity = sensitivity[receives_test_and_is_infectious]
+    return sensitivity
 
 
 def _update_states_with_rapid_tests_outcomes(
