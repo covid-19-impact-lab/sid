@@ -81,7 +81,7 @@ def get_simulate_func(
     rapid_test_reaction_models: Optional[Dict[str, Dict[str, Any]]] = None,
     seasonality_factor_model: Optional[Callable] = None,
     derived_state_variables: Optional[Dict[str, str]] = None,
-    additional_outputs: Optional[Dict[str, Callable]] = None,
+    period_outputs: Optional[Dict[str, Callable]] = None,
     return_time_series: bool = True,
     return_last_states: bool = True,
 ):
@@ -211,7 +211,7 @@ def get_simulate_func(
             names of state variables to pandas evaluation strings that generate derived
             state variables, i.e. state variables that can be calculated from the
             existing state variables.
-        additional_outputs (Optional[Dict[str, Callable]]): A dictionary of functions
+        period_outputs (Optional[Dict[str, Callable]]): A dictionary of functions
             that are called with the states DataFrame at the end of each period. Their
             results are stored in a dictionary of lists inside the results dictionary
             of the simulate function.
@@ -246,10 +246,10 @@ def get_simulate_func(
         vaccination_models = {}
     if derived_state_variables is None:
         derived_state_variables = {}
-    if additional_outputs is None:
-        additional_outputs = {}
+    if period_outputs is None:
+        period_outputs = {}
 
-    if not any([additional_outputs, return_time_series, return_last_states]):
+    if not any([period_outputs, return_time_series, return_last_states]):
         raise ValueError("No simulation output was requested.")
 
     initial_states = initial_states.copy(deep=True)
@@ -359,7 +359,7 @@ def get_simulate_func(
         rapid_test_reaction_models=rapid_test_reaction_models,
         seasonality_factor_model=seasonality_factor_model,
         derived_state_variables=derived_state_variables,
-        additional_outputs=additional_outputs,
+        period_outputs=period_outputs,
         return_time_series=return_time_series,
         return_last_states=return_last_states,
     )
@@ -389,7 +389,7 @@ def _simulate(
     rapid_test_reaction_models,
     seasonality_factor_model,
     derived_state_variables,
-    additional_outputs,
+    period_outputs,
     return_time_series,
     return_last_states,
 ):
@@ -451,7 +451,7 @@ def _simulate(
             names of state variables to pandas evaluation strings that generate derived
             state variables, i.e. state variables that can be calculated from the
             existing state variables.
-        additional_outputs (Optional[Dict[str, Callable]]): A dictionary of functions
+        period_outputs (Optional[Dict[str, Callable]]): A dictionary of functions
             that are called with the states DataFrame at the end of each period. Their
             results are stored in a dictionary of lists inside the results dictionary
             of the simulate function.
@@ -463,15 +463,15 @@ def _simulate(
 
     Returns:
         result (Dict[str, Any]): The simulation result which include some or all of the
-            following keys, depending on the values of ``additional_outputs``,
+            following keys, depending on the values of ``period_outputs``,
             ``return_time_series`` and ``return_last_states``.
 
             - **time_series** (:class:`dask.dataframe`): The DataFrame contains the
               states of each period (see :ref:`states`).
             - **last_states** (:class:`dask.dataframe`): The states of the last
               simulated period to resume the simulation.
-            - **additional_outputs** (dict): Dictionary of lists. The keys are the keys
-              of the ``additional_outputs`` dictionary passed to ``get_simulate_func``.
+            - **period_outputs** (dict): Dictionary of lists. The keys are the keys
+              of the ``period_outputs`` dictionary passed to ``get_simulate_func``.
               The values are lists with one entry per simulated period.
 
     """
@@ -508,7 +508,7 @@ def _simulate(
 
     pbar = tqdm(duration["dates"])
 
-    period_outputs = {key: [] for key in additional_outputs}
+    evaluated_period_outputs = {key: [] for key in period_outputs}
 
     for date in pbar:
         pbar.set_description(f"{date.date()}")
@@ -630,9 +630,9 @@ def _simulate(
         if return_time_series:
             _dump_periodic_states(states, columns_to_keep, path, date)
 
-        if additional_outputs:
-            for name, func in additional_outputs.items():
-                period_outputs[name].append(func(states))
+        if period_outputs:
+            for name, func in period_outputs.items():
+                evaluated_period_outputs[name].append(func(states))
 
     results = {}
     if return_time_series:
@@ -641,8 +641,8 @@ def _simulate(
     if return_last_states:
         last_states = _prepare_last_states(path, states)
         results["last_states"] = last_states
-    if additional_outputs:
-        results["additional_outputs"] = period_outputs
+    if period_outputs:
+        results["period_outputs"] = evaluated_period_outputs
 
     return results
 
