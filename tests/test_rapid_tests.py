@@ -6,6 +6,7 @@ import pytest
 from resources import CONTACT_MODELS
 from sid import get_simulate_func
 from sid.rapid_tests import _compute_who_receives_rapid_tests
+from sid.rapid_tests import _create_sensitivity
 from sid.rapid_tests import _sample_test_outcome
 from sid.rapid_tests import _update_states_with_rapid_tests_outcomes
 
@@ -156,6 +157,43 @@ def test_sample_test_outcome_with_sensitivity(params):
 
 
 @pytest.mark.unit
+def test_sample_test_outcome_with_sensitivity_time_dependent(params):
+    n_individuals = 10_000_000
+
+    receives_rapid_test = np.ones(n_individuals).astype(bool)
+    cd_infectious_true = np.random.choice([0, -1, -2], n_individuals, True)
+    states = pd.DataFrame(
+        {
+            "infectious": receives_rapid_test,
+            "cd_infectious_true": cd_infectious_true,
+        }
+    )
+
+    params = params.drop([("rapid_test", "sensitivity")])
+    params.loc[("rapid_test", "sensitivity", 0)] = 0.5
+    params.loc[("rapid_test", "sensitivity", -1)] = 0.9
+
+    is_tested_positive = _sample_test_outcome(
+        states, receives_rapid_test, params, itertools.count()
+    )
+
+    first_day_share_positive = is_tested_positive[
+        states["cd_infectious_true"] == 0
+    ].mean()
+    assert np.isclose(
+        first_day_share_positive,
+        0.5,
+        atol=1e-3,
+    )
+    later_share_positive = is_tested_positive[states["cd_infectious_true"] < 0].mean()
+    assert np.isclose(
+        later_share_positive,
+        0.9,
+        atol=1e-3,
+    )
+
+
+@pytest.mark.unit
 def test_sample_test_outcome_with_specificity(params):
     n_individuals = 1_000_000
 
@@ -192,3 +230,42 @@ def test_update_states_with_rapid_tests_outcomes():
     expected = pd.DataFrame([(-9, False), (0, False), (0, True)], columns=columns)
 
     assert result.equals(expected)
+
+
+@pytest.mark.unit
+def test_create_sensitivity_time_dependent():
+    states = pd.DataFrame(
+        [
+            [False, 2],  # not infectious yet
+            [True, 0],  # first day of infectiousness
+            [True, -1],  # 2nd day of infectiousness
+            [True, -2],  # not getting tested
+            [True, -4],  # after latest specified infectiousness
+            [False, -5],  # not infectious anymore
+        ],
+        columns=["infectious", "cd_infectious_true"],
+    )
+    params = pd.Series([0.5, 0.7, 0.9], index=[0, -1, -2])
+    receives_test_and_is_infectious = pd.Series([False, True, True, False, True, False])
+    result = _create_sensitivity(states, params, receives_test_and_is_infectious)
+    expected = pd.Series([0.5, 0.7, 0.9], index=[1, 2, 4])
+    assert result.equals(expected)
+
+
+@pytest.mark.unit
+def test_create_sensitivity():
+    states = pd.DataFrame(
+        [
+            [False, 2],  # not infectious yet
+            [True, 0],  # first day of infectiousness
+            [True, -1],  # 2nd day of infectiousness
+            [True, -2],  # not getting tested
+            [True, -4],  # after latest specified infectiousness
+            [False, -5],  # not infectious anymore
+        ],
+        columns=["infectious", "cd_infectious_true"],
+    )
+    params = pd.Series([0.5], index=["sensitivity"])
+    receives_test_and_is_infectious = pd.Series([False, True, True, False, True, False])
+    result = _create_sensitivity(states, params, receives_test_and_is_infectious)
+    assert (result == 0.5).all()
