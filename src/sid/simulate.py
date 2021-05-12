@@ -1034,7 +1034,7 @@ def _prepare_time_series(output_directory, columns_to_keep, last_states):
     Args:
         output_directory (pathlib.Path): Path to output directory.
         columns_to_keep (list): List of variables which should be kept.
-        last_states (pd.DataFrame): The states from the last period.
+        last_states (pandas.DataFrame): The states from the last period.
 
     Returns:
         dask.dataframe: The DataFrame contains (reduced) states of each period.
@@ -1064,7 +1064,7 @@ def _prepare_last_states(output_directory, last_states):
     Args:
         output_directory (pathlib.Path): Path to output directory.
         columns_to_keep (list): List of variables which should be kept.
-        last_states (pd.DataFrame): The states from the last period.
+        last_states (pandas.DataFrame): The states from the last period.
 
     Returns:
         dask.dataframe: The DataFrame with the last states
