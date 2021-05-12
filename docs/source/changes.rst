@@ -7,6 +7,24 @@ all releases are available on `Anaconda.org
 <https://anaconda.org/covid-19-impact-lab/sid>`_.
 
 
+0.0.7 - 2021-05-12
+------------------
+
+- :gh:`122` allows to calculate moments after each period is simulated which can help to
+  reduce the memory footprint of a simulation to facilitate parallel simulations on the
+  same machine.
+- :gh:`123` allows to make the sensitivity of rapid tests dependent on how long an
+  individual is infectious.
+- :gh:`124` updates the release notes.
+
+
+0.0.6 - 2021-05-10
+------------------
+
+- :gh:`119` fixes a bug in the data preparation for the channel of infection plot.
+- :gh:`120` adds matplotlib to the dependencies of the package.
+
+
 0.0.5 - 2021-05-09
 ------------------
 
