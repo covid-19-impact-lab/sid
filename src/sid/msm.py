@@ -137,9 +137,9 @@ def _msm(
     except `params` attached to it.
 
     """
-    df = simulate(params)
+    sim_out = simulate(params)
 
-    simulated_moments = {name: func(df) for name, func in calc_moments.items()}
+    simulated_moments = {name: func(sim_out) for name, func in calc_moments.items()}
 
     simulated_moments = {
         name: sim_mom.reindex_like(empirical_moments[name])
@@ -166,7 +166,7 @@ def _msm(
     }
 
     for name, func in additional_outputs.items():
-        out[name] = func(df)
+        out[name] = func(sim_out)
 
     return out
 

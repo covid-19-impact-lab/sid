@@ -81,6 +81,9 @@ def get_simulate_func(
     rapid_test_reaction_models: Optional[Dict[str, Dict[str, Any]]] = None,
     seasonality_factor_model: Optional[Callable] = None,
     derived_state_variables: Optional[Dict[str, str]] = None,
+    period_outputs: Optional[Dict[str, Callable]] = None,
+    return_time_series: bool = True,
+    return_last_states: bool = True,
 ):
     """Get a function that simulates the spread of an infectious disease.
 
@@ -208,6 +211,15 @@ def get_simulate_func(
             names of state variables to pandas evaluation strings that generate derived
             state variables, i.e. state variables that can be calculated from the
             existing state variables.
+        period_outputs (Optional[Dict[str, Callable]]): A dictionary of functions
+            that are called with the states DataFrame at the end of each period. Their
+            results are stored in a dictionary of lists inside the results dictionary
+            of the simulate function.
+        return_time_series (Optional[bool])): Whether the full time searies is stored
+            on disk and returned as dask.DataFrame in the results dictionary of the
+            simulate function.
+        return_last_states (Optional[bool])): Whether the full states DataFrame of the
+            last period are returned in the results dictionary of the simulate function.
 
     Returns:
         Callable: Simulates dataset based on parameters.
@@ -234,6 +246,11 @@ def get_simulate_func(
         vaccination_models = {}
     if derived_state_variables is None:
         derived_state_variables = {}
+    if period_outputs is None:
+        period_outputs = {}
+
+    if not any([period_outputs, return_time_series, return_last_states]):
+        raise ValueError("No simulation output was requested.")
 
     initial_states = initial_states.copy(deep=True)
     params = params.copy(deep=True)
@@ -342,6 +359,9 @@ def get_simulate_func(
         rapid_test_reaction_models=rapid_test_reaction_models,
         seasonality_factor_model=seasonality_factor_model,
         derived_state_variables=derived_state_variables,
+        period_outputs=period_outputs,
+        return_time_series=return_time_series,
+        return_last_states=return_last_states,
     )
     return sim_func
 
@@ -369,6 +389,9 @@ def _simulate(
     rapid_test_reaction_models,
     seasonality_factor_model,
     derived_state_variables,
+    period_outputs,
+    return_time_series,
+    return_last_states,
 ):
     """Simulate the spread of an infectious disease.
 
@@ -428,15 +451,28 @@ def _simulate(
             names of state variables to pandas evaluation strings that generate derived
             state variables, i.e. state variables that can be calculated from the
             existing state variables.
+        period_outputs (Optional[Dict[str, Callable]]): A dictionary of functions
+            that are called with the states DataFrame at the end of each period. Their
+            results are stored in a dictionary of lists inside the results dictionary
+            of the simulate function.
+        return_time_series (Optional[bool])): Whether the full time searies is stored
+            on disk and returned as dask.DataFrame in the results dictionary of the
+            simulate function. If False, only the additional outputs are available.
+        return_last_states (Optional[bool])): Whether the full states DataFrame of the
+            last period are returned in the results dictionary of the simulate function.
 
     Returns:
-        result (Dict[str, dask.dataframe]): The simulation result which includes the
-            following keys:
+        result (Dict[str, Any]): The simulation result which include some or all of the
+            following keys, depending on the values of ``period_outputs``,
+            ``return_time_series`` and ``return_last_states``.
 
             - **time_series** (:class:`dask.dataframe`): The DataFrame contains the
               states of each period (see :ref:`states`).
             - **last_states** (:class:`dask.dataframe`): The states of the last
               simulated period to resume the simulation.
+            - **period_outputs** (dict): Dictionary of lists. The keys are the keys
+              of the ``period_outputs`` dictionary passed to ``get_simulate_func``.
+              The values are lists with one entry per simulated period.
 
     """
     seed = np.random.randint(0, 1_000_000) if seed is None else seed
@@ -471,6 +507,9 @@ def _simulate(
         logger.info("Start the simulation...")
 
     pbar = tqdm(duration["dates"])
+
+    evaluated_period_outputs = {key: [] for key in period_outputs}
+
     for date in pbar:
         pbar.set_description(f"{date.date()}")
 
@@ -588,9 +627,22 @@ def _simulate(
             susceptibility_factor=susceptibility_factor,
         )
 
-        _dump_periodic_states(states, columns_to_keep, path, date)
+        if return_time_series:
+            _dump_periodic_states(states, columns_to_keep, path, date)
 
-    results = _prepare_simulation_result(path, columns_to_keep, states)
+        if period_outputs:
+            for name, func in period_outputs.items():
+                evaluated_period_outputs[name].append(func(states))
+
+    results = {}
+    if return_time_series:
+        time_series = _prepare_time_series(path, columns_to_keep, states)
+        results["time_series"] = time_series
+    if return_last_states:
+        last_states = _prepare_last_states(path, states)
+        results["last_states"] = last_states
+    if period_outputs:
+        results["period_outputs"] = evaluated_period_outputs
 
     return results
 
@@ -895,7 +947,11 @@ def _process_initial_states(
     # Sort index for deterministic shuffling and reset index because otherwise it will
     # be dropped while writing to parquet. Parquet stores an efficient range index
     # instead.
-    states = states.sort_index().reset_index()
+    if not isinstance(states.index, pd.RangeIndex):
+        warnings.warn(
+            "The index of states passed to sid are reset and dropped by default."
+        )
+    states = states.sort_index().reset_index(drop=True)
 
     for col in BOOLEAN_STATE_COLUMNS:
         if col not in states.columns:
@@ -976,21 +1032,47 @@ def _dump_periodic_states(states, columns_to_keep, output_directory, date) -> No
     )
 
 
-def _prepare_simulation_result(output_directory, columns_to_keep, last_states):
-    """Process the simulation results.
+def _prepare_time_series(output_directory, columns_to_keep, last_states):
+    """Prepare the time series for the simulation results.
 
     Args:
         output_directory (pathlib.Path): Path to output directory.
         columns_to_keep (list): List of variables which should be kept.
-        last_states (pandas.DataFrame): States of the last period.
+        last_states (pandas.DataFrame): The states from the last period.
 
     Returns:
-        result (dict): The simulation result which includes the following keys:
+        dask.dataframe: The DataFrame contains (reduced) states of each period.
 
-            - ``time_series`` (dask.dataframe): The DataFrame contains the states of
-              each period (see :ref:`states`).
-            - ``last_states`` (dask.dataframe): The states of the last simulated period
-              to resume the simulation.
+    """
+    categoricals = {
+        column: last_states[column].cat.categories.shape[0]
+        for column in last_states.select_dtypes("category").columns
+    }
+
+    reduced_categoricals = {
+        k: v for k, v in categoricals.items() if k in columns_to_keep
+    }
+
+    time_series = dd.read_parquet(
+        output_directory / "time_series",
+        categories=reduced_categoricals,
+        engine="fastparquet",
+    )
+
+    return time_series
+
+
+def _prepare_last_states(output_directory, last_states):
+    """Prepare the last_states for the simulation results.
+
+    Args:
+        output_directory (pathlib.Path): Path to output directory.
+        columns_to_keep (list): List of variables which should be kept.
+        last_states (pandas.DataFrame): The states from the last period.
+
+    Returns:
+        dask.dataframe: The DataFrame with the last states
+
 
     """
     categoricals = {
@@ -1004,18 +1086,7 @@ def _prepare_simulation_result(output_directory, columns_to_keep, last_states):
         categories=categoricals,
         engine="fastparquet",
     )
-
-    reduced_categoricals = {
-        k: v for k, v in categoricals.items() if k in columns_to_keep
-    }
-
-    time_series = dd.read_parquet(
-        output_directory / "time_series",
-        categories=reduced_categoricals,
-        engine="fastparquet",
-    )
-
-    return {"time_series": time_series, "last_states": last_states}
+    return last_states
 
 
 def _process_saved_columns(
