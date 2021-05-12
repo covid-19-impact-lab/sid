@@ -1,4 +1,5 @@
 import itertools
+import warnings
 from typing import Callable
 from typing import Optional
 
@@ -108,14 +109,20 @@ def _sample_test_outcome(states, receives_rapid_test, params, seed):
 
     """
     np.random.seed(next(seed))
-
     is_tested_positive = pd.Series(index=states.index, data=False)
 
-    sensitivity = params.loc[("rapid_test", "sensitivity", "sensitivity"), "value"]
     receives_test_and_is_infectious = states["infectious"] & receives_rapid_test
-    is_truly_positive = boolean_choices(
-        np.full(receives_test_and_is_infectious.sum(), sensitivity)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", message="indexing past lexsort depth may impact performance."
+        )
+        sensitivity_params = params.loc[("rapid_test", "sensitivity"), "value"]
+    sensitivity = _create_sensitivity(
+        states,
+        sensitivity_params=sensitivity_params,
+        receives_test_and_is_infectious=receives_test_and_is_infectious,
     )
+    is_truly_positive = boolean_choices(sensitivity)
 
     specificity = params.loc[("rapid_test", "specificity", "specificity"), "value"]
     receives_test_and_is_not_infectious = ~states["infectious"] & receives_rapid_test
@@ -127,6 +134,36 @@ def _sample_test_outcome(states, receives_rapid_test, params, seed):
     is_tested_positive.loc[receives_test_and_is_not_infectious] = is_falsely_positive
 
     return is_tested_positive
+
+
+def _create_sensitivity(states, sensitivity_params, receives_test_and_is_infectious):
+    """Create the sensitivity for each individual.
+
+    Args:
+        sensitivity_params (pandas.Series): The index are the values of
+            `cd_infectious_true` if there is more than one entry. In that case the
+            sensitivity depends on the time since infectiousness started. Missing values
+            for `cd_infectious_true` are filled with the value of the most negative
+            index. For example, if you want to have a sensitivity of 50% on the day an
+            individual becomes infectious and 90% on every later day, you would specify
+            as index [0, -1] and [0.5, 0.9] as values.
+            If there is only one entry, the index must be ["sensitivity"] and this
+            sensitivity is used for all infectious individuals.
+
+    """
+    if len(sensitivity_params) == 1:
+        sensitivity_value = sensitivity_params["sensitivity"]
+        sensitivity = np.full(receives_test_and_is_infectious.sum(), sensitivity_value)
+    else:
+        last_sensitivity_value = sensitivity_params[sensitivity_params.index.min()]
+        # It is irrelevant what value is set for people who are not infectious (yet)
+        # as they are removed through receives_test_and_is_infectious.
+        sensitivity = pd.Series(last_sensitivity_value, index=states.index)
+        for day_since_infectious, sensitivity_value in sensitivity_params.items():
+            at_current_day = states["cd_infectious_true"] == day_since_infectious
+            sensitivity[at_current_day] = sensitivity_value
+        sensitivity = sensitivity[receives_test_and_is_infectious]
+    return sensitivity
 
 
 def _update_states_with_rapid_tests_outcomes(
