@@ -948,7 +948,9 @@ def _process_initial_states(
     # be dropped while writing to parquet. Parquet stores an efficient range index
     # instead.
     if not isinstance(states.index, pd.RangeIndex):
-        warnings.warn("The index of states passed to sid are reset and dropped by default.")
+        warnings.warn(
+            "The index of states passed to sid are reset and dropped by default."
+        )
     states = states.sort_index().reset_index(drop=True)
 
     for col in BOOLEAN_STATE_COLUMNS:
