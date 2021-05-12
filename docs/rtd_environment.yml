@@ -21,7 +21,7 @@ dependencies:
   # Package dependencies.
   - bokeh
   - dask
-  - fastparquet
+  - fastparquet !=0.6.1
   - holoviews
   - numba >=0.48
   - pandas >=1
