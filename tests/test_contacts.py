@@ -4,6 +4,7 @@ import numba as nb
 import numpy as np
 import pandas as pd
 import pytest
+from sid.contacts import _consolidate_reason_of_infection
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
 
@@ -234,3 +235,28 @@ def test_calculate_infections_only_non_recurrent(households_w_one_infected):
         exp_infection_counter
     )
     assert not np.any(calc_missed_contacts)
+
+
+def test_consolidate_reason_of_infection():
+    was_infected_by_recurrent = np.array([0, 1, 1, -1, -1, -1, 0, -1])
+    was_infected_by_random = np.array([-1, -1, -1, 0, 0, 1, 0, -1])
+
+    contact_models = {
+        "a": {"is_recurrent": True},
+        "b": {"is_recurrent": True},
+        "c": {"is_recurrent": False},
+        "d": {"is_recurrent": False},
+    }
+
+    result = _consolidate_reason_of_infection(
+        was_infected_by_recurrent, was_infected_by_random, contact_models
+    )
+
+    expected = pd.Series(
+        pd.Categorical(
+            ["a", "b", "b", "c", "c", "d", "a", "not_infected_by_contact"],
+            categories=["not_infected_by_contact", "a", "b", "c", "d"],
+        )
+    )
+
+    assert result.equals(expected)
