@@ -94,6 +94,7 @@ def test_prepare_seasonality_factor(
         assert result.equals(expected)
 
 
+@pytest.mark.unit
 def test_prepare_seasonality_factor_with_dataframe_return():
     def _model(params, dates, seed):
         df = pd.DataFrame(index=dates)

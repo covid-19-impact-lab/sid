@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from sid.contacts import _consolidate_reason_of_infection
+from sid.contacts import _numpy_replace
 from sid.contacts import calculate_infections_by_contacts
 from sid.contacts import create_group_indexer
 
@@ -237,6 +238,7 @@ def test_calculate_infections_only_non_recurrent(households_w_one_infected):
     assert not np.any(calc_missed_contacts)
 
 
+@pytest.mark.unit
 def test_consolidate_reason_of_infection():
     was_infected_by_recurrent = np.array([0, 1, 1, -1, -1, -1, 0, -1])
     was_infected_by_random = np.array([-1, -1, -1, 0, 0, 1, 0, -1])
@@ -260,3 +262,13 @@ def test_consolidate_reason_of_infection():
     )
 
     assert result.equals(expected)
+
+
+@pytest.mark.unit
+def test_numpy_replace():
+    x = np.arange(6)
+    replace_to = {4: 6, 5: 7}
+
+    result = _numpy_replace(x, replace_to)
+
+    assert (result == np.array([0, 1, 2, 3, 6, 7])).all()

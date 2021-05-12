@@ -60,6 +60,7 @@ def test_get_diag_weighting_matrix(empirical_moments, weights, expected):
     assert np.all(result == expected)
 
 
+@pytest.mark.integration
 def test_get_diag_weighting_matrix_with_scalar_weights():
     emp_moms = {0: pd.Series([1, 2]), 1: pd.Series([2, 3, 4])}
     weights = {0: 0.3, 1: 0.7}
