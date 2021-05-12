@@ -15,6 +15,7 @@ all releases are available on `Anaconda.org
   same machine.
 - :gh:`123` allows to make the sensitivity of rapid tests dependent on how long an
   individual is infectious.
+- :gh:`124` updates the release notes.
 
 
 0.0.6 - 2021-05-10
