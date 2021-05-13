@@ -7,6 +7,13 @@ all releases are available on `Anaconda.org
 <https://anaconda.org/covid-19-impact-lab/sid>`_.
 
 
+0.0.8 - 2021-05-13
+------------------
+
+- :gh:`124` fixes a bug in the function which reports the channel of infections by
+  contacts.
+
+
 0.0.7 - 2021-05-12
 ------------------
 

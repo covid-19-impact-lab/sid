@@ -46,6 +46,7 @@ POLICIES_FOR_GANTT_CHART = {
 }
 
 
+@pytest.mark.unit
 def test_plot_policy_gantt_chart():
     plot_policy_gantt_chart(POLICIES_FOR_GANTT_CHART, effects=True)
 

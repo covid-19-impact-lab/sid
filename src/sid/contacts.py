@@ -714,12 +714,11 @@ def _consolidate_reason_of_infection(
     )
     was_infected_by = np.full(n_individuals, -1)
     contact_model_to_code = {c: i for i, c in enumerate(contact_models)}
+    recurrent_models, random_models = separate_contact_model_names(contact_models)
 
     if was_infected_by_random is not None:
         random_pos_to_code = {
-            i: contact_model_to_code[c]
-            for i, c in enumerate(contact_models)
-            if not contact_models[c]["is_recurrent"]
+            i: contact_model_to_code[c] for i, c in enumerate(random_models)
         }
 
         mask = was_infected_by_random >= 0
@@ -729,9 +728,7 @@ def _consolidate_reason_of_infection(
 
     if was_infected_by_recurrent is not None:
         recurrent_pos_to_code = {
-            i: contact_model_to_code[c]
-            for i, c in enumerate(contact_models)
-            if contact_models[c]["is_recurrent"]
+            i: contact_model_to_code[c] for i, c in enumerate(recurrent_models)
         }
 
         mask = was_infected_by_recurrent >= 0
@@ -749,7 +746,10 @@ def _consolidate_reason_of_infection(
 
 def _numpy_replace(x: np.ndarray, replace_to: Dict[Any, Any]):
     """Replace values in a NumPy array with a dictionary."""
-    sort_idx = np.argsort(list(replace_to))
-    idx = np.searchsorted(list(replace_to), x, sorter=sort_idx)
-    out = np.asarray(list(replace_to.values()))[sort_idx][idx]
+    uniques = np.unique(x)
+    full_replace_to = {i: replace_to.get(i, i) for i in uniques}
+
+    sort_idx = np.argsort(list(full_replace_to))
+    idx = np.searchsorted(list(full_replace_to), x, sorter=sort_idx)
+    out = np.asarray(list(full_replace_to.values()))[sort_idx][idx]
     return out
