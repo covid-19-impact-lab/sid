@@ -171,6 +171,7 @@ DEFAULT_IR_PER_CM_KWARGS = {
     "ylabel": "Contact Model",
     "invert_yaxis": True,
     "colorbar": True,
+    "cmap": "YlOrBr",
 }
 
 
@@ -187,7 +188,7 @@ def plot_infection_rates_by_contact_models(df_or_time_series, fig_kwargs=None):
     else:
         df = prepare_data_for_infection_rates_by_contact_models(df_or_time_series)
 
-    hv.extension("bokeh")
+    hv.extension("bokeh", logo=False)
 
     heatmap = hv.HeatMap(df)
     plot = heatmap.opts(**fig_kwargs)
