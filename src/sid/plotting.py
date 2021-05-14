@@ -1,4 +1,8 @@
 import itertools
+from typing import Any
+from typing import Dict
+from typing import Optional
+from typing import Union
 
 import dask.dataframe as dd
 import holoviews as hv
@@ -175,8 +179,50 @@ DEFAULT_IR_PER_CM_KWARGS = {
 }
 
 
-def plot_infection_rates_by_contact_models(df_or_time_series, fig_kwargs=None):
-    """Plot infection rates by contact models."""
+def plot_infection_rates_by_contact_models(
+    df_or_time_series: Union[pd.DataFrame, dd.core.DataFrame],
+    show_reported_cases: bool = False,
+    numbers: str = "shares",
+    fig_kwargs: Optional[Dict[str, Any]] = None,
+) -> hv.HeatMap:
+    """Plot infection rates by contact models.
+
+    Parameters
+    ----------
+    df_or_time_series : Union[pandas.DataFrame, dask.dataframe.core.DataFrame]
+        The input can be one of the following two.
+
+        1. It is a :class:`dask.dataframe.core.DataFrame` which holds the time series
+           from a simulation.
+        2. It can be a :class:`pandas.DataFrame` which is created with
+           :func:`prepare_data_for_infection_rates_by_contact_models`. It allows to
+           compute the data for various simulations with different seeds and use the
+           average over all seeds.
+
+    show_reported_cases : bool, optional
+        A boolean to select between reported or real cases of infections. Reported cases
+        are identified via testing mechanisms.
+    numbers : str
+        The arguments specifies the numbers shown in the figure.
+
+        - ``"shares"`` means that daily numbers represent the share of infection caused
+          by a contact model among all infections on the same day.
+
+        - ``"population_shares"`` means that daily numbers represent the share of
+          infection caused by a contact model among all people on the same day.
+
+        - ``"incidences"`` means that the daily numbers represent incidences per 100,000
+          individuals.
+    fig_kwargs : Optional[Dict[str, Any]], optional
+        Additional keyword arguments which are passed to ``heatmap.opts`` to style the
+        plot. The keyword arguments overwrite or extend the default arguments.
+
+    Returns
+    -------
+    heatmap : hv.HeatMap
+        The heatmap object.
+
+    """
     fig_kwargs = (
         DEFAULT_IR_PER_CM_KWARGS
         if fig_kwargs is None
@@ -186,7 +232,9 @@ def plot_infection_rates_by_contact_models(df_or_time_series, fig_kwargs=None):
     if _is_data_prepared_for_heatmap(df_or_time_series):
         df = df_or_time_series
     else:
-        df = prepare_data_for_infection_rates_by_contact_models(df_or_time_series)
+        df = prepare_data_for_infection_rates_by_contact_models(
+            df_or_time_series, show_reported_cases, numbers
+        )
 
     hv.extension("bokeh", logo=False)
 
@@ -207,8 +255,38 @@ def _is_data_prepared_for_heatmap(df):
     )
 
 
-def prepare_data_for_infection_rates_by_contact_models(time_series):
-    """Prepare the data for the heatmap plot."""
+def prepare_data_for_infection_rates_by_contact_models(
+    time_series: dd.core.DataFrame,
+    show_reported_cases: bool = False,  # noqa: U100
+    numbers: str = "shares",
+) -> pd.DataFrame:
+    """Prepare the data for the heatmap plot.
+
+    Parameters
+    ----------
+    time_series : dask.dataframe.core.DataFrame
+        The time series of a simulation.
+    show_reported_cases : bool, optional
+        A boolean to select between reported or real cases of infections. Reported cases
+        are identified via testing mechanisms.
+    numbers : str
+        The arguments specifies the numbers shown in the figure.
+
+        - ``"shares"`` means that daily numbers represent the share of infection caused
+          by a contact model among all infections on the same day.
+
+        - ``"population_shares"`` means that daily numbers represent the share of
+          infection caused by a contact model among all people on the same day.
+
+        - ``"incidences"`` means that the daily numbers represent incidences per 100,000
+          individuals.
+
+    Returns
+    -------
+    time_series : pandas.DataFrame
+        The time series with the prepared data for the plot.
+
+    """
     if isinstance(time_series, pd.DataFrame):
         time_series = dd.from_pandas(time_series, npartitions=1)
     elif not isinstance(time_series, dd.core.DataFrame):
@@ -217,20 +295,38 @@ def prepare_data_for_infection_rates_by_contact_models(time_series):
     if "channel_infected_by_contact" not in time_series:
         raise ValueError(ERROR_MISSING_CHANNEL)
 
-    time_series = (
+    counts = (
         time_series[["date", "channel_infected_by_contact"]]
         .groupby(["date", "channel_infected_by_contact"])
         .size()
         .reset_index()
         .rename(columns={0: "n"})
-        .assign(
+    )
+
+    if numbers == "shares":
+        out = counts.query(
+            "channel_infected_by_contact != 'not_infected_by_contact'"
+        ).assign(
             share=lambda x: x["n"]
             / x.groupby("date")["n"].transform("sum", meta=("n", "f8")),
         )
-        .drop(columns="n")
-        .query("channel_infected_by_contact != 'not_infected_by_contact'")
-    )
-    if isinstance(time_series, dd.core.DataFrame):
-        time_series = time_series.compute()
 
-    return time_series
+    elif numbers == "population_shares":
+        out = counts.assign(
+            share=lambda x: x["n"]
+            / x.groupby("date")["n"].transform("sum", meta=("n", "f8")),
+        ).query("channel_infected_by_contact != 'not_infected_by_contact'")
+
+    elif numbers == "incidences":
+        out = counts.query(
+            "channel_infected_by_contact != 'not_infected_by_contact'"
+        ).assign(share=lambda x: x["n"] * 7 / 100_000)
+
+    else:
+        raise ValueError(
+            "'numbers' should be one of 'shares', 'population_shares' or 'incidences'"
+        )
+
+    out = out.drop(columns="n").compute()
+
+    return out
