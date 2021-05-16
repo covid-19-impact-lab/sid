@@ -6,11 +6,11 @@ from typing import Union
 
 import dask.dataframe as dd
 import holoviews as hv
+import numpy as np
 import pandas as pd
 from bokeh.models import HoverTool
 from sid.colors import get_colors
 from sid.policies import compute_pseudo_effect_sizes_of_policies
-import numpy as np
 
 
 DEFAULT_FIGURE_KWARGS = {
@@ -183,7 +183,7 @@ DEFAULT_IR_PER_CM_KWARGS = {
 def plot_infection_rates_by_contact_models(
     df_or_time_series: Union[pd.DataFrame, dd.core.DataFrame],
     show_reported_cases: bool = False,
-    numbers: str = "shares",
+    unit: str = "share",
     fig_kwargs: Optional[Dict[str, Any]] = None,
 ) -> hv.HeatMap:
     """Plot infection rates by contact models.
@@ -203,17 +203,17 @@ def plot_infection_rates_by_contact_models(
     show_reported_cases : bool, optional
         A boolean to select between reported or real cases of infections. Reported cases
         are identified via testing mechanisms.
-    numbers : str
-        The arguments specifies the numbers shown in the figure.
+    unit : str
+        The arguments specifies the unit shown in the figure.
 
-        - ``"shares"`` means that daily numbers represent the share of infection caused
+        - ``"share"`` means that daily units represent the share of infection caused
           by a contact model among all infections on the same day.
 
-        - ``"population_shares"`` means that daily numbers represent the share of
+        - ``"population_share"`` means that daily units represent the share of
           infection caused by a contact model among all people on the same day.
 
-        - ``"incidences"`` means that the daily numbers represent incidences per 100,000
-          individuals.
+        - ``"incidence"`` means that the daily units represent incidence levels per
+          100,000 individuals.
     fig_kwargs : Optional[Dict[str, Any]], optional
         Additional keyword arguments which are passed to ``heatmap.opts`` to style the
         plot. The keyword arguments overwrite or extend the default arguments.
@@ -234,7 +234,7 @@ def plot_infection_rates_by_contact_models(
         df = df_or_time_series
     else:
         df = prepare_data_for_infection_rates_by_contact_models(
-            df_or_time_series, show_reported_cases, numbers
+            df_or_time_series, show_reported_cases, unit
         )
 
     hv.extension("bokeh", logo=False)
@@ -259,7 +259,7 @@ def _is_data_prepared_for_heatmap(df):
 def prepare_data_for_infection_rates_by_contact_models(
     time_series: dd.core.DataFrame,
     show_reported_cases: bool = False,  # noqa: U100
-    numbers: str = "shares",
+    unit: str = "share",
 ) -> pd.DataFrame:
     """Prepare the data for the heatmap plot.
 
@@ -270,17 +270,17 @@ def prepare_data_for_infection_rates_by_contact_models(
     show_reported_cases : bool, optional
         A boolean to select between reported or real cases of infections. Reported cases
         are identified via testing mechanisms.
-    numbers : str
-        The arguments specifies the numbers shown in the figure.
+    unit : str
+        The arguments specifies the unit shown in the figure.
 
-        - ``"shares"`` means that daily numbers represent the share of infection caused
+        - ``"share"`` means that daily units represent the share of infection caused
           by a contact model among all infections on the same day.
 
-        - ``"population_shares"`` means that daily numbers represent the share of
+        - ``"population_share"`` means that daily units represent the share of
           infection caused by a contact model among all people on the same day.
 
-        - ``"incidences"`` means that the daily numbers represent incidences per 100,000
-          individuals.
+        - ``"incidence"`` means that the daily units represent incidence levels per
+          100,000 individuals.
 
     Returns
     -------
@@ -309,7 +309,7 @@ def prepare_data_for_infection_rates_by_contact_models(
         .rename(columns={0: "n"})
     )
 
-    if numbers == "shares":
+    if unit == "share":
         out = counts.query(
             "channel_infected_by_contact != 'not_infected_by_contact'"
         ).assign(
@@ -317,20 +317,20 @@ def prepare_data_for_infection_rates_by_contact_models(
             / x.groupby("date")["n"].transform("sum", meta=("n", "f8")),
         )
 
-    elif numbers == "population_shares":
+    elif unit == "population_share":
         out = counts.assign(
             share=lambda x: x["n"]
             / x.groupby("date")["n"].transform("sum", meta=("n", "f8")),
         ).query("channel_infected_by_contact != 'not_infected_by_contact'")
 
-    elif numbers == "incidences":
+    elif unit == "incidence":
         out = counts.query(
             "channel_infected_by_contact != 'not_infected_by_contact'"
         ).assign(share=lambda x: x["n"] * 7 / 100_000)
 
     else:
         raise ValueError(
-            "'numbers' should be one of 'shares', 'population_shares' or 'incidences'"
+            "'unit' should be one of 'share', 'population_share' or 'incidence'"
         )
 
     out = out.drop(columns="n").compute()
