@@ -10,6 +10,7 @@ import pandas as pd
 from bokeh.models import HoverTool
 from sid.colors import get_colors
 from sid.policies import compute_pseudo_effect_sizes_of_policies
+import numpy as np
 
 
 DEFAULT_FIGURE_KWARGS = {
@@ -295,6 +296,11 @@ def prepare_data_for_infection_rates_by_contact_models(
     if "channel_infected_by_contact" not in time_series:
         raise ValueError(ERROR_MISSING_CHANNEL)
 
+    if show_reported_cases:
+        time_series = _adjust_channel_infected_by_contact_to_new_known_cases(
+            time_series
+        )
+
     counts = (
         time_series[["date", "channel_infected_by_contact"]]
         .groupby(["date", "channel_infected_by_contact"])
@@ -330,3 +336,52 @@ def prepare_data_for_infection_rates_by_contact_models(
     out = out.drop(columns="n").compute()
 
     return out
+
+
+def _adjust_channel_infected_by_contact_to_new_known_cases(df):
+    """Adjust channel of infections by contacts to new known cases.
+
+    Channel of infections are recorded on the date an individual got infected which is
+    not the same date an individual is tested positive with a PCR test.
+
+    This function adjusts ``"channel_infected_by_contact"`` such that the infection
+    channel is shifted to the date when an individual is tested positive.
+
+    """
+    channel_of_infection_by_contact = _find_channel_of_infection_for_individuals(df)
+    df = _patch_channel_infected_by_contact(df, channel_of_infection_by_contact)
+    return df
+
+
+def _find_channel_of_infection_for_individuals(df):
+    """Find the channel of infected by contact for each individual."""
+    df["channel_infected_by_contact"] = df["channel_infected_by_contact"].cat.as_known()
+
+    df["channel_infected_by_contact"] = df[
+        "channel_infected_by_contact"
+    ].cat.remove_categories(["not_infected_by_contact"])
+
+    df = df.dropna(subset=["channel_infected_by_contact"])
+
+    df = df["channel_infected_by_contact"].compute()
+
+    return df
+
+
+def _patch_channel_infected_by_contact(df, s):
+    """Patch channel of infections by contact to only show channels for known cases."""
+    df = df.drop(columns="channel_infected_by_contact")
+
+    df = df.merge(s.to_frame(name="channel_infected_by_contact"), how="left")
+
+    df["channel_infected_by_contact"] = df["channel_infected_by_contact"].mask(
+        ~df["new_known_case"], np.nan
+    )
+
+    df["channel_infected_by_contact"] = (
+        df["channel_infected_by_contact"]
+        .cat.add_categories("not_infected_by_contact")
+        .fillna("not_infected_by_contact")
+    )
+
+    return df
