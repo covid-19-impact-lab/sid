@@ -10,8 +10,11 @@ all releases are available on `Anaconda.org
 0.0.8 - 2021-05-13
 ------------------
 
-- :gh:`124` fixes a bug in the function which reports the channel of infections by
+- :gh:`125` fixes a bug in the function which reports the channel of infections by
   contacts.
+- :gh:`126` enhances the plot for the channel of infections. The displayed numbers can
+  be shares among all infected, among all individuals or seven days incidences per
+  100,000 people.
 
 
 0.0.7 - 2021-05-12
