@@ -148,6 +148,13 @@ def _create_sensitivity(states, sensitivity_params):
     sensitivity[states["cd_infectious_true"] == 0] = p_pos_start_infectious
     within_10_days = states["cd_infectious_true"].between(-10, 0)
     sensitivity[~states["infectious"] & within_10_days] = p_pos_after_infectious
+    if sensitivity.isnull().any():
+        raise ValueError(
+            "There are NaN left in the person-dependent sensitivity. "
+            "The likeliest explanation is that _create_sensitivity was called "
+            "with uninfected individuals (i.e. with individuals where "
+            "`cd_infectious_true` < -10)."
+        )
     return sensitivity
 
 
