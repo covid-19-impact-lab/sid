@@ -270,7 +270,6 @@ def test_create_sensitivity():
             [True, 0],  # first day of infectiousness
             [True, -1],  # 2nd day of infectiousness
             [False, -5],  # not infectious anymore
-            [False, -12],  # recovered
         ],
     )
     sensitivity_params = pd.Series(
@@ -285,3 +284,28 @@ def test_create_sensitivity():
     result = _create_sensitivity(states, sensitivity_params)
     expected = pd.Series([0.35, 0.88, 0.95, 0.5, 0.0])
     result.equals(expected)
+
+
+@pytest.mark.unit
+def test_create_sensitivity_raises_nan_error():
+    states = pd.DataFrame(
+        columns=["infectious", "cd_infectious_true"],
+        data=[
+            [False, 2],  # not infectious yet
+            [True, 0],  # first day of infectiousness
+            [True, -1],  # 2nd day of infectiousness
+            [False, -5],  # not infectious anymore
+            [False, -12],  # recovered
+        ],
+    )
+    sensitivity_params = pd.Series(
+        [0.35, 0.88, 0.95, 0.5],
+        index=[
+            "pre-infectious",
+            "start_infectious",
+            "while_infectious",
+            "after_infectious",
+        ],
+    )
+    with pytest.raises(ValueError, match="NaN left in the"):
+        _create_sensitivity(states, sensitivity_params)
