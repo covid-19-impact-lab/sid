@@ -141,84 +141,100 @@ def test_compute_who_reveives_rapid_tests_raises_error(initial_states, params):
         )
 
 
-@pytest.mark.unit
-def test_sample_test_outcome_with_sensitivity(params):
-    n_individuals = 1_000_000
+@pytest.fixture()
+def rapid_test_states():
+    np.random.seed(84845)
+    group_size = 250_000
 
-    receives_rapid_test = np.ones(n_individuals).astype(bool)
-    states = pd.DataFrame({"infectious": receives_rapid_test})
-
-    is_tested_positive = _sample_test_outcome(
-        states, receives_rapid_test, params, itertools.count()
+    uninfected = pd.DataFrame()
+    uninfected["cd_infectious_true"] = np.random.choice(
+        [-12, -15, -18], size=group_size, replace=True
     )
+    uninfected["infectious"] = False
 
-    sensitivity = params.loc[("rapid_test", "sensitivity", "sensitivity"), "value"]
-    assert np.isclose(is_tested_positive.mean(), sensitivity, atol=1e-3)
+    pre_infectious = pd.DataFrame()
+    pre_infectious["cd_infectious_true"] = np.random.choice([2, 1, 3], size=group_size)
+    pre_infectious["infectious"] = False
 
+    start_infectious = pd.DataFrame()
+    start_infectious["cd_infectious_true"] = [0] * group_size
+    start_infectious["infectious"] = True
 
-@pytest.mark.unit
-def test_sample_test_outcome_with_sensitivity_time_dependent(params):
-    n_individuals = 10_000_000
+    while_infectious = pd.DataFrame()
+    while_infectious["cd_infectious_true"] = np.random.choice([-1, -3], size=group_size)
+    while_infectious["infectious"] = True
 
-    cd_infectious_true = np.random.choice([1, 0, -1, -2], n_individuals, True)
-    states = pd.DataFrame(
-        {
-            "infectious": cd_infectious_true <= 0,
-            "cd_infectious_true": cd_infectious_true,
-        }
+    after_infectious = pd.DataFrame()
+    after_infectious["cd_infectious_true"] = np.random.choice([-4, -8], size=group_size)
+    after_infectious["infectious"] = False
+
+    states = pd.concat(
+        [
+            uninfected,
+            pre_infectious,
+            start_infectious,
+            while_infectious,
+            after_infectious,
+        ],
+        axis=0,
     )
-    receives_rapid_test = np.ones(n_individuals).astype(bool)
-    receives_rapid_test[:1000] = False
-
-    params = params.drop([("rapid_test", "sensitivity")])
-    params.loc[("rapid_test", "sensitivity", 0)] = 0.5
-    params.loc[("rapid_test", "sensitivity", -1)] = 0.9
-
-    is_tested_positive = _sample_test_outcome(
-        states, receives_rapid_test, params, itertools.count()
-    )
-    assert not is_tested_positive[:1000].any()
-    expected_share_false_positive = (
-        1 - params.loc[("rapid_test", "specificity", "specificity"), "value"]
-    )
-    res_share_false_positive = is_tested_positive[
-        states["cd_infectious_true"] > 0 & receives_rapid_test
-    ].mean()
-    assert np.isclose(
-        expected_share_false_positive, res_share_false_positive, atol=1e-3
-    )
-
-    first_day_share_positive = is_tested_positive[
-        states["cd_infectious_true"] == 0 & receives_rapid_test
-    ].mean()
-    assert np.isclose(
-        first_day_share_positive,
-        0.5,
-        atol=1e-3,
-    )
-    later_share_positive = is_tested_positive[
-        states["cd_infectious_true"] < 0 & receives_rapid_test
-    ].mean()
-    assert np.isclose(
-        later_share_positive,
-        0.9,
-        atol=1e-3,
-    )
+    return states
 
 
 @pytest.mark.unit
-def test_sample_test_outcome_with_specificity(params):
-    n_individuals = 1_000_000
-
-    receives_rapid_test = np.ones(n_individuals).astype(bool)
-    states = pd.DataFrame({"infectious": np.zeros(n_individuals).astype(bool)})
-
-    is_tested_positive = _sample_test_outcome(
-        states, receives_rapid_test, params, itertools.count()
+def test_sample_test_outcome(rapid_test_states, params):
+    states = rapid_test_states
+    receives_rapid_test = np.random.choice(
+        [True, False], size=len(states), p=[0.8, 0.2]
     )
 
+    is_tested_positive = _sample_test_outcome(
+        states=states,
+        receives_rapid_test=receives_rapid_test,
+        params=params,
+        seed=itertools.count(),
+    )
+
+    # not to be tested
+    assert not is_tested_positive[~receives_rapid_test].any()
+
+    # uninfected
+    tested_uninfected = receives_rapid_test & (states["cd_infectious_true"] < -10)
+    uninfected_share_positive = is_tested_positive[tested_uninfected].mean()
     specificity = params.loc[("rapid_test", "specificity", "specificity"), "value"]
-    assert np.isclose(is_tested_positive.mean(), 1 - specificity, atol=1e-3)
+    assert np.isclose(1 - uninfected_share_positive, specificity, atol=1e-2)
+
+    # preinfectious
+    sensitivity = params.loc[("rapid_test", "sensitivity", "pre-infectious"), "value"]
+    tested_preinfectious = receives_rapid_test & (states["cd_infectious_true"] > 0)
+    preinfectious_share_positive = is_tested_positive[tested_preinfectious].mean()
+    assert np.isclose(sensitivity, preinfectious_share_positive, atol=1e-2)
+
+    # first day of infectiousness
+    sensitivity = params.loc[("rapid_test", "sensitivity", "start_infectious"), "value"]
+    tested_start_infectious = receives_rapid_test & (states["cd_infectious_true"] == 0)
+    start_infectious_share_positive = is_tested_positive[tested_start_infectious].mean()
+    assert np.isclose(sensitivity, start_infectious_share_positive, atol=1e-2)
+
+    # while infectious
+    sensitivity = params.loc[("rapid_test", "sensitivity", "while_infectious"), "value"]
+    tested_while_infectious = receives_rapid_test & (
+        states["infectious"] & (states["cd_infectious_true"] < 0)
+    )
+    while_infectious_share_positive = is_tested_positive[tested_while_infectious].mean()
+    assert np.isclose(sensitivity, while_infectious_share_positive, atol=1e-2)
+
+    # after infectious
+    sensitivity = params.loc[("rapid_test", "sensitivity", "after_infectious"), "value"]
+    tested_after_infectious = (
+        receives_rapid_test
+        & ~states["infectious"]
+        & (states["cd_infectious_true"] < 0)
+        & (states["cd_infectious_true"] > -10)
+    )
+
+    after_infectious_share_positive = is_tested_positive[tested_after_infectious].mean()
+    assert np.isclose(sensitivity, after_infectious_share_positive, atol=1e-2)
 
 
 @pytest.mark.unit
@@ -246,39 +262,26 @@ def test_update_states_with_rapid_tests_outcomes():
 
 
 @pytest.mark.unit
-def test_create_sensitivity_time_dependent():
-    states = pd.DataFrame(
-        [
-            [False, 2],  # not infectious yet
-            [True, 0],  # first day of infectiousness
-            [True, -1],  # 2nd day of infectiousness
-            [True, -2],  # not getting tested
-            [True, -4],  # after latest specified infectiousness
-            [False, -5],  # not infectious anymore
-        ],
-        columns=["infectious", "cd_infectious_true"],
-    )
-    params = pd.Series([0.5, 0.7, 0.9], index=[0, -1, -2])
-    receives_test_and_is_infectious = pd.Series([False, True, True, False, True, False])
-    result = _create_sensitivity(states, params, receives_test_and_is_infectious)
-    expected = pd.Series([0.5, 0.7, 0.9], index=[1, 2, 4])
-    assert result.equals(expected)
-
-
-@pytest.mark.unit
 def test_create_sensitivity():
     states = pd.DataFrame(
-        [
+        columns=["infectious", "cd_infectious_true"],
+        data=[
             [False, 2],  # not infectious yet
             [True, 0],  # first day of infectiousness
             [True, -1],  # 2nd day of infectiousness
-            [True, -2],  # not getting tested
-            [True, -4],  # after latest specified infectiousness
             [False, -5],  # not infectious anymore
+            [False, -12],  # recovered
         ],
-        columns=["infectious", "cd_infectious_true"],
     )
-    params = pd.Series([0.5], index=["sensitivity"])
-    receives_test_and_is_infectious = pd.Series([False, True, True, False, True, False])
-    result = _create_sensitivity(states, params, receives_test_and_is_infectious)
-    assert (result == 0.5).all()
+    sensitivity_params = pd.Series(
+        [0.35, 0.88, 0.95, 0.5],
+        index=[
+            "pre-infectious",
+            "start_infectious",
+            "while_infectious",
+            "after_infectious",
+        ],
+    )
+    result = _create_sensitivity(states, sensitivity_params)
+    expected = pd.Series([0.35, 0.88, 0.95, 0.5, 0.0])
+    result.equals(expected)

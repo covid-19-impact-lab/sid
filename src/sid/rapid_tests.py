@@ -111,58 +111,43 @@ def _sample_test_outcome(states, receives_rapid_test, params, seed):
     np.random.seed(next(seed))
     is_tested_positive = pd.Series(index=states.index, data=False)
 
-    receives_test_and_is_infectious = states["infectious"] & receives_rapid_test
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore", message="indexing past lexsort depth may impact performance."
         )
         sensitivity_params = params.loc[("rapid_test", "sensitivity"), "value"]
+
+    infected = states["cd_infectious_true"] >= -10
+    receives_test_and_is_infected = infected & receives_rapid_test
     sensitivity = _create_sensitivity(
-        states,
+        states=states[receives_test_and_is_infected],
         sensitivity_params=sensitivity_params,
-        receives_test_and_is_infectious=receives_test_and_is_infectious,
     )
     is_truly_positive = boolean_choices(sensitivity)
+    is_tested_positive.loc[receives_test_and_is_infected] = is_truly_positive
 
     specificity = params.loc[("rapid_test", "specificity", "specificity"), "value"]
-    receives_test_and_is_not_infectious = ~states["infectious"] & receives_rapid_test
-    is_falsely_positive = boolean_choices(
-        np.full(receives_test_and_is_not_infectious.sum(), 1 - specificity)
-    )
+    uninfected_test_receivers = ~infected & receives_rapid_test
+    p_false_positive = np.full(uninfected_test_receivers.sum(), 1 - specificity)
+    is_falsely_positive = boolean_choices(p_false_positive)
 
-    is_tested_positive.loc[receives_test_and_is_infectious] = is_truly_positive
-    is_tested_positive.loc[receives_test_and_is_not_infectious] = is_falsely_positive
-
+    is_tested_positive.loc[uninfected_test_receivers] = is_falsely_positive
     return is_tested_positive
 
 
-def _create_sensitivity(states, sensitivity_params, receives_test_and_is_infectious):
-    """Create the sensitivity for each individual.
+def _create_sensitivity(states, sensitivity_params):
+    """Create the sensitivity se"""
+    sensitivity = pd.Series(np.nan, index=states.index)
+    p_pos_preinfectious = sensitivity_params.loc["pre-infectious"]
+    p_pos_start_infectious = sensitivity_params.loc["start_infectious"]
+    p_pos_while_infectious = sensitivity_params.loc["while_infectious"]
+    p_pos_after_infectious = sensitivity_params.loc["after_infectious"]
 
-    Args:
-        sensitivity_params (pandas.Series): The index are the values of
-            `cd_infectious_true` if there is more than one entry. In that case the
-            sensitivity depends on the time since infectiousness started. Missing values
-            for `cd_infectious_true` are filled with the value of the most negative
-            index. For example, if you want to have a sensitivity of 50% on the day an
-            individual becomes infectious and 90% on every later day, you would specify
-            as index [0, -1] and [0.5, 0.9] as values.
-            If there is only one entry, the index must be ["sensitivity"] and this
-            sensitivity is used for all infectious individuals.
-
-    """
-    if len(sensitivity_params) == 1:
-        sensitivity_value = sensitivity_params["sensitivity"]
-        sensitivity = np.full(receives_test_and_is_infectious.sum(), sensitivity_value)
-    else:
-        last_sensitivity_value = sensitivity_params[sensitivity_params.index.min()]
-        # It is irrelevant what value is set for people who are not infectious (yet)
-        # as they are removed through receives_test_and_is_infectious.
-        sensitivity = pd.Series(last_sensitivity_value, index=states.index)
-        for day_since_infectious, sensitivity_value in sensitivity_params.items():
-            at_current_day = states["cd_infectious_true"] == day_since_infectious
-            sensitivity[at_current_day] = sensitivity_value
-        sensitivity = sensitivity[receives_test_and_is_infectious]
+    sensitivity[states["cd_infectious_true"] > 0] = p_pos_preinfectious
+    sensitivity[states["infectious"]] = p_pos_while_infectious
+    sensitivity[states["cd_infectious_true"] == 0] = p_pos_start_infectious
+    within_10_days = states["cd_infectious_true"].between(-10, 0)
+    sensitivity[~states["infectious"] & within_10_days] = p_pos_after_infectious
     return sensitivity
 
 
