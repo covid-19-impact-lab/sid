@@ -234,8 +234,9 @@ def sample_initial_distribution_of_infections_and_immunity(
         )
 
         spread_out_virus_strains = _sample_factorized_virus_strains_for_infections(
-            spread_out_infections,
-            initial_conditions["virus_shares"],
+            spread_out_infections=spread_out_infections,
+            virus_shares=initial_conditions["virus_shares"],
+            seed=next(seed),
         )
 
     else:
@@ -418,8 +419,11 @@ def _spread_out_initial_infections(
 def _sample_factorized_virus_strains_for_infections(
     spread_out_infections: pd.DataFrame,
     virus_shares: Dict[str, Any],
+    seed: int,
 ) -> pd.DataFrame:
     """Convert boolean infections to factorized virus strains."""
+    np.random.seed(seed)
+
     spread_out_virus_strains = pd.DataFrame(
         data=-1,
         index=spread_out_infections.index,
