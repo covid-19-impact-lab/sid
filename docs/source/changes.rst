@@ -10,8 +10,10 @@ all releases are available on `Anaconda.org
 0.0.8 - 2021-05-13
 ------------------
 
-- :gh:`124` fixes a bug in the function which reports the channel of infections by
+- :gh:`125` fixes a bug in the function which reports the channel of infections by
   contacts.
+- :gh:`126` enhances the channel of infections plot.
+- :gh:`127` includes better parameters for time-variant sensitivity of rapid tests.
 
 
 0.0.7 - 2021-05-12
