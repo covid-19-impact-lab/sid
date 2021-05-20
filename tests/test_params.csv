@@ -16,5 +16,8 @@ cd_knows_immune_false,all,-1,1,,
 cd_knows_infectious_false,all,-1,1,,
 cd_is_immune_by_vaccine,all,-1,1,,
 known_cases_multiplier,known_cases_multiplier,known_cases_multiplier,1.1,,
-rapid_test,sensitivity,sensitivity,0.961
-rapid_test,specificity,specificity,0.994
+rapid_test,specificity,specificity,0.994,,
+rapid_test,sensitivity,pre-infectious,0.35,,
+rapid_test,sensitivity,start_infectious,0.88,,
+rapid_test,sensitivity,while_infectious,0.95,,
+rapid_test,sensitivity,after_infectious,0.5,,

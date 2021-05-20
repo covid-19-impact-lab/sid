@@ -92,6 +92,26 @@ distribution:
 
 
 
+Rapid Tests
+------------
+
+To calibrate the sensitivity of rapid tests we rely on
+`this study <https://bit.ly/33ThqG0>`_ by Smith et al. (2021).
+
+From this we define five periods:
+
+1. Before onset of infectiousness, the sensitivity is 0.35 as reported in figure 2.
+2. On the day that infectiousness starts, the sensitivity is 0.88 as reported in table 2.
+3. While a person is infectious, the sensitivity is 0.92 as reported in figure 2.
+4. After infectiousness stops, the sensitivity is 0.5 until 10 days after the start of
+   infectiousness as can be conluded from figure 2 and table 2.
+5. If it has been more than 10 days since the onset of infectiousness, rapid tests are
+   negative.
+
+For the specificity we assume 99.4% which is in line with
+`this meta study <https://bit.ly/3ykfsMY>`_ by Brümmer et al. (2021).
+
+
 Immunity Countdown
 ------------------
 

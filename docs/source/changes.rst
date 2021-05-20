@@ -12,7 +12,9 @@ all releases are available on `Anaconda.org
 
 - :gh:`125` fixes a bug in the function which reports the channel of infections by
   contacts.
-- :gh:`126` enhances the channel of infections plot.
+- :gh:`126` enhances the plot for the channel of infections. The displayed numbers can
+  be shares among all infected, among all individuals or seven days incidences per
+  100,000 people.
 - :gh:`127` includes better parameters for time-variant sensitivity of rapid tests.
 
 
