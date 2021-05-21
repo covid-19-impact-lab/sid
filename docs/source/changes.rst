@@ -15,6 +15,8 @@ all releases are available on `Anaconda.org
 - :gh:`126` enhances the plot for the channel of infections. The displayed numbers can
   be shares among all infected, among all individuals or seven days incidences per
   100,000 people.
+- :gh:`127` includes better parameters for time-variant sensitivity of rapid tests.
+- :gh:`128` ensures determinacy in the setup of a simulation.
 
 
 0.0.7 - 2021-05-12
