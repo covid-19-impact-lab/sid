@@ -218,6 +218,6 @@ def _generate_einsum_signature(n_trans_prob):
     letters = string.ascii_letters[:n_letters]
 
     inputs = [letters[i : i + 2] for i in range(0, len(letters), 2)]
-    result = ["".join([duo[i] for duo in inputs]) for i in range(len(inputs[0]))]
+    result = ["".join(duo[i] for duo in inputs) for i in range(len(inputs[0]))]
 
     return ", ".join(inputs) + " -> " + "".join(result)
