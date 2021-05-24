@@ -32,7 +32,7 @@ repos:
     -   id: text-unicode-replacement-char
         exclude_types: [jupyter]
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.16.0
+    rev: v2.18.2
     hooks:
     -   id: pyupgrade
         args: [--py36-plus]
@@ -76,7 +76,7 @@ repos:
             Pygments,
         ]
 - repo: https://github.com/nbQA-dev/nbQA
-  rev: 0.8.1
+  rev: 0.9.0
   hooks:
     -   id: nbqa-black
     -   id: nbqa-pyupgrade
