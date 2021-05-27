@@ -1,10 +1,81 @@
 from contextlib import ExitStack as does_not_raise  # noqa: N813
 
+import numpy as np
 import pandas as pd
 import pytest
 from sid.virus_strains import _factorize_boolean_infections
 from sid.virus_strains import factorize_boolean_or_categorical_infections
 from sid.virus_strains import factorize_categorical_infections
+from sid.virus_strains import prepare_virus_strain_factors
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "virus_strains, params, expectation, expected",
+    [
+        pytest.param(
+            {"names": ["base_strain"]},
+            None,
+            does_not_raise(),
+            {"names": ["base_strain"], "factors": np.ones(1)},
+            id="default single strain",
+        ),
+        pytest.param(
+            {"names": ["b117"]},
+            None,
+            does_not_raise(),
+            {"names": ["b117"], "factors": np.ones(1)},
+            id="non-default single strain",
+        ),
+        pytest.param(
+            {"names": ["base_strain", "minus_strain"]},
+            pd.DataFrame(
+                {
+                    "category": ["virus_strain"] * 2,
+                    "subcategory": ["base_strain", "minus_strain"],
+                    "name": ["factor"] * 2,
+                    "value": [1, -1],
+                }
+            ).set_index(["category", "subcategory", "name"]),
+            pytest.raises(ValueError, match="Factors of 'virus_strains' cannot"),
+            None,
+            id="negative factor",
+        ),
+        pytest.param(
+            {"names": ["base_strain"]},
+            pd.DataFrame(
+                {
+                    "category": ["virus_strain"],
+                    "subcategory": ["base_strain"],
+                    "name": ["factor"],
+                    "value": [0.5],
+                }
+            ).set_index(["category", "subcategory", "name"]),
+            does_not_raise(),
+            {"names": ["base_strain"], "factors": np.ones(1)},
+            id="single factor stays the same if one",
+        ),
+        pytest.param(
+            {"names": ["a_new_strain", "base_strain"]},
+            pd.DataFrame(
+                {
+                    "category": ["virus_strain"] * 2,
+                    "subcategory": ["base_strain", "a_new_strain"],
+                    "name": ["factor"] * 2,
+                    "value": [0.5, 0.25],
+                }
+            ).set_index(["category", "subcategory", "name"]),
+            does_not_raise(),
+            {"names": ["a_new_strain", "base_strain"], "factors": np.array([0.5, 1])},
+            id="factors are scaled",
+        ),
+    ],
+)
+def test_prepare_virus_strain_factors(virus_strains, params, expectation, expected):
+    with expectation:
+        result = prepare_virus_strain_factors(virus_strains, params)
+        assert all(np.array(result["names"]) == expected["names"])
+        assert all(result["factors"] == expected["factors"])
 
 
 @pytest.mark.unit

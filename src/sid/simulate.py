@@ -54,6 +54,7 @@ from sid.validation import validate_params
 from sid.validation import validate_prepared_initial_states
 from sid.validation import validate_testing_models
 from sid.validation import validate_vaccination_models
+from sid.virus_strains import prepare_virus_strain_factors
 from tqdm import tqdm
 
 
@@ -482,6 +483,10 @@ def _simulate(
         _prepare_assortative_matching_cumulative_probabilities(
             initial_states, assort_bys, params, contact_models, group_codes_info
         )
+    )
+
+    virus_strains = prepare_virus_strain_factors(
+        virus_strains=virus_strains, params=params
     )
 
     susceptibility_factor = prepare_susceptibility_factor(

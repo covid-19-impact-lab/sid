@@ -1,5 +1,6 @@
 """This module contains the code the parse input data."""
 import copy
+import pprint
 import warnings
 from collections.abc import Iterable
 from typing import Any
@@ -8,7 +9,6 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-import numpy as np
 import pandas as pd
 from sid.config import DEFAULT_VIRUS_STRAINS
 from sid.config import INITIAL_CONDITIONS
@@ -148,7 +148,9 @@ def parse_initial_conditions(
     return ic
 
 
-def parse_virus_strains(virus_strains: Optional[List[str]], params: pd.DataFrame):
+def parse_virus_strains(
+    virus_strains: Optional[List[str]], params: pd.DataFrame
+) -> Dict[str, List[str]]:
     """Parse the information of the different infectiousness for each virus strain.
 
     The multipliers are scaled between 0 and 1 such that random contacts only need to be
@@ -162,11 +164,8 @@ def parse_virus_strains(virus_strains: Optional[List[str]], params: pd.DataFrame
         params (pandas.DataFrame): The params DataFrame.
 
     Returns:
-        virus_strains (Dict[str, Any]): A dictionary with two keys.
-
-        - ``"names"`` holds the sorted names of the virus strains.
-        - ``"factors"`` holds the factors for the contagiousness of the viruses scaled
-          between 0 and 1.
+        virus_strains (Dict[str, List[str]]): A dictionary with a single key called
+            ``"names"`` which holds the sorted names of virus strains.
 
     """
     if virus_strains is None:
@@ -176,19 +175,19 @@ def parse_virus_strains(virus_strains: Optional[List[str]], params: pd.DataFrame
         if len(virus_strains) == 0:
             raise ValueError("The list of 'virus_strains' cannot be empty.")
 
-        sorted_strains = sorted(virus_strains)
-        factors = np.array(
-            [
-                params.loc[("virus_strain", name, "factor"), "value"]
-                for name in sorted_strains
+        expected_indices = [("virus_strain", name, "factor") for name in virus_strains]
+        is_in_params = [index in params.index for index in expected_indices]
+        if not all(is_in_params):
+            missing_indices = [
+                idx for i, idx in enumerate(expected_indices) if not is_in_params[i]
             ]
-        )
-        factors = factors / factors.max()
+            raise ValueError(
+                "Some factors for the infectiousness of virus strains are missing in "
+                "'params'. Please add values to the following indices:\n\n"
+                f"{pprint.pformat(missing_indices)}"
+            )
 
-        if any(factors < 0):
-            raise ValueError("Factors of 'virus_strains' cannot be smaller than 0.")
-
-        virus_strains = {"names": sorted_strains, "factors": factors}
+        virus_strains = {"names": sorted(virus_strains)}
 
     else:
         raise ValueError("'virus_strains' is not 'None' and not a list.")
