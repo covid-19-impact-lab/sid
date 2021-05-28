@@ -49,11 +49,11 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
                 index=pd.date_range("2020-01-01", periods=2),
                 data=1,
                 columns=["meet_two_people"],
-            ),
+            ).astype(float),
             {"meet_two_people": {}},
         ),
         pytest.param(
-            lambda params, dates, seed: pd.Series(index=dates, data=[1, 2, 3]),
+            lambda params, dates, seed: pd.Series(index=dates, data=[1 / 3, 2 / 3, 1]),
             None,
             pd.date_range("2020-01-01", periods=3),
             does_not_raise(),

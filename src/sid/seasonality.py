@@ -51,13 +51,12 @@ def prepare_seasonality_factor(
                 "with 'dates' as index and seasonality factors as data."
             )
 
-        # Make sure the highest multiplier is set to one so that random contacts only
-        # need to be reduced by the infection probability of the contact model.
-        for col in factor:
-            factor[col] = factor[col] / factor[col].max()
-            if not factor[col].between(0, 1).all():
-                raise ValueError(
-                    "The seasonality factors need to lie in the interval [0, 1]."
-                )
+    factor = factor.astype(float)
+
+    for col in factor:
+        if not factor[col].between(0, 1).all():
+            raise ValueError(
+                "The seasonality factors need to lie in the interval [0, 1]."
+            )
 
     return factor
