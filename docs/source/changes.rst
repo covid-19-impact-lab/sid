@@ -7,6 +7,12 @@ all releases are available on `Anaconda.org
 <https://anaconda.org/covid-19-impact-lab/sid>`_.
 
 
+0.0.10 - 2021-xx-xx
+-------------------
+
+- :gh:`132` sets initialized countdowns to -9,999.
+
+
 0.0.8 - 2021-05-13
 ------------------
 
