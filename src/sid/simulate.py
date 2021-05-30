@@ -964,7 +964,7 @@ def _process_initial_states(
 
     for col in COUNTDOWNS:
         if col not in states.columns:
-            states[col] = DTYPE_COUNTDOWNS(-99)
+            states[col] = DTYPE_COUNTDOWNS(-9999)
         states[col] = states[col].astype(DTYPE_COUNTDOWNS)
 
     states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)

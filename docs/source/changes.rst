@@ -12,6 +12,7 @@ all releases are available on `Anaconda.org
 
 - :gh:`131` moves the parsing of the virus strain infectiousness factor to the
   simulation.
+- :gh:`132` sets initialized countdowns to -9,999.
 
 
 0.0.9 - 2021-05-28
