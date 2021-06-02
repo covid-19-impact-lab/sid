@@ -639,8 +639,7 @@ def _simulate(
         time_series = _prepare_time_series(path, columns_to_keep, states)
         results["time_series"] = time_series
     if return_last_states:
-        last_states = _prepare_last_states(path, states)
-        results["last_states"] = last_states
+        results["last_states"] = states
     if period_outputs:
         results["period_outputs"] = evaluated_period_outputs
 
@@ -1060,33 +1059,6 @@ def _prepare_time_series(output_directory, columns_to_keep, last_states):
     )
 
     return time_series
-
-
-def _prepare_last_states(output_directory, last_states):
-    """Prepare the last_states for the simulation results.
-
-    Args:
-        output_directory (pathlib.Path): Path to output directory.
-        columns_to_keep (list): List of variables which should be kept.
-        last_states (pandas.DataFrame): The states from the last period.
-
-    Returns:
-        dask.dataframe: The DataFrame with the last states
-
-
-    """
-    categoricals = {
-        column: last_states[column].cat.categories.shape[0]
-        for column in last_states.select_dtypes("category").columns
-    }
-
-    last_states.to_parquet(output_directory / "last_states" / "last_states.parquet")
-    last_states = dd.read_parquet(
-        output_directory / "last_states" / "last_states.parquet",
-        categories=categoricals,
-        engine="fastparquet",
-    )
-    return last_states
 
 
 def _process_saved_columns(
