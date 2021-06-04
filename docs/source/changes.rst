@@ -10,7 +10,15 @@ all releases are available on `Anaconda.org
 0.0.10 - 2021-xx-xx
 -------------------
 
+- :gh:`131` moves the parsing of the virus strain infectiousness factor to the
+  simulation.
 - :gh:`132` sets initialized countdowns to -9,999.
+
+
+0.0.9 - 2021-05-28
+------------------
+
+- :gh:`130` remove the normalization of the seasonality factor.
 
 
 0.0.8 - 2021-05-13

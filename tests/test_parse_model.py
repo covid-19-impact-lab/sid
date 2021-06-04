@@ -138,51 +138,46 @@ def test_parse_initial_conditions(
 @pytest.mark.parametrize(
     "virus_strains, params, expectation, expected",
     [
-        # Test default.
-        (None, None, does_not_raise(), DEFAULT_VIRUS_STRAINS),
-        # Test missing virus strains.
-        ([], None, pytest.raises(ValueError, match="The list of"), None),
-        # Test virus strain with negative factor.
-        (
-            ["base_strain", "minus_strain"],
-            pd.DataFrame(
-                {
-                    "category": ["virus_strain"] * 2,
-                    "subcategory": ["base_strain", "minus_strain"],
-                    "name": ["factor"] * 2,
-                    "value": [1, -1],
-                }
-            ).set_index(["category", "subcategory", "name"]),
-            pytest.raises(ValueError, match="Factors of 'virus_strains' cannot"),
+        pytest.param(None, None, does_not_raise(), DEFAULT_VIRUS_STRAINS, id="default"),
+        pytest.param(
+            [],
             None,
+            pytest.raises(ValueError, match="The list of"),
+            None,
+            id="empty list",
         ),
-        # Test that single factor stays the same if one.
-        (
-            ["base_strain"],
+        pytest.param(
+            ["b117"],
             pd.DataFrame(
-                {
-                    "category": ["virus_strain"],
-                    "subcategory": ["base_strain"],
-                    "name": ["factor"],
-                    "value": [1],
-                }
-            ).set_index(["category", "subcategory", "name"]),
-            does_not_raise(),
-            {"names": ["base_strain"], "factors": [1]},
+                index=pd.MultiIndex.from_tuples(
+                    [], names=["category", "subcategory", "value"]
+                )
+            ),
+            pytest.raises(ValueError, match="Some factors for the infectiousness"),
+            None,
+            id="missing param",
         ),
-        # Test that factors are scaled and sorted
-        (
-            ["base_strain", "a_new_strain"],
+        pytest.param(
+            ["wild_strain", "b117"],
             pd.DataFrame(
-                {
-                    "category": ["virus_strain"] * 2,
-                    "subcategory": ["base_strain", "a_new_strain"],
-                    "name": ["factor"] * 2,
-                    "value": [0.5, 0.25],
-                }
-            ).set_index(["category", "subcategory", "name"]),
-            does_not_raise(),
-            {"names": ["a_new_strain", "base_strain"], "factors": [0.5, 1]},
+                index=pd.MultiIndex.from_tuples(
+                    [
+                        ("virus_strains", "wild_strain", "factor"),
+                        ("virus_strains", "b117", "factor"),
+                    ],
+                    names=["category", "subcategory", "value"],
+                ),
+            ),
+            pytest.raises(ValueError, match="Some factors for the infectiousness"),
+            {"names": ["b117", "wild_strain"]},
+            id="usual parsing",
+        ),
+        pytest.param(
+            set(),
+            None,
+            pytest.raises(ValueError, match="'virus_strains' is not 'None'"),
+            None,
+            id="wrong input",
         ),
     ],
 )
@@ -191,4 +186,4 @@ def test_parse_virus_strains(virus_strains, params, expectation, expected):
         result = parse_virus_strains(virus_strains, params)
 
         assert result["names"] == expected["names"]
-        assert (result["factors"] == expected["factors"]).all()
+        assert "factors" not in result

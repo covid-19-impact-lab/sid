@@ -77,7 +77,7 @@ INITIAL_CONDITIONS = {
 }
 
 
-DEFAULT_VIRUS_STRAINS = {"names": ["base_strain"], "factors": np.array([1])}
+DEFAULT_VIRUS_STRAINS = {"names": ["base_strain"]}
 
 
 SID_TIME_START = pd.Timestamp("2019-01-01")
