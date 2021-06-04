@@ -9,6 +9,34 @@ import pandas as pd
 from sid.config import DTYPE_VIRUS_STRAIN
 
 
+def prepare_virus_strain_factors(
+    virus_strains: Dict[str, List[str]], params: pd.DataFrame
+) -> Dict[str, Union[List[str], np.ndarray]]:
+    """Prepare the information on virus strains and factors for infectiousness.
+
+    This function recreates the dictionary to not change the original value in partialed
+    function and adds the factors.
+
+    """
+    if len(virus_strains["names"]) == 1:
+        factors = np.ones(1)
+    else:
+        factors = np.array(
+            [
+                params.loc[("virus_strain", name, "factor"), "value"]
+                for name in virus_strains["names"]
+            ]
+        )
+        factors = factors / factors.max()
+
+        if any(factors < 0):
+            raise ValueError("Factors of 'virus_strains' cannot be smaller than 0.")
+
+    new_virus_strains = {"names": virus_strains["names"], "factors": factors}
+
+    return new_virus_strains
+
+
 def combine_first_factorized_infections(
     first: np.ndarray, second: np.ndarray
 ) -> np.ndarray:
