@@ -31,7 +31,7 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
     result = simulate(params)
 
     time_series = result["time_series"].compute()
-    last_states = result["last_states"].compute()
+    last_states = result["last_states"]
 
     for df in [time_series, last_states]:
         assert isinstance(df, pd.DataFrame)
@@ -55,7 +55,7 @@ def test_resume_a_simulation(params, initial_states, tmp_path):
     result = simulate(params)
 
     time_series = result["time_series"].compute()
-    last_states = result["last_states"].compute()
+    last_states = result["last_states"]
 
     for df in [time_series, last_states]:
         assert isinstance(df, pd.DataFrame)
@@ -77,7 +77,7 @@ def test_resume_a_simulation(params, initial_states, tmp_path):
     resumed_result = resumed_simulate(params)
 
     resumed_time_series = resumed_result["time_series"].compute()
-    resumed_last_states = resumed_result["last_states"].compute()
+    resumed_last_states = resumed_result["last_states"]
 
     for df in [resumed_time_series, resumed_last_states]:
         assert isinstance(df, pd.DataFrame)
@@ -110,7 +110,7 @@ def test_simulate_a_simple_model_without_assort_by(params, initial_states, tmp_p
     result = simulate(params)
 
     time_series = result["time_series"].compute()
-    last_states = result["last_states"].compute()
+    last_states = result["last_states"]
 
     for df in [time_series, last_states]:
         assert isinstance(df, pd.DataFrame)
@@ -352,7 +352,7 @@ def test_skipping_factorization_of_assort_by_variable_works(
     result = simulate(params)
 
     time_series = result["time_series"].compute()
-    last_states = result["last_states"].compute()
+    last_states = result["last_states"]
 
     assert "group_codes_households" not in time_series
     assert "group_codes_households" not in last_states

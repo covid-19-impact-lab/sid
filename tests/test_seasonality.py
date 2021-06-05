@@ -26,7 +26,7 @@ def test_simulate_a_simple_model(params, initial_states, tmp_path):
     result = simulate(params)
 
     time_series = result["time_series"].compute()
-    last_states = result["last_states"].compute()
+    last_states = result["last_states"]
 
     for df in [time_series, last_states]:
         assert isinstance(df, pd.DataFrame)
