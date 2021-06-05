@@ -13,6 +13,8 @@ all releases are available on `Anaconda.org
 - :gh:`131` moves the parsing of the virus strain infectiousness factor to the
   simulation.
 - :gh:`132` sets initialized countdowns to -9,999.
+- :gh:`134` changes that the last states are returned as a ``pandas.DataFrame`` and not
+  as a ``dask.dataframe``.
 
 
 0.0.9 - 2021-05-28
