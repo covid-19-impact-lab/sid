@@ -141,16 +141,16 @@ If you rely on sid for your own research, please cite it with
 .. code-block::
 
     @misc{Gabler2021,
-          title={
-            The Effectiveness of Strategies to Contain SARS-CoV-2: Testing,
-            Vaccinations, and NPIs
-          },
-          author={
-            Janoś Gabler and Tobias Raabe and Klara Röhrl
-            and Hans-Martin von Gaudecker
-          },
-          year={2021},
-          eprint={2106.11129},
-          archivePrefix={arXiv},
-          primaryClass={q-bio.PE}
+      title={
+        The Effectiveness of Strategies to Contain SARS-CoV-2: Testing,
+        Vaccinations, and NPIs
+      },
+      author={
+        Janoś Gabler and Tobias Raabe and Klara Röhrl
+        and Hans-Martin von Gaudecker
+      },
+      year={2021},
+      eprint={2106.11129},
+      archivePrefix={arXiv},
+      primaryClass={q-bio.PE}
     }
