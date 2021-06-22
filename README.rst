@@ -86,10 +86,6 @@ features:
 7. It is possible to implement models for vaccinating people who, then, gain perfect
    immunity from the disease.
 
-More information can be found in the `discussion paper
-<https://www.iza.org/publications/dp/13899>`_ or in the `documentation
-<https://sid-dev.readthedocs.io/en/latest/>`_.
-
 
 .. start-installation
 
@@ -113,11 +109,13 @@ sid is available on `PyPI <https://pypi.org/project/sid-dev>`_ and on `Anaconda.
 Publications
 ------------
 
-sid has been featured in some publications which are listed here:
+The main publication featuring sid is
 
-- Gabler, J., Raabe, T., & Röhrl, K. (2020). `People Meet People: A Microlevel Approach
-  to Predicting the Effect of Policies on the Spread of COVID-19
-  <http://ftp.iza.org/dp13899.pdf>`_.
+- Gabler, J., Raabe, T., Röhrl, K., & von Gaudecker, H. M. (2021). `The Effectiveness of
+  Strategies to Contain SARS-CoV-2: Testing, Vaccinations, and NPIs
+  <https://arxiv.org/abs/2106.11129>`_. arXiv.
+
+Other related publications are
 
 - Dorn, F., Gabler, J., von Gaudecker, H. M., Peichl, A., Raabe, T., & Röhrl, K. (2020).
   `Wenn Menschen (keine) Menschen treffen: Simulation der Auswirkungen von
@@ -142,12 +140,17 @@ If you rely on sid for your own research, please cite it with
 
 .. code-block::
 
-    @article{Gabler2020,
-      Title = {
-        People Meet People: A Microlevel Approach to Predicting the Effect of Policies
-        on the Spread of COVID-19
-      },
-      Author = {Gabler, Janos and Raabe, Tobias and R{\"o}hrl, Klara},
-      Year = {2020},
-      Publisher = {IZA Discussion Paper}
+    @misc{Gabler2021,
+          title={
+            The Effectiveness of Strategies to Contain SARS-CoV-2: Testing,
+            Vaccinations, and NPIs
+          },
+          author={
+            Janoś Gabler and Tobias Raabe and Klara Röhrl
+            and Hans-Martin von Gaudecker
+          },
+          year={2021},
+          eprint={2106.11129},
+          archivePrefix={arXiv},
+          primaryClass={q-bio.PE}
     }
