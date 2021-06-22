@@ -7,7 +7,13 @@ all releases are available on `Anaconda.org
 <https://anaconda.org/covid-19-impact-lab/sid>`_.
 
 
-0.0.10 - 2021-xx-xx
+0.0.11 - 2021-xx-xx
+-------------------
+
+- :gh:`137` adds the preprint and the new citation.
+
+
+0.0.10 - 2021-06-05
 -------------------
 
 - :gh:`131` moves the parsing of the virus strain infectiousness factor to the
