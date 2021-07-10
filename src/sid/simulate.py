@@ -521,7 +521,7 @@ def _simulate(
 
         states["date"] = date
         states["period"] = timestamp_to_sid_period(date)
-        
+
         susceptibility_factor = update_susceptibility_factor(
             susceptibility_factor=susceptibility_factor,
             states=states,

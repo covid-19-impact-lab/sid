@@ -71,8 +71,8 @@ def update_susceptibility_factor(
     seed: itertools.count,
 ) -> np.ndarray:
     """Update susceptibility factor using state dependent information.
-    
+
     Updates individual susceptibility, e.g. in the case of infection or vaccination.
-    
+
     """
     return susceptibility_factor
