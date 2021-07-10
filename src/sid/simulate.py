@@ -43,6 +43,7 @@ from sid.seasonality import prepare_seasonality_factor
 from sid.shared import factorize_assortative_variables
 from sid.shared import separate_contact_model_names
 from sid.susceptibility import prepare_susceptibility_factor
+from sid.susceptibility import update_susceptibility_factor
 from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
@@ -520,6 +521,13 @@ def _simulate(
 
         states["date"] = date
         states["period"] = timestamp_to_sid_period(date)
+        
+        susceptibility_factor = update_susceptibility_factor(
+            susceptibility_factor=susceptibility_factor,
+            states=states,
+            params=params,
+            seed=seed,
+        )
 
         contacts = calculate_contacts(
             contact_models=contact_models,

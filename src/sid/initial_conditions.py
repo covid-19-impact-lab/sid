@@ -94,6 +94,7 @@ def sample_initial_immunity(
             states. Note that, infected individuals are immune and included.
         infected_or_immune (pandas.Series): A series which indicates either immune or
             infected individuals.
+        seed (optional[int]): A seed.
 
     Returns:
         initial_immunity (pandas.Series): Indicates immune individuals.

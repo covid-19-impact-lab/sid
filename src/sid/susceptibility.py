@@ -17,7 +17,7 @@ def prepare_susceptibility_factor(
     The multiplier defines individual susceptibility which can be used to let infection
     probabilities vary by age.
 
-    If not multiplier is given, all individuals have the same susceptibility. Otherwise,
+    If no multiplier is given, all individuals have the same susceptibility. Otherwise,
     a custom function generates multipliers for the infection probability for each
     individual.
 
@@ -61,4 +61,18 @@ def prepare_susceptibility_factor(
                 "The susceptibility factors need to lie in the interval [0, 1]."
             )
 
+    return susceptibility_factor
+
+
+def update_susceptibility_factor(
+    susceptibility_factor: np.ndarray,
+    states: pd.DataFrame,
+    params: pd.DataFrame,
+    seed: itertools.count,
+) -> np.ndarray:
+    """Update susceptibility factor using state dependent information.
+    
+    Updates individual susceptibility, e.g. in the case of infection or vaccination.
+    
+    """
     return susceptibility_factor
