@@ -105,7 +105,7 @@ def test_replace_date_with_period_in_simulation(params, initial_states, tmp_path
     for df in [time_series, last_states]:
         assert isinstance(df, pd.DataFrame)
         assert "period" in df
-        assert df["period"].dtype.name == "int16"
+        assert df["period"].dtype.name in ["int16", "Int16"]
         assert df["period"].eq(0).all()
     assert "date" not in time_series
 
