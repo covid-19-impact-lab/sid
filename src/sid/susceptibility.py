@@ -66,13 +66,13 @@ def prepare_susceptibility_factor(
 
 def update_susceptibility_factor(
     susceptibility_factor: np.ndarray,
-    states: pd.DataFrame,
-    params: pd.DataFrame,
-    seed: itertools.count,
+    states: pd.DataFrame,  # noqa: U100
+    params: pd.DataFrame,  # noqa: U100
+    seed: itertools.count,  # noqa: U100
 ) -> np.ndarray:
     """Update susceptibility factor using state dependent information.
-    
+
     Updates individual susceptibility, e.g. in the case of infection or vaccination.
-    
+
     """
     return susceptibility_factor
