@@ -13,6 +13,8 @@ from sid.config import DTYPE_INDEX
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import DTYPE_N_CONTACTS
 from sid.config import DTYPE_VIRUS_STRAIN
+from sid.immunity import combine_first_factorized_immunity
+from sid.immunity import get_immunity_level_after_infection
 from sid.shared import boolean_choice
 from sid.shared import separate_contact_model_names
 from sid.validation import validate_return_is_series_or_ndarray
@@ -154,7 +156,7 @@ def calculate_infections_by_contacts(
         (
             newly_infected_recurrent,
             infection_counter,
-            immune,
+            immune_recurrent,
             was_infected_by_recurrent,
         ) = _calculate_infections_by_recurrent_contacts(
             recurrent_contacts=recurrent_contacts,
@@ -181,7 +183,7 @@ def calculate_infections_by_contacts(
         (
             newly_infected_random,
             infection_counter,
-            immune,
+            immune_random,
             missed,
             was_infected_by_random,
         ) = _calculate_infections_by_random_contacts(
@@ -215,9 +217,18 @@ def calculate_infections_by_contacts(
     combined_newly_infected = combine_first_factorized_infections(
         newly_infected_recurrent, newly_infected_random
     )
+    combined_immunity = combine_first_factorized_immunity(
+        immune_recurrent, immune_random
+    )
     newly_infected = pd.Series(combined_newly_infected, index=states.index)
 
-    return newly_infected, n_has_additionally_infected, missed_contacts, was_infected_by
+    return (
+        newly_infected,
+        n_has_additionally_infected,
+        missed_contacts,
+        was_infected_by,
+        combined_immunity,
+    )
 
 
 @nb.njit  # pragma: no cover
@@ -329,9 +340,7 @@ def _calculate_infections_by_recurrent_contacts(
                 # extract infection probability into a variable for faster access
                 base_probability = infection_probs[cm]
                 for j in others:
-                    # the case i == j is skipped by the next if condition because it
-                    # never happens that i is infectious but not immune
-                    if not immune[j] and recurrent_contacts[j, cm] > 0:
+                    if i != j and recurrent_contacts[j, cm] > 0:
                         # j is infected depending on its own susceptibility.
                         virus_strain_i = virus_strain[i]
                         contagiousness_factor_i = contagiousness_factor[virus_strain_i]
@@ -345,7 +354,9 @@ def _calculate_infections_by_recurrent_contacts(
                         if is_infection:
                             infection_counter[i] += 1
                             newly_infected[j] = virus_strain_i
-                            immune[j] = True
+                            immune[j] = get_immunity_level_after_infection(
+                                virus_strain_i
+                            )
                             was_infected_by[j] = cm
 
     return newly_infected, infection_counter, immune, was_infected_by
@@ -395,7 +406,7 @@ def _calculate_infections_by_random_contacts(
 
         - newly_infected (numpy.ndarray): Indicates newly infected individuals.
         - infection_counter (numpy.ndarray): Counts the number of infected individuals.
-        - immune (numpy.ndarray): Indicates immune individuals.
+        - immune (numpy.ndarray): Indicates immunity level of individuals.
         - missed (numpy.ndarray): Matrix which contains unmatched random contacts.
 
     """
@@ -433,7 +444,7 @@ def _calculate_infections_by_random_contacts(
                     random_contacts[i, cm] -= 1
                     random_contacts[j, cm] -= 1
 
-                    if infectious[i] and not immune[j]:
+                    if infectious[i]:
                         virus_strain_i = virus_strain[i]
                         contagiousness_factor_i = contagiousness_factor[virus_strain_i]
                         adjusted_individual_infection_risk_j = (
@@ -446,10 +457,12 @@ def _calculate_infections_by_random_contacts(
                         if is_infection:
                             infection_counter[i] += 1
                             newly_infected[j] = virus_strain_i
-                            immune[j] = True
+                            immune[j] = get_immunity_level_after_infection(
+                                virus_strain_i
+                            )
                             was_infected_by[j] = cm
 
-                    elif infectious[j] and not immune[i]:
+                    elif infectious[j]:
                         virus_strain_j = virus_strain[j]
                         contagiousness_factor_j = contagiousness_factor[virus_strain_j]
                         adjusted_individual_infection_risk_i = (
@@ -462,7 +475,9 @@ def _calculate_infections_by_random_contacts(
                         if is_infection:
                             infection_counter[j] += 1
                             newly_infected[i] = virus_strain_j
-                            immune[i] = True
+                            immune[i] = get_immunity_level_after_infection(
+                                virus_strain_j
+                            )
                             was_infected_by[i] = cm
 
     missed = random_contacts

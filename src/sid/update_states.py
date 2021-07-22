@@ -16,6 +16,7 @@ def update_states(
     states: pd.DataFrame,
     newly_infected_contacts: pd.Series,
     newly_infected_events: pd.Series,
+    immune: pd.Series,
     params: pd.DataFrame,
     virus_strains: Dict[str, Any],
     to_be_processed_tests: Optional[pd.Series],
@@ -33,6 +34,7 @@ def update_states(
             infected by contacts. There can be an overlap with infections by events.
         newly_infected_events (pandas.Series): Boolean series indicating individuals
             infected by events. There can be an overlap with infections by contacts.
+        immune (pandas.Series): Float series denoting immunity level of individuals.
         params (pandas.DataFrame): See :ref:`params`.
         virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
             ``"factors"`` holding the different contagiousness factors of multiple
@@ -64,6 +66,8 @@ def update_states(
 
     if to_be_processed_tests is not None:
         states = _update_info_on_new_tests(states, to_be_processed_tests)
+
+    states = _update_immunity_level(states, immune)
 
     states = _update_info_on_new_vaccinations(states, newly_vaccinated)
 
@@ -193,4 +197,16 @@ def _update_info_on_new_vaccinations(
 def update_derived_state_variables(states, derived_state_variables):
     for var, condition in derived_state_variables.items():
         states[var] = fast_condition_evaluator(states, condition)
+    return states
+
+
+def _update_immunity_level(states: pd.DataFrame, immune: pd.Series) -> pd.DataFrame:
+    """Consolidate updated immunity level and immunity countdowns.
+
+    At the moment countdowns regarding immunity after infection or vaccination are not
+    implemented. I.e., we model non-binary immunity; however we do not model a decrease
+    in immunity over time (using countdowns)
+
+    """
+    states["immune"] = immune
     return states
