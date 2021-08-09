@@ -78,10 +78,10 @@ def calculate_r_zero(df: pd.DataFrame, window_length: int = 7) -> pd.Series:
 
     grouper = _create_time_grouper(df)
     if grouper is None:
-        share_susceptibles = 1 - df["immune"].mean()
+        share_susceptibles = 1 - df["immunity_level"].mean()
         r_zero = r_effective / share_susceptibles
     else:
-        share_susceptibles = 1 - df.groupby(grouper)["immune"].mean()
+        share_susceptibles = 1 - df.groupby(grouper)["immunity_level"].mean()
         r_zero = r_effective / share_susceptibles
 
     return r_zero

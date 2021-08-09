@@ -123,7 +123,7 @@ def calculate_infections_by_contacts(
     """
     states = states.copy()
     infectious = states["infectious"].to_numpy(copy=True)
-    immune = states["immune"].to_numpy(copy=True)
+    immunity_level = states["immunity_level"].to_numpy(copy=True)
     virus_strain, _ = factorize_categorical_infections(
         states["virus_strain"], virus_strains["names"]
     )
@@ -156,12 +156,12 @@ def calculate_infections_by_contacts(
         (
             newly_infected_recurrent,
             infection_counter,
-            immune_recurrent,
+            immunity_recurrent,
             was_infected_by_recurrent,
         ) = _calculate_infections_by_recurrent_contacts(
             recurrent_contacts=recurrent_contacts,
             infectious=infectious,
-            immune=immune,
+            immunity_level=immunity_level,
             virus_strain=virus_strain,
             group_codes=group_codes_recurrent,
             indexers=indexers["recurrent"],
@@ -183,13 +183,13 @@ def calculate_infections_by_contacts(
         (
             newly_infected_random,
             infection_counter,
-            immune_random,
+            immunity_random,
             missed,
             was_infected_by_random,
         ) = _calculate_infections_by_random_contacts(
             random_contacts=random_contacts,
             infectious=infectious,
-            immune=immune,
+            immunity_level=immunity_level,
             virus_strain=virus_strain,
             group_codes=group_codes_random,
             assortative_matching_cum_probs=assortative_matching_cum_probs,
@@ -218,7 +218,7 @@ def calculate_infections_by_contacts(
         newly_infected_recurrent, newly_infected_random
     )
     combined_immunity = combine_first_factorized_immunity(
-        immune_recurrent, immune_random
+        immunity_recurrent, immunity_random
     )
     newly_infected = pd.Series(combined_newly_infected, index=states.index)
 
@@ -276,7 +276,7 @@ def _reduce_random_contacts_with_infection_probs(
 def _calculate_infections_by_recurrent_contacts(
     recurrent_contacts: np.ndarray,
     infectious: np.ndarray,
-    immune: np.ndarray,
+    immunity_level: np.ndarray,
     virus_strain: np.ndarray,
     group_codes: np.ndarray,
     indexers: nb.typed.List,
@@ -294,7 +294,8 @@ def _calculate_infections_by_recurrent_contacts(
             for each contact model where model["model"] != "meet_group".
         infectious (numpy.ndarray): 1d boolean array that indicates if a person is
             infectious. This is not directly changed after an infection.
-        immune (numpy.ndarray): 1d boolean array that indicates if a person is immune.
+        immunity_level (numpy.ndarray): 1d float array representing the level of
+            immunity of a person.
         virus_strain (numpy.ndarray)
         group_codes (numpy.ndarray): 2d integer array with the index of the group used
             in the first stage of matching.
@@ -316,8 +317,8 @@ def _calculate_infections_by_recurrent_contacts(
         - newly_infected (numpy.ndarray): Boolean array that is True for individuals
           who got newly infected.
         - infection_counter (numpy.ndarray): 1d integer array
-        - immune (numpy.ndarray): 1-D boolean array that indicates if a person is
-          immune.
+        - immunity_level (numpy.ndarray): 1d float array representing the level of
+            immunity of a person.
         - was_infected_by (numpy.ndarray): An array indicating the contact model which
           caused the infection.
 
@@ -354,19 +355,19 @@ def _calculate_infections_by_recurrent_contacts(
                         if is_infection:
                             infection_counter[i] += 1
                             newly_infected[j] = virus_strain_i
-                            immune[j] = get_immunity_level_after_infection(
+                            immunity_level[j] = get_immunity_level_after_infection(
                                 virus_strain_i
                             )
                             was_infected_by[j] = cm
 
-    return newly_infected, infection_counter, immune, was_infected_by
+    return newly_infected, infection_counter, immunity_level, was_infected_by
 
 
 @nb.njit  # pragma: no cover
 def _calculate_infections_by_random_contacts(
     random_contacts: np.ndarray,
     infectious: np.ndarray,
-    immune: np.ndarray,
+    immunity_level: np.ndarray,
     virus_strain: np.ndarray,
     group_codes: np.ndarray,
     assortative_matching_cum_probs: nb.typed.List,
@@ -384,7 +385,8 @@ def _calculate_infections_by_random_contacts(
             for each contact model where model["model"] != "meet_group".
         infectious (numpy.ndarray): 1d boolean array that indicates if a person is
             infectious. This is not directly changed after an infection.
-        immune (numpy.ndarray): 1d boolean array that indicates if a person is immune.
+        immunity_level (numpy.ndarray): 1d float array representing the level of
+            immunity of a person.
         virus_strain
         group_codes (numpy.ndarray): 2d integer array with the index of the group used
             in the first stage of matching.
@@ -406,7 +408,8 @@ def _calculate_infections_by_random_contacts(
 
         - newly_infected (numpy.ndarray): Indicates newly infected individuals.
         - infection_counter (numpy.ndarray): Counts the number of infected individuals.
-        - immune (numpy.ndarray): Indicates immunity level of individuals.
+        - immunity_level (numpy.ndarray): 1d float array representing the level of
+            immunity of a person.
         - missed (numpy.ndarray): Matrix which contains unmatched random contacts.
 
     """
@@ -457,7 +460,7 @@ def _calculate_infections_by_random_contacts(
                         if is_infection:
                             infection_counter[i] += 1
                             newly_infected[j] = virus_strain_i
-                            immune[j] = get_immunity_level_after_infection(
+                            immunity_level[j] = get_immunity_level_after_infection(
                                 virus_strain_i
                             )
                             was_infected_by[j] = cm
@@ -475,14 +478,14 @@ def _calculate_infections_by_random_contacts(
                         if is_infection:
                             infection_counter[j] += 1
                             newly_infected[i] = virus_strain_j
-                            immune[i] = get_immunity_level_after_infection(
+                            immunity_level[i] = get_immunity_level_after_infection(
                                 virus_strain_j
                             )
                             was_infected_by[i] = cm
 
     missed = random_contacts
 
-    return newly_infected, infection_counter, immune, missed, was_infected_by
+    return newly_infected, infection_counter, immunity_level, missed, was_infected_by
 
 
 @nb.njit  # pragma: no cover

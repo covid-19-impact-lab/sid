@@ -16,7 +16,7 @@ def update_states(
     states: pd.DataFrame,
     newly_infected_contacts: pd.Series,
     newly_infected_events: pd.Series,
-    immune: pd.Series,
+    immunity_level: pd.Series,
     params: pd.DataFrame,
     virus_strains: Dict[str, Any],
     to_be_processed_tests: Optional[pd.Series],
@@ -34,7 +34,8 @@ def update_states(
             infected by contacts. There can be an overlap with infections by events.
         newly_infected_events (pandas.Series): Boolean series indicating individuals
             infected by events. There can be an overlap with infections by contacts.
-        immune (pandas.Series): Float series denoting immunity level of individuals.
+        immunity_level (pandas.Series): Float series denoting immunity level of
+            individuals.
         params (pandas.DataFrame): See :ref:`params`.
         virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
             ``"factors"`` holding the different contagiousness factors of multiple
@@ -67,7 +68,7 @@ def update_states(
     if to_be_processed_tests is not None:
         states = _update_info_on_new_tests(states, to_be_processed_tests)
 
-    states = _update_immunity_level(states, immune)
+    states = _update_immunity_level(states, immunity_level)
 
     states = _update_info_on_new_vaccinations(states, newly_vaccinated)
 
@@ -116,7 +117,9 @@ def _update_info_on_newly_infected(
     )
 
     locs = states["newly_infected"]
-    states.loc[states["newly_infected"], "immune"] = True
+    states.loc[
+        locs, "immunity_level"
+    ] = 1.0  # this has to be age dependent and in [0, 1] and random and so on
     states.loc[locs, "ever_infected"] = True
     states.loc[locs, "cd_ever_infected"] = 0
     states.loc[locs, "cd_immune_false"] = states.loc[locs, "cd_immune_false_draws"]
@@ -160,7 +163,9 @@ def _update_info_on_new_tests(
     # For everyone who received a test result, the countdown for the test processing
     # has expired. If you have a positive test result (received_test_result &
     # immune) you will leave the state of knowing until your immunity expires.
-    states["new_known_case"] = states["received_test_result"] & states["immune"]
+    states["new_known_case"] = states["received_test_result"] & (
+        states["immunity_level"] > 0
+    )  # IS THIS CORRECT?
     states.loc[states["new_known_case"], "knows_immune"] = True
     states.loc[states["new_known_case"], "cd_knows_immune_false"] = states.loc[
         states["new_known_case"], "cd_immune_false"
@@ -200,7 +205,9 @@ def update_derived_state_variables(states, derived_state_variables):
     return states
 
 
-def _update_immunity_level(states: pd.DataFrame, immune: pd.Series) -> pd.DataFrame:
+def _update_immunity_level(
+    states: pd.DataFrame, immunity_level: pd.Series
+) -> pd.DataFrame:
     """Consolidate updated immunity level and immunity countdowns.
 
     At the moment countdowns regarding immunity after infection or vaccination are not
@@ -208,5 +215,5 @@ def _update_immunity_level(states: pd.DataFrame, immune: pd.Series) -> pd.DataFr
     in immunity over time (using countdowns)
 
     """
-    states["immune"] = immune
+    states["immunity_level"] = immunity_level
     return states

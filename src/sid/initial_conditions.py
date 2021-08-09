@@ -212,6 +212,7 @@ def sample_initial_distribution_of_infections_and_immunity(
         states (pandas.DataFrame): The states with sampled infections and immunity.
 
     """
+    # START we dont only need to sample infections but also immunity level of infection
     initial_infections = initial_conditions["initial_infections"]
     if isinstance(initial_infections, (int, float, pd.Series)):
         if isinstance(initial_infections, (float, int)):
@@ -243,6 +244,8 @@ def sample_initial_distribution_of_infections_and_immunity(
     else:
         spread_out_virus_strains = initial_conditions["initial_infections"]
 
+    # END
+
     # this is necessary to make derived state variables usable in testing models
     states = update_derived_state_variables(states, derived_state_variables)
 
@@ -269,6 +272,7 @@ def sample_initial_distribution_of_infections_and_immunity(
             states=states,
             newly_infected_contacts=spread_out_virus_strains[burn_in_date],
             newly_infected_events=spread_out_virus_strains[burn_in_date],
+            immune=initial_conditions["initial_immunity"],
             params=params,
             to_be_processed_tests=to_be_processed_tests,
             virus_strains=virus_strains,
@@ -282,9 +286,11 @@ def sample_initial_distribution_of_infections_and_immunity(
     states = states.drop(columns=["date", "period"])
 
     initial_immunity = sample_initial_immunity(
-        initial_conditions["initial_immunity"], states["immune"], next(seed)
+        initial_conditions["initial_immunity"], states["immunity_level"], next(seed)
     )
     states = _integrate_immune_individuals(states, initial_immunity)
+
+    # Why do i have update states, then blabla and then again intgrate into states???
 
     return states
 
@@ -461,7 +467,7 @@ def _integrate_immune_individuals(
         states (pandas.DataFrame): The states with additional immune individuals.
 
     """
-    extra_immune = initial_immunity & ~states["immune"]
+    extra_immune = np.maximum(initial_immunity, 1 - states["immune"])
     states.loc[extra_immune, "immune"] = True
     states.loc[extra_immune, "ever_infected"] = True
     states.loc[extra_immune, "cd_ever_infected"] = 0

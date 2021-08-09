@@ -27,6 +27,10 @@ def vaccinate_individuals(
         params (pandas.DataFrame): The params.
         seed (itertools.count): The seed counter.
 
+    Returns:
+        newly_vaccinated (pandas.Series): 1d boolean series indicating newly vaccinated
+            individuals.
+
     """
     newly_vaccinated = pd.Series(index=states.index, data=False)
 

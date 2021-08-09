@@ -100,7 +100,7 @@ def _create_rates_for_all_data(
     """
     name_to_statistics = {}
     for i, df_or_path in enumerate(datasets):
-        vars_for_r_zero = ["immune", "n_has_infected", "cd_infectious_false"]
+        vars_for_r_zero = ["immunity_level", "n_has_infected", "cd_infectious_false"]
         keep_vars = sorted(
             set(infection_vars + background_vars + vars_for_r_zero + ["date"])
         )
@@ -203,7 +203,11 @@ def _create_rate_plots(rates, colors, title):
     """
     vars_to_plot = rates.columns.levels[0]
     plots = []
-    full_range_vars = ["ever_infected", "immune", "symptomatic_among_infectious"]
+    full_range_vars = [
+        "ever_infected",
+        "immunity_level",
+        "symptomatic_among_infectious",
+    ]
     for var, color in zip(vars_to_plot, colors):
         y_range = (0, 1) if var in full_range_vars else None
         bg_values = rates[var].columns.unique().levels[0]

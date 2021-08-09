@@ -583,7 +583,7 @@ def _simulate(
             n_has_additionally_infected,
             newly_missed_contacts,
             channel_infected_by_contact,
-            immune,
+            immunity_level,
         ) = calculate_infections_by_contacts(
             states=states,
             recurrent_contacts=recurrent_contacts_np,
@@ -622,7 +622,7 @@ def _simulate(
             states=states,
             newly_infected_contacts=newly_infected_contacts,
             newly_infected_events=newly_infected_events,
-            immune=immune,
+            immunity_level=immunity_level,
             params=params,
             virus_strains=virus_strains,
             to_be_processed_tests=to_be_processed_tests,
@@ -977,8 +977,8 @@ def _process_initial_states(
             states[col] = DTYPE_COUNTDOWNS(-9999)
         states[col] = states[col].astype(DTYPE_COUNTDOWNS)
 
-    if "immune" not in states.columns:
-        states["immune"] = np.dtype(DTYPE_IMMUNITY).type(0.0)
+    if "immunity_level" not in states.columns:
+        states["immunity_level"] = np.dtype(DTYPE_IMMUNITY).type(0.0)
 
     states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
     states["pending_test_date"] = pd.NaT

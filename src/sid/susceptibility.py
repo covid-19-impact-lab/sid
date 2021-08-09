@@ -67,8 +67,8 @@ def prepare_susceptibility_factor(
 def update_susceptibility_factor(
     susceptibility_factor: np.ndarray,
     states: pd.DataFrame,
-    params: pd.DataFrame,  # noqa: U100
-    seed: itertools.count,  # noqa: U100
+    params: pd.DataFrame,
+    seed: itertools.count,
 ) -> np.ndarray:
     """Update susceptibility factor using state dependent information.
 
@@ -79,9 +79,9 @@ def update_susceptibility_factor(
 
     low = params.loc[("susceptibility", "random_factor", "low"), "value"]
     high = params.loc[("susceptibility", "random_factor", "high"), "value"]
-
-    immunity_factor = 1 - states["immune"]
     random_factor = np.random.uniform(low, high, size=len(states))
+
+    immunity_factor = 1 - states["immunity_level"]
 
     updated = susceptibility_factor * immunity_factor * random_factor
     updated = np.clip(updated, 0, 1)
