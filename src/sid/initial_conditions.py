@@ -272,7 +272,7 @@ def sample_initial_distribution_of_infections_and_immunity(
             states=states,
             newly_infected_contacts=spread_out_virus_strains[burn_in_date],
             newly_infected_events=spread_out_virus_strains[burn_in_date],
-            immune=initial_conditions["initial_immunity"],
+            immunity_level=None,
             params=params,
             to_be_processed_tests=to_be_processed_tests,
             virus_strains=virus_strains,
@@ -289,8 +289,6 @@ def sample_initial_distribution_of_infections_and_immunity(
         initial_conditions["initial_immunity"], states["immunity_level"], next(seed)
     )
     states = _integrate_immune_individuals(states, initial_immunity)
-
-    # Why do i have update states, then blabla and then again intgrate into states???
 
     return states
 
@@ -454,6 +452,7 @@ def _sample_factorized_virus_strains_for_infections(
     return spread_out_virus_strains
 
 
+# THIS IS NOT CORRECT
 def _integrate_immune_individuals(
     states: pd.DataFrame, initial_immunity: pd.Series
 ) -> pd.DataFrame:
@@ -467,7 +466,7 @@ def _integrate_immune_individuals(
         states (pandas.DataFrame): The states with additional immune individuals.
 
     """
-    extra_immune = np.maximum(initial_immunity, 1 - states["immune"])
+    extra_immune = np.maximum(initial_immunity, 1 - states["immunity_level"])
     states.loc[extra_immune, "immune"] = True
     states.loc[extra_immune, "ever_infected"] = True
     states.loc[extra_immune, "cd_ever_infected"] = 0

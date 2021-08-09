@@ -2,6 +2,7 @@ import itertools
 from typing import Any
 from typing import Dict
 from typing import Optional
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -16,7 +17,7 @@ def update_states(
     states: pd.DataFrame,
     newly_infected_contacts: pd.Series,
     newly_infected_events: pd.Series,
-    immunity_level: pd.Series,
+    immunity_level: Union[pd.Series, None],
     params: pd.DataFrame,
     virus_strains: Dict[str, Any],
     to_be_processed_tests: Optional[pd.Series],
@@ -215,5 +216,6 @@ def _update_immunity_level(
     in immunity over time (using countdowns)
 
     """
-    states["immunity_level"] = immunity_level
+    if immunity_level is not None:
+        states["immunity_level"] = immunity_level
     return states

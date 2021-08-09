@@ -20,7 +20,7 @@ import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_GROUP_CODE
-from sid.config import DTYPE_IMMUNITY
+from sid.config import DTYPE_IMMUNITY_LEVEL
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import SAVED_COLUMNS
 from sid.contacts import calculate_contacts
@@ -978,7 +978,7 @@ def _process_initial_states(
         states[col] = states[col].astype(DTYPE_COUNTDOWNS)
 
     if "immunity_level" not in states.columns:
-        states["immunity_level"] = np.dtype(DTYPE_IMMUNITY).type(0.0)
+        states["immunity_level"] = np.dtype(DTYPE_IMMUNITY_LEVEL).type(0.0)
 
     states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
     states["pending_test_date"] = pd.NaT

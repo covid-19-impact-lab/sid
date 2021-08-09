@@ -71,7 +71,7 @@ def calculate_infections_by_contacts(
     assortative_matching_cum_probs: nb.typed.List,
     contact_models: Dict[str, Dict[str, Any]],
     group_codes_info: Dict[str, Dict[str, Any]],
-    susceptibility_factor: np.ndarray,
+    susceptibility_factor: pd.Series,
     virus_strains: Dict[str, Any],
     seasonality_factor: pd.Series,
     seed: itertools.count,
@@ -101,7 +101,7 @@ def calculate_infections_by_contacts(
         contact_models (Dict[str, Dict[str, Any]]): The contact models.
         group_codes_info (Dict[str, Dict[str, Any]]): The name of the group code column
             for each contact model.
-        susceptibility_factor (np.ndarray): A multiplier which scales the infection
+        susceptibility_factor (pandas.Series): A multiplier which scales the infection
             probability due to susceptibility.
         virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
             ``"factors"`` holding the different contagiousness factors of multiple
@@ -123,6 +123,7 @@ def calculate_infections_by_contacts(
     """
     states = states.copy()
     infectious = states["infectious"].to_numpy(copy=True)
+    susceptibility_factor = susceptibility_factor.to_numpy(copy=True)
     immunity_level = states["immunity_level"].to_numpy(copy=True)
     virus_strain, _ = factorize_categorical_infections(
         states["virus_strain"], virus_strains["names"]
@@ -172,6 +173,7 @@ def calculate_infections_by_contacts(
             seed=next(seed),
         )
     else:
+        immunity_recurrent = None
         was_infected_by_recurrent = None
         newly_infected_recurrent = np.full(len(states), -1, dtype=DTYPE_VIRUS_STRAIN)
 
@@ -204,6 +206,7 @@ def calculate_infections_by_contacts(
             missed, columns=[f"missed_{name}" for name in random_models]
         )
     else:
+        immunity_random = None
         missed_contacts = None
         was_infected_by_random = None
         newly_infected_random = np.full(len(states), -1, dtype=DTYPE_VIRUS_STRAIN)
@@ -217,10 +220,11 @@ def calculate_infections_by_contacts(
     combined_newly_infected = combine_first_factorized_infections(
         newly_infected_recurrent, newly_infected_random
     )
+    newly_infected = pd.Series(combined_newly_infected, index=states.index)
+
     combined_immunity = combine_first_factorized_immunity(
         immunity_recurrent, immunity_random
     )
-    newly_infected = pd.Series(combined_newly_infected, index=states.index)
 
     return (
         newly_infected,
