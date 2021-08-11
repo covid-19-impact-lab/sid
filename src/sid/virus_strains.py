@@ -17,9 +17,13 @@ def prepare_virus_strain_factors(
     This function recreates the dictionary to not change the original value in partialed
     function and adds the factors.
 
+    TODO:   # noqa: T00
+        Rename factor to contagiousness_factor and persistency to persistencty_factor.
+
     """
     if len(virus_strains["names"]) == 1:
         factors = np.ones(1)
+        persistency = np.ones(1)
     else:
         factors = np.array(
             [
@@ -32,7 +36,18 @@ def prepare_virus_strain_factors(
         if any(factors < 0):
             raise ValueError("Factors of 'virus_strains' cannot be smaller than 0.")
 
-    new_virus_strains = {"names": virus_strains["names"], "factors": factors}
+        persistency = np.array(
+            [
+                params.loc[("virus_strain", name, "persistency"), "value"]
+                for name in virus_strains["names"]
+            ]
+        )
+
+    new_virus_strains = {
+        "names": virus_strains["names"],
+        "factors": factors,
+        "persistency": persistency,
+    }
 
     return new_virus_strains
 

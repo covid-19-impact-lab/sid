@@ -2,7 +2,6 @@ import itertools
 from typing import Any
 from typing import Dict
 from typing import Optional
-from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -17,7 +16,6 @@ def update_states(
     states: pd.DataFrame,
     newly_infected_contacts: pd.Series,
     newly_infected_events: pd.Series,
-    immunity_level: Union[pd.Series, None],
     params: pd.DataFrame,
     virus_strains: Dict[str, Any],
     to_be_processed_tests: Optional[pd.Series],
@@ -35,8 +33,6 @@ def update_states(
             infected by contacts. There can be an overlap with infections by events.
         newly_infected_events (pandas.Series): Boolean series indicating individuals
             infected by events. There can be an overlap with infections by contacts.
-        immunity_level (pandas.Series): Float series denoting immunity level of
-            individuals.
         params (pandas.DataFrame): See :ref:`params`.
         virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
             ``"factors"`` holding the different contagiousness factors of multiple
@@ -69,9 +65,11 @@ def update_states(
     if to_be_processed_tests is not None:
         states = _update_info_on_new_tests(states, to_be_processed_tests)
 
-    states = _update_immunity_level(states, immunity_level)
-
     states = _update_info_on_new_vaccinations(states, newly_vaccinated)
+
+    # important: this has to be called after _update_info_on_newly_infected and
+    # _update_info_on_new_vaccinations!
+    states = _update_immunity_level(states, params)
 
     states = update_derived_state_variables(states, derived_state_variables)
 
@@ -118,9 +116,6 @@ def _update_info_on_newly_infected(
     )
 
     locs = states["newly_infected"]
-    states.loc[
-        locs, "immunity_level"
-    ] = 1.0  # this has to be age dependent and in [0, 1] and random and so on
     states.loc[locs, "ever_infected"] = True
     states.loc[locs, "cd_ever_infected"] = 0
     states.loc[locs, "cd_immune_false"] = states.loc[locs, "cd_immune_false_draws"]
@@ -206,16 +201,31 @@ def update_derived_state_variables(states, derived_state_variables):
     return states
 
 
-def _update_immunity_level(
-    states: pd.DataFrame, immunity_level: pd.Series
-) -> pd.DataFrame:
-    """Consolidate updated immunity level and immunity countdowns.
+def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.DataFrame:
+    """Update immunity level from infection and vaccination.
 
-    At the moment countdowns regarding immunity after infection or vaccination are not
-    implemented. I.e., we model non-binary immunity; however we do not model a decrease
-    in immunity over time (using countdowns)
+    TODO:  # noqa: T000
+        1. Vaccination counter? -> Decrease immunity level using countdown?
 
     """
-    if immunity_level is not None:
-        states["immunity_level"] = immunity_level
+    # first, decrease immunity level using 'exponential discounting with floor' and
+    # countdown [this we need to discuss first]
+    immunity_level = states["immunity_level"]
+
+    # second, incorporate newly vaccinated and infected individuals
+    newly_infected = states["newly_infected"]
+    newly_vaccinated = states["newly_vaccinated"]
+
+    immunity_from_infection = (
+        newly_infected
+        * params.loc[("immunity", "immunity_level", "from_infection"), "value"]
+    )
+    immunity_from_vaccination = (
+        newly_vaccinated
+        * params.loc[("immunity", "immunity_level", "from_vaccination"), "value"]
+    )
+
+    states["immunity_level"] = np.maximum(
+        immunity_level, immunity_from_infection, immunity_from_vaccination
+    )
     return states
