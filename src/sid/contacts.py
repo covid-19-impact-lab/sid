@@ -99,7 +99,7 @@ def calculate_infections_by_contacts(
         contact_models (Dict[str, Dict[str, Any]]): The contact models.
         group_codes_info (Dict[str, Dict[str, Any]]): The name of the group code column
             for each contact model.
-        susceptibility_factor (pandas.Series): A multiplier which scales the infection
+        susceptibility_factor (numpy.ndarray): A multiplier which scales the infection
             probability due to susceptibility.
         virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
             ``"factors"`` holding the different contagiousness factors of multiple
@@ -124,7 +124,7 @@ def calculate_infections_by_contacts(
     states = states.copy()
     infectious = states["infectious"].to_numpy(copy=True)
     immunity_level = states["immunity_level"].to_numpy(copy=True)
-    susceptibility_factor = susceptibility_factor.to_numpy(copy=True)
+    susceptibility_factor = susceptibility_factor.copy()
     virus_strain, _ = factorize_categorical_infections(
         states["virus_strain"], virus_strains["names"]
     )

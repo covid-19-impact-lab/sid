@@ -212,7 +212,6 @@ def sample_initial_distribution_of_infections_and_immunity(
         states (pandas.DataFrame): The states with sampled infections and immunity.
 
     """
-    # START we dont only need to sample infections but also immunity level of infection
     initial_infections = initial_conditions["initial_infections"]
     if isinstance(initial_infections, (int, float, pd.Series)):
         if isinstance(initial_infections, (float, int)):
@@ -243,8 +242,6 @@ def sample_initial_distribution_of_infections_and_immunity(
 
     else:
         spread_out_virus_strains = initial_conditions["initial_infections"]
-
-    # END
 
     # this is necessary to make derived state variables usable in testing models
     states = update_derived_state_variables(states, derived_state_variables)

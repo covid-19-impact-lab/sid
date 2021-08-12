@@ -5,6 +5,7 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+from sid.config import DTYPE_IMMUNITY_LEVEL
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.countdowns import COUNTDOWNS
 from sid.shared import fast_condition_evaluator
@@ -217,15 +218,14 @@ def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.Dat
     newly_vaccinated = states["newly_vaccinated"]
 
     immunity_from_infection = (
-        newly_infected
+        newly_infected.astype(DTYPE_IMMUNITY_LEVEL)
         * params.loc[("immunity", "immunity_level", "from_infection"), "value"]
     )
     immunity_from_vaccination = (
-        newly_vaccinated
+        newly_vaccinated.astype(DTYPE_IMMUNITY_LEVEL)
         * params.loc[("immunity", "immunity_level", "from_vaccination"), "value"]
     )
 
-    states["immunity_level"] = np.maximum(
-        immunity_level, immunity_from_infection, immunity_from_vaccination
-    )
+    levels = np.c_[immunity_level, immunity_from_infection, immunity_from_vaccination]
+    states["immunity_level"] = levels.max(axis=1)
     return states
