@@ -42,7 +42,7 @@ def households_w_one_infected():
     states = pd.DataFrame(
         {
             "infectious": [True] + [False] * 7,
-            "immune": [True] + [False] * 7,
+            "immunity_level": [1.0] + [0.0] * 7,
             "group_codes_households": [0] * 4 + [1] * 4,
             "households": [0] * 4 + [1] * 4,
             "group_codes_non_rec": [0] * 4 + [1] * 4,
@@ -67,7 +67,11 @@ def households_w_one_infected():
 
     group_codes_info = {"households": {"name": "group_codes_households"}}
 
-    virus_strains = {"names": ["base_strain"], "factors": np.ones(1)}
+    virus_strains = {
+        "names": ["base_strain"],
+        "factors": np.ones(1),
+        "persistency": np.ones(1),
+    }
 
     return {
         "states": states,
@@ -101,14 +105,12 @@ def test_calculate_infections_only_recurrent_all_participate(
     states = households_w_one_infected["states"]
     exp_infected = pd.Series([-1] + [0] * 3 + [-1] * 4, dtype="int8")
     exp_infection_counter = pd.Series([3] + [0] * 7, dtype="int32")
-    exp_immune = pd.Series([True] * 4 + [False] * 4)
     assert calc_infected.equals(exp_infected)
     assert (
         (states["n_has_infected"] + calc_n_has_additionally_infected)
         .astype(np.int32)
         .equals(exp_infection_counter)
     )
-    assert (states["immune"] | (calc_infected == 0)).equals(exp_immune)
     assert calc_missed_contacts is None
 
 
@@ -171,7 +173,7 @@ def test_calculate_infections_only_recurrent_one_skips(
 def test_calculate_infections_only_recurrent_one_immune(
     households_w_one_infected,
 ):
-    households_w_one_infected["states"].loc[1, "immune"] = True
+    households_w_one_infected["states"].loc[1, "immunity_level"] = 1.0
 
     (
         calc_infected,

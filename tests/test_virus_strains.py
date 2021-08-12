@@ -17,24 +17,28 @@ from sid.virus_strains import prepare_virus_strain_factors
             {"names": ["base_strain"]},
             None,
             does_not_raise(),
-            {"names": ["base_strain"], "factors": np.ones(1)},
+            {
+                "names": ["base_strain"],
+                "factors": np.ones(1),
+                "persistency": np.ones(1),
+            },
             id="default single strain",
         ),
         pytest.param(
             {"names": ["b117"]},
             None,
             does_not_raise(),
-            {"names": ["b117"], "factors": np.ones(1)},
+            {"names": ["b117"], "factors": np.ones(1), "persistency": np.ones(1)},
             id="non-default single strain",
         ),
         pytest.param(
             {"names": ["base_strain", "minus_strain"]},
             pd.DataFrame(
                 {
-                    "category": ["virus_strain"] * 2,
-                    "subcategory": ["base_strain", "minus_strain"],
-                    "name": ["factor"] * 2,
-                    "value": [1, -1],
+                    "category": ["virus_strain"] * 4,
+                    "subcategory": ["base_strain", "minus_strain"] * 2,
+                    "name": ["factor"] * 2 + ["persistency"] * 2,
+                    "value": [1, -1, 1, 1],
                 }
             ).set_index(["category", "subcategory", "name"]),
             pytest.raises(ValueError, match="Factors of 'virus_strains' cannot"),
@@ -52,21 +56,29 @@ from sid.virus_strains import prepare_virus_strain_factors
                 }
             ).set_index(["category", "subcategory", "name"]),
             does_not_raise(),
-            {"names": ["base_strain"], "factors": np.ones(1)},
+            {
+                "names": ["base_strain"],
+                "factors": np.ones(1),
+                "persistency": np.ones(1),
+            },
             id="single factor stays the same if one",
         ),
         pytest.param(
             {"names": ["a_new_strain", "base_strain"]},
             pd.DataFrame(
                 {
-                    "category": ["virus_strain"] * 2,
-                    "subcategory": ["base_strain", "a_new_strain"],
-                    "name": ["factor"] * 2,
-                    "value": [0.5, 0.25],
+                    "category": ["virus_strain"] * 4,
+                    "subcategory": ["base_strain", "a_new_strain"] * 2,
+                    "name": ["factor"] * 2 + ["persistency"] * 2,
+                    "value": [0.5, 0.25, 1, 1],
                 }
             ).set_index(["category", "subcategory", "name"]),
             does_not_raise(),
-            {"names": ["a_new_strain", "base_strain"], "factors": np.array([0.5, 1])},
+            {
+                "names": ["a_new_strain", "base_strain"],
+                "factors": np.array([0.5, 1]),
+                "persistency": np.array([1.0, 1]),
+            },
             id="factors are scaled",
         ),
     ],
