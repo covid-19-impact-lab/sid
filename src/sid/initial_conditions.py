@@ -465,7 +465,7 @@ def _integrate_immune_individuals(
         states (pandas.DataFrame): The states with initial immunity integrated.
 
     """
-    immunity_level = np.maximum(initial_immunity, 1 - states["immunity_level"])
+    immunity_level = np.maximum(initial_immunity, states["immunity_level"])
     states["immunity_level"] = immunity_level
 
     loc = immunity_level > 0
