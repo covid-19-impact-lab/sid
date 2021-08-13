@@ -62,27 +62,3 @@ def prepare_susceptibility_factor(
             )
 
     return susceptibility_factor
-
-
-def update_susceptibility_factor(
-    susceptibility_factor: np.ndarray,
-    states: pd.DataFrame,
-    params: pd.DataFrame,
-    seed: itertools.count,
-) -> np.ndarray:
-    """Update susceptibility factor using state dependent information.
-
-    Individual susceptibility is adjusted e.g. in the case of infection or vaccination.
-
-    """
-    np.random.seed(next(seed))
-
-    low = params.loc[("susceptibility", "random_factor", "low"), "value"]
-    high = params.loc[("susceptibility", "random_factor", "high"), "value"]
-    random_factor = np.random.uniform(low, high, size=len(states))
-
-    immunity_factor = 1 - states["immunity_level"]
-
-    updated = susceptibility_factor * immunity_factor * random_factor
-    updated = np.clip(updated, 0, 1)
-    return updated

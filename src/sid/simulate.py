@@ -44,7 +44,6 @@ from sid.seasonality import prepare_seasonality_factor
 from sid.shared import factorize_assortative_variables
 from sid.shared import separate_contact_model_names
 from sid.susceptibility import prepare_susceptibility_factor
-from sid.susceptibility import update_susceptibility_factor
 from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
 from sid.update_states import update_states
@@ -523,13 +522,6 @@ def _simulate(
         states["date"] = date
         states["period"] = timestamp_to_sid_period(date)
 
-        susceptibility_factor = update_susceptibility_factor(
-            susceptibility_factor=susceptibility_factor,
-            states=states,
-            params=params,
-            seed=seed,
-        )
-
         contacts = calculate_contacts(
             contact_models=contact_models,
             states=states,
@@ -583,7 +575,6 @@ def _simulate(
             n_has_additionally_infected,
             newly_missed_contacts,
             channel_infected_by_contact,
-            immunity_level,
         ) = calculate_infections_by_contacts(
             states=states,
             recurrent_contacts=recurrent_contacts_np,
@@ -622,7 +613,6 @@ def _simulate(
             states=states,
             newly_infected_contacts=newly_infected_contacts,
             newly_infected_events=newly_infected_events,
-            immunity_level=immunity_level,
             params=params,
             virus_strains=virus_strains,
             to_be_processed_tests=to_be_processed_tests,
@@ -978,7 +968,7 @@ def _process_initial_states(
         states[col] = states[col].astype(DTYPE_COUNTDOWNS)
 
     if "immunity_level" not in states.columns:
-        states["immunity_level"] = np.dtype(DTYPE_IMMUNITY_LEVEL).type(0.0)
+        states["immunity_level"] = DTYPE_IMMUNITY_LEVEL(0)
 
     states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
     states["pending_test_date"] = pd.NaT

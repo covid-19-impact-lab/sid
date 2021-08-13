@@ -212,7 +212,6 @@ def sample_initial_distribution_of_infections_and_immunity(
         states (pandas.DataFrame): The states with sampled infections and immunity.
 
     """
-    # START we dont only need to sample infections but also immunity level of infection
     initial_infections = initial_conditions["initial_infections"]
     if isinstance(initial_infections, (int, float, pd.Series)):
         if isinstance(initial_infections, (float, int)):
@@ -244,8 +243,6 @@ def sample_initial_distribution_of_infections_and_immunity(
     else:
         spread_out_virus_strains = initial_conditions["initial_infections"]
 
-    # END
-
     # this is necessary to make derived state variables usable in testing models
     states = update_derived_state_variables(states, derived_state_variables)
 
@@ -272,7 +269,6 @@ def sample_initial_distribution_of_infections_and_immunity(
             states=states,
             newly_infected_contacts=spread_out_virus_strains[burn_in_date],
             newly_infected_events=spread_out_virus_strains[burn_in_date],
-            immunity_level=None,
             params=params,
             to_be_processed_tests=to_be_processed_tests,
             virus_strains=virus_strains,
@@ -452,26 +448,33 @@ def _sample_factorized_virus_strains_for_infections(
     return spread_out_virus_strains
 
 
-# THIS IS NOT CORRECT
 def _integrate_immune_individuals(
     states: pd.DataFrame, initial_immunity: pd.Series
 ) -> pd.DataFrame:
-    """Integrate immune individuals in states.
+    """Integrate immunity level of individuals in states.
+
+
+    TODO: Figure out answer to question in below comments  # noqa: T000
 
     Args:
         states (pandas.DataFrame): The states which already include sampled infections.
-        initial_immunity (pandas.Series): A series with sampled immune individuals.
+        initial_immunity (pandas.Series): A series with sampled immunity levels of
+            individuals.
 
     Returns:
-        states (pandas.DataFrame): The states with additional immune individuals.
+        states (pandas.DataFrame): The states with initial immunity integrated.
 
     """
-    extra_immune = np.maximum(initial_immunity, 1 - states["immunity_level"])
-    states.loc[extra_immune, "immune"] = True
-    states.loc[extra_immune, "ever_infected"] = True
-    states.loc[extra_immune, "cd_ever_infected"] = 0
-    states.loc[extra_immune, "cd_immune_false"] = states.loc[
-        extra_immune, "cd_immune_false_draws"
-    ]
+    immunity_level = np.maximum(initial_immunity, states["immunity_level"])
+    states["immunity_level"] = immunity_level
+
+    loc = immunity_level > 0
+    states.loc[
+        loc, "ever_infected"
+    ] = True  # why are we setting something with infections here?
+    states.loc[
+        loc, "cd_ever_infected"
+    ] = 0  # why are we setting something with infections here?
+    states.loc[loc, "cd_immune_false"] = states.loc[loc, "cd_immune_false_draws"]
 
     return states
