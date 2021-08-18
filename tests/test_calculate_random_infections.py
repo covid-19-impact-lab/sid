@@ -102,8 +102,8 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
 
     assert (newly_infected == [-1, -1, -1, -1, -1]).all()
     assert (infection_counter == [0, 0, 0, 0, 0]).all()
-    assert (missed[[0, 1, 3], :] > 0).all()
-    assert (missed[[2, 4]] == 0).all()
+    assert (missed[[0, 1], :] > 0).all()
+    assert (missed[[2, 3, 4]] == 0).all()
     assert (was_infected == [-1, -1, -1, -1, -1]).all()
 
 
