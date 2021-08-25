@@ -60,7 +60,13 @@ SAVED_COLUMNS = {
     "contacts": False,
     "countdown_draws": False,
     "group_codes": False,
-    "other": ["n_has_infected", "newly_infected", "new_known_case", "virus_strain"],
+    "other": [
+        "n_has_infected",
+        "newly_infected",
+        "new_known_case",
+        "virus_strain",
+        "immunity_level",
+    ],
     "channels": False,
     "rapid_tests": True,
 }
