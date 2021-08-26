@@ -330,9 +330,14 @@ def _calculate_infections_by_recurrent_contacts(
     newly_infected = np.full(n_individuals, -1, dtype=DTYPE_VIRUS_STRAIN)
 
     for i in range(n_individuals):
+
+        virus_strain_i = virus_strain[i]
+        contagiousness_factor_i = contagiousness_factor[virus_strain_i]
+        persistency_factor_i = persistency_factor[virus_strain_i]
+
         for cm in range(n_recurrent_contact_models):
-            # We only check if i infects someone else from his group. Whether
-            # he is infected by some j is only checked, when the main loop arrives
+            # We only check if i infects someone else from her/his group. Whether
+            # she/he is infected by some j is only checked, when the main loop arrives
             # at j. This allows us to skip completely if i is not infectious or has
             # no contacts under contact model cm.
             group_i = group_codes[i, cm]
@@ -341,18 +346,9 @@ def _calculate_infections_by_recurrent_contacts(
                 # extract infection probability into a variable for faster access
                 base_probability = infection_probs[cm]
                 for j in others:
-                    if i != j and recurrent_contacts[j, cm] > 0:
+                    j_is_susceptible = not infectious[j] and newly_infected[j] == -1
+                    if j_is_susceptible and recurrent_contacts[j, cm] > 0:
                         # j is infected depending on its own susceptibility.
-                        virus_strain_i = virus_strain[
-                            i
-                        ]  # could the code be made faster by moving this up into the first for loop?  # noqa: E501
-                        contagiousness_factor_i = contagiousness_factor[
-                            virus_strain_i
-                        ]  # and this
-                        persistency_factor_i = persistency_factor[
-                            virus_strain_i
-                        ]  # and this [also find better name]
-
                         individual_infection_risk = (
                             base_probability
                             * susceptibility_factor[j]
@@ -455,7 +451,10 @@ def _calculate_infections_by_random_contacts(
                     random_contacts[i, cm] -= 1
                     random_contacts[j, cm] -= 1
 
-                    if infectious[i]:
+                    i_is_susceptible = not infectious[i] and newly_infected[i] == -1
+                    j_is_susceptible = not infectious[j] and newly_infected[j] == -1
+
+                    if infectious[i] and j_is_susceptible:
                         virus_strain_i = virus_strain[i]
                         contagiousness_factor_i = contagiousness_factor[virus_strain_i]
                         persistency_factor_i = persistency_factor[virus_strain_i]
@@ -473,7 +472,7 @@ def _calculate_infections_by_random_contacts(
                             newly_infected[j] = virus_strain_i
                             was_infected_by[j] = cm
 
-                    elif infectious[j]:
+                    elif infectious[j] and i_is_susceptible:
                         virus_strain_j = virus_strain[j]
                         contagiousness_factor_j = contagiousness_factor[virus_strain_j]
                         persistency_factor_j = persistency_factor[virus_strain_j]
