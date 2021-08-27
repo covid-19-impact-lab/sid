@@ -427,8 +427,9 @@ def _simulate(
         susceptibility_factor_model (Callable): A function which takes the
             states and parameters and returns an infection probability multiplier for
             each individual.
-        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
-            ``"factors"`` holding the different contagiousness factors of multiple
+        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"``,
+            ``"contagiousness_factor"`` and ``"immunity_resistance_factor"`` holding the
+            different contagiousness factors and immunity resistance factors of multiple
             viruses.
         vaccination_models (Optional[Dict[str, Dict[str, Any]): A dictionary of models
             which allow to vaccinate individuals. The ``"model"`` key holds a function
