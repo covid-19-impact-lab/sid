@@ -5,7 +5,7 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from sid.config import DTYPE_IMMUNITY_LEVEL
+from sid.config import DTYPE_IMMUNITY
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.countdowns import COUNTDOWNS
 from sid.shared import fast_condition_evaluator
@@ -161,7 +161,7 @@ def _update_info_on_new_tests(
     # has expired. If you have a positive test result (received_test_result &
     # immune) you will leave the state of knowing until your immunity expires.
     states["new_known_case"] = states["received_test_result"] & (
-        states["immunity_level"] > 0
+        states["immunity"] > 0
     )  # IS THIS CORRECT?
     states.loc[states["new_known_case"], "knows_immune"] = True
     states.loc[states["new_known_case"], "cd_knows_immune_false"] = states.loc[
@@ -211,21 +211,21 @@ def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.Dat
     """
     # first, decrease immunity level using 'exponential discounting with floor' and
     # countdown [this we need to discuss first]
-    immunity_level = states["immunity_level"]
+    immunity = states["immunity"]
 
     # second, incorporate newly vaccinated and infected individuals
     newly_infected = states["newly_infected"]
     newly_vaccinated = states["newly_vaccinated"]
 
     immunity_from_infection = (
-        newly_infected.astype(DTYPE_IMMUNITY_LEVEL)
-        * params.loc[("immunity", "immunity_level", "from_infection"), "value"]
+        newly_infected.astype(DTYPE_IMMUNITY)
+        * params.loc[("immunity", "immunity", "from_infection"), "value"]
     )
     immunity_from_vaccination = (
-        newly_vaccinated.astype(DTYPE_IMMUNITY_LEVEL)
-        * params.loc[("immunity", "immunity_level", "from_vaccination"), "value"]
+        newly_vaccinated.astype(DTYPE_IMMUNITY)
+        * params.loc[("immunity", "immunity", "from_vaccination"), "value"]
     )
 
-    levels = np.c_[immunity_level, immunity_from_infection, immunity_from_vaccination]
-    states["immunity_level"] = levels.max(axis=1)
+    levels = np.c_[immunity, immunity_from_infection, immunity_from_vaccination]
+    states["immunity"] = levels.max(axis=1)
     return states

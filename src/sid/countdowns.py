@@ -6,7 +6,7 @@ COUNTDOWNS = {
         "starts": ["cd_infectious_false", "cd_symptoms_true"],
     },
     "cd_infectious_false": {"changes": {"infectious": False}},
-    "cd_immune_false": {"changes": {"immunity_level": 0.0}},
+    "cd_immune_false": {"changes": {"immunity": 0.0}},
     "cd_symptoms_true": {
         "changes": {"symptomatic": True},
         "starts": ["cd_symptoms_false", "cd_needs_icu_true"],
@@ -43,7 +43,7 @@ COUNTDOWNS = {
     "cd_knows_infectious_false": {"changes": {"knows_infectious": False}},
     "cd_ever_infected": {},
     "cd_is_immune_by_vaccine": {
-        "changes": {"immunity_level": 1.0}
+        "changes": {"immunity": 1.0}
     },  # THIS NEEDS TO BE UPDATED, state specific independent
     "cd_received_rapid_test": {},
 }

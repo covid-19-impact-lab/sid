@@ -123,7 +123,7 @@ def calculate_infections_by_contacts(
     """
     states = states.copy()
     infectious = states["infectious"].to_numpy(copy=True)
-    immunity_level = states["immunity_level"].to_numpy(copy=True)
+    immunity = states["immunity"].to_numpy(copy=True)
     susceptibility_factor = susceptibility_factor.copy()
     virus_strain, _ = factorize_categorical_infections(
         states["virus_strain"], virus_strains["names"]
@@ -161,14 +161,14 @@ def calculate_infections_by_contacts(
         ) = _calculate_infections_by_recurrent_contacts(
             recurrent_contacts=recurrent_contacts,
             infectious=infectious,
-            immunity_level=immunity_level,
+            immunity=immunity,
             virus_strain=virus_strain,
             group_codes=group_codes_recurrent,
             indexers=indexers["recurrent"],
             infection_probs=seasonal_infection_probabilities_recurrent,
             susceptibility_factor=susceptibility_factor,
-            contagiousness_factor=virus_strains["factors"],
-            persistency_factor=virus_strains["persistency"],
+            contagiousness_factor=virus_strains["contagiousness_factor"],
+            immunity_resistance_factor=virus_strains["immunity_resistance_factor"],
             infection_counter=infection_counter,
             seed=next(seed),
         )
@@ -189,14 +189,14 @@ def calculate_infections_by_contacts(
         ) = _calculate_infections_by_random_contacts(
             random_contacts=random_contacts,
             infectious=infectious,
-            immunity_level=immunity_level,
+            immunity=immunity,
             virus_strain=virus_strain,
             group_codes=group_codes_random,
             assortative_matching_cum_probs=assortative_matching_cum_probs,
             indexers=indexers["random"],
             susceptibility_factor=susceptibility_factor,
-            contagiousness_factor=virus_strains["factors"],
-            persistency_factor=virus_strains["persistency"],
+            contagiousness_factor=virus_strains["contagiousness_factor"],
+            immunity_resistance_factor=virus_strains["immunity_resistance_factor"],
             infection_counter=infection_counter,
             seed=next(seed),
         )
@@ -273,14 +273,14 @@ def _reduce_random_contacts_with_infection_probs(
 def _calculate_infections_by_recurrent_contacts(
     recurrent_contacts: np.ndarray,
     infectious: np.ndarray,
-    immunity_level: np.ndarray,
+    immunity: np.ndarray,
     virus_strain: np.ndarray,
     group_codes: np.ndarray,
     indexers: nb.typed.List,
     infection_probs: np.ndarray,
     susceptibility_factor: np.ndarray,
     contagiousness_factor: np.ndarray,
-    persistency_factor: np.ndarray,
+    immunity_resistance_factor: np.ndarray,
     infection_counter: np.ndarray,
     seed: int,
 ) -> Tuple[np.ndarray]:
@@ -292,7 +292,7 @@ def _calculate_infections_by_recurrent_contacts(
             for each contact model where model["model"] != "meet_group".
         infectious (numpy.ndarray): 1d boolean array that indicates if a person is
             infectious. This is not directly changed after an infection.
-        immunity_level (numpy.ndarray): 1d float array indicating immunity level
+        immunity (numpy.ndarray): 1d float array indicating immunity level
         virus_strain (numpy.ndarray):
         group_codes (numpy.ndarray): 2d integer array with the index of the group used
             in the first stage of matching.
@@ -304,9 +304,11 @@ def _calculate_infections_by_recurrent_contacts(
         susceptibility_factor (np.ndarray): A multiplier which scales the infection
             probability.
         contagiousness_factor (np.ndarray): Virus strain dependent contagiosity factor.
-        persistency_factor (np.ndarray): Virus strain dependent persistency factor. This
-            factor influences how much prior immunity can level down the infection
-            probability with a given virus strain.
+        immunity_resistance_factor (np.ndarray): Virus strain dependent immunity
+            resistance factor. This factor determines how prior immunity influences
+            infection probabilities. Values close to 0 imply that infection
+            probabilities are independent of the immunity level, while values close to 1
+            imply the infection probability is multiplied with (1 - immunity).
         infection_counter (numpy.ndarray): An array counting infection caused by an
             individual.
         seed (int): Seed value to control randomness.
@@ -333,7 +335,7 @@ def _calculate_infections_by_recurrent_contacts(
 
         virus_strain_i = virus_strain[i]
         contagiousness_factor_i = contagiousness_factor[virus_strain_i]
-        persistency_factor_i = persistency_factor[virus_strain_i]
+        immunity_resistance_factor_i = immunity_resistance_factor[virus_strain_i]
 
         for cm in range(n_recurrent_contact_models):
             # We only check if i infects someone else from her/his group. Whether
@@ -353,7 +355,7 @@ def _calculate_infections_by_recurrent_contacts(
                             base_probability
                             * susceptibility_factor[j]
                             * contagiousness_factor_i
-                            * (1 - persistency_factor_i * immunity_level[j])
+                            * (1 - immunity_resistance_factor_i * immunity[j])
                         )
 
                         is_infection = boolean_choice(individual_infection_risk)
@@ -369,14 +371,14 @@ def _calculate_infections_by_recurrent_contacts(
 def _calculate_infections_by_random_contacts(
     random_contacts: np.ndarray,
     infectious: np.ndarray,
-    immunity_level: np.ndarray,
+    immunity: np.ndarray,
     virus_strain: np.ndarray,
     group_codes: np.ndarray,
     assortative_matching_cum_probs: nb.typed.List,
     indexers: nb.typed.List,
     susceptibility_factor: np.ndarray,
     contagiousness_factor: np.ndarray,
-    persistency_factor: np.ndarray,
+    immunity_resistance_factor: np.ndarray,
     infection_counter: np.ndarray,
     seed: int,
 ) -> Tuple[np.ndarray]:
@@ -388,7 +390,7 @@ def _calculate_infections_by_random_contacts(
             for each contact model where model["model"] != "meet_group".
         infectious (numpy.ndarray): 1d boolean array that indicates if a person is
             infectious. This is not directly changed after an infection.
-        immunity_level (numpy.ndarray): 1d float array indicating immunity level
+        immunity (numpy.ndarray): 1d float array indicating immunity level
         virus_strain (numpy.ndarray):
         group_codes (numpy.ndarray): 2d integer array with the index of the group used
             in the first stage of matching.
@@ -401,7 +403,11 @@ def _calculate_infections_by_random_contacts(
         susceptibility_factor (np.ndarray): A multiplier which scales the infection
             probability.
         contagiousness_factor (np.ndarray): Virus strain dependent contagiosity factor.
-        persistency_factor (np.ndarray): Virus strain dependent persistency factor.
+        immunity_resistance_factor (np.ndarray): Virus strain dependent immunity
+            resistance factor. This factor determines how prior immunity influences
+            infection probabilities. Values close to 0 imply that infection
+            probabilities are independent of the immunity level, while values close to 1
+            imply the infection probability is multiplied with (1 - immunity).
         infection_counter (numpy.ndarray): An array counting infection caused by an
             individual.
         seed (int): Seed value to control randomness.
@@ -457,11 +463,14 @@ def _calculate_infections_by_random_contacts(
                     if infectious[i] and j_is_susceptible:
                         virus_strain_i = virus_strain[i]
                         contagiousness_factor_i = contagiousness_factor[virus_strain_i]
-                        persistency_factor_i = persistency_factor[virus_strain_i]
+                        immunity_resistance_factor_i = immunity_resistance_factor[
+                            virus_strain_i
+                        ]
+
                         adjusted_individual_infection_risk_j = (
                             susceptibility_factor[j]
                             * contagiousness_factor_i
-                            * (1 - persistency_factor_i * immunity_level[j])
+                            * (1 - immunity_resistance_factor_i * immunity[j])
                         )
 
                         is_infection = boolean_choice(
@@ -475,11 +484,14 @@ def _calculate_infections_by_random_contacts(
                     elif infectious[j] and i_is_susceptible:
                         virus_strain_j = virus_strain[j]
                         contagiousness_factor_j = contagiousness_factor[virus_strain_j]
-                        persistency_factor_j = persistency_factor[virus_strain_j]
+                        immunity_resistance_factor_j = immunity_resistance_factor[
+                            virus_strain_j
+                        ]
+
                         adjusted_individual_infection_risk_i = (
                             susceptibility_factor[i]
                             * contagiousness_factor_j
-                            * (1 - persistency_factor_j * immunity_level[i])
+                            * (1 - immunity_resistance_factor_j * immunity[i])
                         )
 
                         is_infection = boolean_choice(
