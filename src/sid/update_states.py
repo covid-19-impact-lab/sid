@@ -35,8 +35,9 @@ def update_states(
         newly_infected_events (pandas.Series): Boolean series indicating individuals
             infected by events. There can be an overlap with infections by contacts.
         params (pandas.DataFrame): See :ref:`params`.
-        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
-            ``"factors"`` holding the different contagiousness factors of multiple
+        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"``,
+            ``"contagiousness_factor"`` and ``"immunity_resistance_factor"`` holding the
+            different contagiousness factors and immunity resistance factors of multiple
             viruses.
         to_be_processed_tests (pandas.Series): Tests which are going to be processed.
         newly_vaccinated (Optional[pandas.Series]): A series which indicates newly

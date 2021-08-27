@@ -101,8 +101,9 @@ def calculate_infections_by_contacts(
             for each contact model.
         susceptibility_factor (numpy.ndarray): A multiplier which scales the infection
             probability due to susceptibility.
-        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
-            ``"factors"`` holding the different contagiousness factors of multiple
+        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"``,
+            ``"contagiousness_factor"`` and ``"immunity_resistance_factor"`` holding the
+            different contagiousness factors and immunity resistance factors of multiple
             viruses.
         seasonality_factor (pandas.Series): A multiplier which scales the infection
             probabilities due to seasonality. The index are the factor model names.

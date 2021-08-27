@@ -175,7 +175,11 @@ def parse_virus_strains(
         if len(virus_strains) == 0:
             raise ValueError("The list of 'virus_strains' cannot be empty.")
 
-        expected_indices = [("virus_strain", name, "factor") for name in virus_strains]
+        expected_indices = [
+            ("virus_strain", name, factor)
+            for name in virus_strains
+            for factor in ("contagiousness_factor", "immunity_resistance_factor")
+        ]
         is_in_params = [index in params.index for index in expected_indices]
         if not all(is_in_params):
             missing_indices = [
