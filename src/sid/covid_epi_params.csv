@@ -133,5 +133,5 @@ rapid_test,sensitivity,pre-infectious,0.35
 rapid_test,sensitivity,start_infectious,0.88
 rapid_test,sensitivity,while_infectious,0.95
 rapid_test,sensitivity,after_infectious,0.5
-immunity,immunity_level,from_infection,0.99
-immunity,immunity_level,from_vaccination,0.8
+immunity,immunity,from_infection,0.99
+immunity,immunity,from_vaccination,0.8

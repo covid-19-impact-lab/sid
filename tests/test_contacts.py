@@ -42,7 +42,7 @@ def households_w_one_infected():
     states = pd.DataFrame(
         {
             "infectious": [True] + [False] * 7,
-            "immunity_level": [1.0] + [0.0] * 7,
+            "immunity": [1.0] + [0.0] * 7,
             "group_codes_households": [0] * 4 + [1] * 4,
             "households": [0] * 4 + [1] * 4,
             "group_codes_non_rec": [0] * 4 + [1] * 4,
@@ -69,8 +69,8 @@ def households_w_one_infected():
 
     virus_strains = {
         "names": ["base_strain"],
-        "factors": np.ones(1),
-        "persistency": np.ones(1),
+        "contagiousness_factor": np.ones(1),
+        "immunity_resistance_factor": np.ones(1),
     }
 
     return {
@@ -173,7 +173,7 @@ def test_calculate_infections_only_recurrent_one_skips(
 def test_calculate_infections_only_recurrent_one_immune(
     households_w_one_infected,
 ):
-    households_w_one_infected["states"].loc[1, "immunity_level"] = 1.0
+    households_w_one_infected["states"].loc[1, "immunity"] = 1.0
 
     (
         calc_infected,

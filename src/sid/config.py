@@ -39,7 +39,7 @@ DTYPE_GROUP_CODE = np.int32
 DTYPE_GROUP_TRANSITION_PROBABILITIES = np.float32
 DTYPE_INDEX = np.uint32
 DTYPE_INFECTION_COUNTER = np.uint16
-DTYPE_IMMUNITY_LEVEL = np.float32
+DTYPE_IMMUNITY = np.float32
 DTYPE_N_CONTACTS = np.uint16
 DTYPE_SID_PERIOD = np.int16
 DTYPE_VIRUS_STRAIN = np.int8
@@ -65,7 +65,7 @@ SAVED_COLUMNS = {
         "newly_infected",
         "new_known_case",
         "virus_strain",
-        "immunity_level",
+        "immunity",
     ],
     "channels": False,
     "rapid_tests": True,

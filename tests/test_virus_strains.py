@@ -19,8 +19,8 @@ from sid.virus_strains import prepare_virus_strain_factors
             does_not_raise(),
             {
                 "names": ["base_strain"],
-                "factors": np.ones(1),
-                "persistency": np.ones(1),
+                "contagiousness_factor": np.ones(1),
+                "immunity_resistance_factor": np.ones(1),
             },
             id="default single strain",
         ),
@@ -28,7 +28,11 @@ from sid.virus_strains import prepare_virus_strain_factors
             {"names": ["b117"]},
             None,
             does_not_raise(),
-            {"names": ["b117"], "factors": np.ones(1), "persistency": np.ones(1)},
+            {
+                "names": ["b117"],
+                "contagiousness_factor": np.ones(1),
+                "immunity_resistance_factor": np.ones(1),
+            },
             id="non-default single strain",
         ),
         pytest.param(
@@ -37,7 +41,8 @@ from sid.virus_strains import prepare_virus_strain_factors
                 {
                     "category": ["virus_strain"] * 4,
                     "subcategory": ["base_strain", "minus_strain"] * 2,
-                    "name": ["factor"] * 2 + ["persistency"] * 2,
+                    "name": ["contagiousness_factor"] * 2
+                    + ["immunity_resistance_factor"] * 2,
                     "value": [1, -1, 1, 1],
                 }
             ).set_index(["category", "subcategory", "name"]),
@@ -49,17 +54,17 @@ from sid.virus_strains import prepare_virus_strain_factors
             {"names": ["base_strain"]},
             pd.DataFrame(
                 {
-                    "category": ["virus_strain"],
-                    "subcategory": ["base_strain"],
-                    "name": ["factor"],
-                    "value": [0.5],
+                    "category": ["virus_strain"] * 2,
+                    "subcategory": ["base_strain"] * 2,
+                    "name": ["contagiousness_factor", "immunity_resistance_factor"],
+                    "value": [0.5, 1.0],
                 }
             ).set_index(["category", "subcategory", "name"]),
             does_not_raise(),
             {
                 "names": ["base_strain"],
-                "factors": np.ones(1),
-                "persistency": np.ones(1),
+                "contagiousness_factor": np.ones(1),
+                "immunity_resistance_factor": np.ones(1),
             },
             id="single factor stays the same if one",
         ),
@@ -69,15 +74,16 @@ from sid.virus_strains import prepare_virus_strain_factors
                 {
                     "category": ["virus_strain"] * 4,
                     "subcategory": ["base_strain", "a_new_strain"] * 2,
-                    "name": ["factor"] * 2 + ["persistency"] * 2,
+                    "name": ["contagiousness_factor"] * 2
+                    + ["immunity_resistance_factor"] * 2,
                     "value": [0.5, 0.25, 1, 1],
                 }
             ).set_index(["category", "subcategory", "name"]),
             does_not_raise(),
             {
                 "names": ["a_new_strain", "base_strain"],
-                "factors": np.array([0.5, 1]),
-                "persistency": np.array([1.0, 1]),
+                "contagiousness_factor": np.array([0.5, 1]),
+                "immunity_resistance_factor": np.array([1.0, 1]),
             },
             id="factors are scaled",
         ),
@@ -87,7 +93,11 @@ def test_prepare_virus_strain_factors(virus_strains, params, expectation, expect
     with expectation:
         result = prepare_virus_strain_factors(virus_strains, params)
         assert all(np.array(result["names"]) == expected["names"])
-        assert all(result["factors"] == expected["factors"])
+        assert all(result["contagiousness_factor"] == expected["contagiousness_factor"])
+        assert all(
+            result["immunity_resistance_factor"]
+            == expected["immunity_resistance_factor"]
+        )
 
 
 @pytest.mark.unit

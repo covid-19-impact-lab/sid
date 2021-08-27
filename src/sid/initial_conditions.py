@@ -282,7 +282,7 @@ def sample_initial_distribution_of_infections_and_immunity(
     states = states.drop(columns=["date", "period"])
 
     initial_immunity = sample_initial_immunity(
-        initial_conditions["initial_immunity"], states["immunity_level"], next(seed)
+        initial_conditions["initial_immunity"], states["immunity"], next(seed)
     )
     states = _integrate_immune_individuals(states, initial_immunity)
 
@@ -465,10 +465,10 @@ def _integrate_immune_individuals(
         states (pandas.DataFrame): The states with initial immunity integrated.
 
     """
-    immunity_level = np.maximum(initial_immunity, states["immunity_level"])
-    states["immunity_level"] = immunity_level
+    immunity = np.maximum(initial_immunity, states["immunity"])
+    states["immunity"] = immunity
 
-    loc = immunity_level > 0
+    loc = immunity > 0
     states.loc[
         loc, "ever_infected"
     ] = True  # why are we setting something with infections here?
