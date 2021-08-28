@@ -68,7 +68,7 @@ def test_infections_occur_not_in_other_recurrent_group():
     infection_counter = np.zeros(4, dtype=np.int_)
     susceptibility_factor = np.ones(len(recurrent_contacts))
 
-    virus_strain = np.array([0, -1, -1])
+    virus_strain = np.array([0, -1, -1, -1])
     contagiousness_factor = np.array([1])
     immunity_resistance_factor = np.array([1])
 
