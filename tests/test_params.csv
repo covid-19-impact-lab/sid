@@ -23,3 +23,5 @@ rapid_test,sensitivity,while_infectious,0.95,,
 rapid_test,sensitivity,after_infectious,0.5,,
 immunity,immunity,from_infection,0.99
 immunity,immunity,from_vaccination,0.8
+immunity,immunity,lower_bound,0.2
+immunity,immunity,discount_factor,0.995
