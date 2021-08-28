@@ -204,7 +204,7 @@ def update_derived_state_variables(states, derived_state_variables):
 def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.DataFrame:
     """Update immunity level from infection and vaccination."""
     # first, decrease immunity level above lower bound using exponential discounting
-    immunity = states["immunity"]
+    immunity = states["immunity"].copy()
 
     locs = immunity > params.loc[("immunity", "immunity", "lower_bound"), "value"]
     immunity[locs] = (
