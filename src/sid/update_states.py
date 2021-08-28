@@ -161,9 +161,7 @@ def _update_info_on_new_tests(
     # For everyone who received a test result, the countdown for the test processing
     # has expired. If you have a positive test result (received_test_result &
     # immune) you will leave the state of knowing until your immunity expires.
-    states["new_known_case"] = states["received_test_result"] & (
-        states["immunity"] > 0
-    )  # IS THIS CORRECT?
+    states["new_known_case"] = states["received_test_result"] & states["immunity"] > 0
     states.loc[states["new_known_case"], "knows_immune"] = True
     states.loc[states["new_known_case"], "cd_knows_immune_false"] = states.loc[
         states["new_known_case"], "cd_immune_false"
@@ -204,26 +202,27 @@ def update_derived_state_variables(states, derived_state_variables):
 
 
 def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.DataFrame:
-    """Update immunity level from infection and vaccination.
-
-    TODO:  # noqa: T000
-        1. Vaccination counter? -> Decrease immunity level using countdown?
-
-    """
-    # first, decrease immunity level using 'exponential discounting with floor' and
-    # countdown [this we need to discuss first]
+    """Update immunity level from infection and vaccination."""
+    # first, decrease immunity level above lower bound using exponential discounting
     immunity = states["immunity"]
 
-    # second, incorporate newly vaccinated and infected individuals
+    locs = immunity > params.loc[("immunity", "immunity", "lower_bound"), "value"]
+    immunity[locs] = (
+        params.loc[("immunity", "immunity", "discount_factor"), "value"]
+        * immunity[locs]
+    )
+
+    # second, incorporate immunity level from newly infected individuals and individuals
+    # for which the vaccine starts working
     newly_infected = states["newly_infected"]
-    newly_vaccinated = states["newly_vaccinated"]
+    newly_immune_by_vaccine = states["cd_is_immune_by_vaccine"] == 0
 
     immunity_from_infection = (
         newly_infected.astype(DTYPE_IMMUNITY)
         * params.loc[("immunity", "immunity", "from_infection"), "value"]
     )
     immunity_from_vaccination = (
-        newly_vaccinated.astype(DTYPE_IMMUNITY)
+        newly_immune_by_vaccine.astype(DTYPE_IMMUNITY)
         * params.loc[("immunity", "immunity", "from_vaccination"), "value"]
     )
 

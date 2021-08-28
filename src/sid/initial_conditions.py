@@ -454,7 +454,8 @@ def _integrate_immune_individuals(
     """Integrate immunity level of individuals in states.
 
 
-    TODO: Figure out answer to question in below comments  # noqa: T000
+    TODO: The case where initial immunity is due to vaccination is  # noqa: T000
+    ignored here. This does not seem right?
 
     Args:
         states (pandas.DataFrame): The states which already include sampled infections.
@@ -468,13 +469,9 @@ def _integrate_immune_individuals(
     immunity = np.maximum(initial_immunity, states["immunity"])
     states["immunity"] = immunity
 
-    loc = immunity > 0
-    states.loc[
-        loc, "ever_infected"
-    ] = True  # why are we setting something with infections here?
-    states.loc[
-        loc, "cd_ever_infected"
-    ] = 0  # why are we setting something with infections here?
-    states.loc[loc, "cd_immune_false"] = states.loc[loc, "cd_immune_false_draws"]
+    locs = immunity > 0
+    states.loc[locs, "ever_infected"] = True
+    states.loc[locs, "cd_ever_infected"] = 0
+    states.loc[locs, "cd_immune_false"] = states.loc[locs, "cd_immune_false_draws"]
 
     return states
