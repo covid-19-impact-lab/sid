@@ -83,4 +83,4 @@ Furthermore, the documentation includes the following topics.
 
    api
    changes
-   On Github <https://github.com/covid-19-impact-lab/sid>
+   On GitHub <https://github.com/covid-19-impact-lab/sid>
