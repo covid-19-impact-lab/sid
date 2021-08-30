@@ -203,12 +203,14 @@ def update_derived_state_variables(states, derived_state_variables):
 
 def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.DataFrame:
     """Update immunity level from infection and vaccination."""
-    # first, decrease immunity level above lower bound using exponential discounting
     immunity = states["immunity"].copy()
 
-    locs = immunity > params.loc[("immunity", "immunity", "lower_bound"), "value"]
+    # first, decrease immunity level above lower bound using exponential discounting
+    locs = (
+        immunity > params.loc[("immunity", "immunity_waning", "lower_bound"), "value"]
+    )
     immunity[locs] = (
-        params.loc[("immunity", "immunity", "discount_factor"), "value"]
+        params.loc[("immunity", "immunity_waning", "discount_factor"), "value"]
         * immunity[locs]
     )
 
@@ -219,13 +221,15 @@ def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.Dat
 
     immunity_from_infection = (
         newly_infected.astype(DTYPE_IMMUNITY)
-        * params.loc[("immunity", "immunity", "from_infection"), "value"]
+        * params.loc[("immunity", "immunity_level", "from_infection"), "value"]
     )
     immunity_from_vaccination = (
         newly_immune_by_vaccine.astype(DTYPE_IMMUNITY)
-        * params.loc[("immunity", "immunity", "from_vaccination"), "value"]
+        * params.loc[("immunity", "immunity_level", "from_vaccination"), "value"]
     )
 
-    levels = np.c_[immunity, immunity_from_infection, immunity_from_vaccination]
+    levels = np.column_stack(
+        [immunity, immunity_from_infection, immunity_from_vaccination]
+    )
     states["immunity"] = levels.max(axis=1)
     return states

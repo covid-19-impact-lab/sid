@@ -69,7 +69,7 @@ def calculate_infections_by_contacts(
     assortative_matching_cum_probs: nb.typed.List,
     contact_models: Dict[str, Dict[str, Any]],
     group_codes_info: Dict[str, Dict[str, Any]],
-    susceptibility_factor: pd.Series,
+    susceptibility_factor: np.ndarray,
     virus_strains: Dict[str, Any],
     seasonality_factor: pd.Series,
     seed: itertools.count,
@@ -333,11 +333,6 @@ def _calculate_infections_by_recurrent_contacts(
     newly_infected = np.full(n_individuals, -1, dtype=DTYPE_VIRUS_STRAIN)
 
     for i in range(n_individuals):
-
-        virus_strain_i = virus_strain[i]
-        contagiousness_factor_i = contagiousness_factor[virus_strain_i]
-        immunity_resistance_factor_i = immunity_resistance_factor[virus_strain_i]
-
         for cm in range(n_recurrent_contact_models):
             # We only check if i infects someone else from her/his group. Whether
             # she/he is infected by some j is only checked, when the main loop arrives
@@ -352,6 +347,12 @@ def _calculate_infections_by_recurrent_contacts(
                     j_is_susceptible = not infectious[j] and newly_infected[j] == -1
                     if j_is_susceptible and recurrent_contacts[j, cm] > 0:
                         # j is infected depending on its own susceptibility.
+                        virus_strain_i = virus_strain[i]
+                        contagiousness_factor_i = contagiousness_factor[virus_strain_i]
+                        immunity_resistance_factor_i = immunity_resistance_factor[
+                            virus_strain_i
+                        ]
+
                         individual_infection_risk = (
                             base_probability
                             * susceptibility_factor[j]
