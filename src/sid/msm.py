@@ -139,23 +139,37 @@ def _msm(
     """
     sim_out = simulate(params)
 
-    simulated_moments = {name: func(sim_out) for name, func in calc_moments.items()}
+    if isinstance(sim_out, (pd.DataFrame, pd.Series)):
+        simulated_moments = {name: func(sim_out) for name, func in calc_moments.items()}
+    elif isinstance(sim_out, dict):
+        simulated_moments = {
+            name: pd.concat(value) for name, value in sim_out["period_outputs"].items()
+        }
+    else:
+        raise ValueError(
+            f"sim_out must be dict, Series or DataFrame but is {type(sim_out)}"
+        )
 
-    simulated_moments = {
-        name: sim_mom.reindex_like(empirical_moments[name])
-        for name, sim_mom in simulated_moments.items()
-    }
+    for name, sim_mom in simulated_moments.items():
+        if name in empirical_moments:
+            simulated_moments[name] = sim_mom.reindex_like(empirical_moments[name])
 
-    simulated_moments = {
-        name: replace_nans[name](sim_mom) for name, sim_mom in simulated_moments.items()
-    }
+    for name, sim_mom in simulated_moments.items():
+        if name in replace_nans:
+            simulated_moments[name] = replace_nans[name](sim_mom)
 
     flat_empirical_moments = _flatten_index(empirical_moments)
-    flat_simulated_moments = _flatten_index(simulated_moments)
+    simulated_moments_with_empirical_analogue = {
+        name: value
+        for name, value in simulated_moments.items()
+        if name in empirical_moments
+    }
+    flat_simulated_moments = _flatten_index(simulated_moments_with_empirical_analogue)
 
     moment_errors = flat_simulated_moments - flat_empirical_moments
 
-    root_contribs = np.sqrt(np.diagonal(weighting_matrix)) * moment_errors
+    weights = np.sqrt(np.diagonal(weighting_matrix))
+    root_contribs = weights * moment_errors
     value = np.sum(root_contribs ** 2)
 
     out = {
