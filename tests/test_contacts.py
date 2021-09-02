@@ -70,7 +70,7 @@ def households_w_one_infected():
     virus_strains = {
         "names": ["base_strain"],
         "contagiousness_factor": np.ones(1),
-        "immunity_resistance_factor": np.ones(1),
+        "immunity_resistance_factor": np.zeros(1),
     }
 
     return {

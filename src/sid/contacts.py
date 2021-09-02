@@ -307,9 +307,8 @@ def _calculate_infections_by_recurrent_contacts(
         contagiousness_factor (np.ndarray): Virus strain dependent contagiosity factor.
         immunity_resistance_factor (np.ndarray): Virus strain dependent immunity
             resistance factor. This factor determines how prior immunity influences
-            infection probabilities. Values close to 0 imply that infection
-            probabilities are independent of the immunity level, while values close to 1
-            imply the infection probability is multiplied with (1 - immunity).
+            infection probabilities. Higher values decrease the effectiveness to guard
+            from an infection.
         infection_counter (numpy.ndarray): An array counting infection caused by an
             individual.
         seed (int): Seed value to control randomness.
@@ -357,7 +356,7 @@ def _calculate_infections_by_recurrent_contacts(
                             base_probability
                             * susceptibility_factor[j]
                             * contagiousness_factor_i
-                            * (1 - immunity_resistance_factor_i * immunity[j])
+                            * (1 - (1 - immunity_resistance_factor_i) * immunity[j])
                         )
 
                         is_infection = boolean_choice(individual_infection_risk)
@@ -407,9 +406,8 @@ def _calculate_infections_by_random_contacts(
         contagiousness_factor (np.ndarray): Virus strain dependent contagiosity factor.
         immunity_resistance_factor (np.ndarray): Virus strain dependent immunity
             resistance factor. This factor determines how prior immunity influences
-            infection probabilities. Values close to 0 imply that infection
-            probabilities are independent of the immunity level, while values close to 1
-            imply the infection probability is multiplied with (1 - immunity).
+            infection probabilities. Higher values decrease the effectiveness to guard
+            from an infection.
         infection_counter (numpy.ndarray): An array counting infection caused by an
             individual.
         seed (int): Seed value to control randomness.
@@ -472,7 +470,7 @@ def _calculate_infections_by_random_contacts(
                         adjusted_individual_infection_risk_j = (
                             susceptibility_factor[j]
                             * contagiousness_factor_i
-                            * (1 - immunity_resistance_factor_i * immunity[j])
+                            * (1 - (1 - immunity_resistance_factor_i) * immunity[j])
                         )
 
                         is_infection = boolean_choice(
@@ -493,7 +491,7 @@ def _calculate_infections_by_random_contacts(
                         adjusted_individual_infection_risk_i = (
                             susceptibility_factor[i]
                             * contagiousness_factor_j
-                            * (1 - immunity_resistance_factor_j * immunity[i])
+                            * (1 - (1 - immunity_resistance_factor_j) * immunity[i])
                         )
 
                         is_infection = boolean_choice(
