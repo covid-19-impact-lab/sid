@@ -285,7 +285,7 @@ def sample_initial_distribution_of_infections_and_immunity(
         initial_conditions["initial_immunity"], states["immunity"], next(seed)
     )
     states = _integrate_immune_individuals(
-        states, initial_immunity, initial_conditions["burn_in_periods"]
+        states, initial_immunity, len(initial_conditions["burn_in_periods"])
     )
 
     return states

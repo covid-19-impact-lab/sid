@@ -82,12 +82,14 @@ def calculate_r_zero(
     """
     r_effective = calculate_r_effective(df=df, window_length=window_length)
 
+    df["immune"] = df["immunity"] > threshold
+
     grouper = _create_time_grouper(df)
     if grouper is None:
-        share_susceptibles = 1 - (df["immunity"] > threshold).mean()
+        share_susceptibles = 1 - df["immune"].mean()
         r_zero = r_effective / share_susceptibles
     else:
-        share_susceptibles = 1 - (df.groupby(grouper)["immunity"] > threshold).mean()
+        share_susceptibles = 1 - df.groupby(grouper)["immune"].mean()
         r_zero = r_effective / share_susceptibles
 
     return r_zero

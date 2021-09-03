@@ -165,9 +165,8 @@ def _update_info_on_new_tests(
         states["infectious"] | states["symptomatic"]
     )
     states.loc[states["new_known_case"], "knows_immune"] = True
-    states.loc[states["new_known_case"], "cd_knows_immune_false"] = states.loc[
-        states["new_known_case"], "cd_immune_false"  # TODO: ...  # noqa: T000
-    ]
+    states.loc[states["new_known_case"], "cd_knows_immune_false"] = 1000  # Needs to be
+    # checked TODO: # noqa: T000
 
     new_knows_infectious = (
         states["knows_immune"] & states["infectious"] & states["new_known_case"]
@@ -190,6 +189,9 @@ def _update_info_on_new_vaccinations(
     """Activate the counter for immunity by vaccinations."""
     states["newly_vaccinated"] = newly_vaccinated
     states.loc[newly_vaccinated, "ever_vaccinated"] = True
+    states.loc[newly_vaccinated, "cd_is_immune_by_vaccine"] = states.loc[
+        newly_vaccinated, "cd_is_immune_by_vaccine_draws"
+    ]
     return states
 
 

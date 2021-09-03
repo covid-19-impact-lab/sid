@@ -23,7 +23,6 @@ COUNTDOWNS = {
             "needs_icu": False,
             "knows_immune": False,
             "knows_infectious": False,
-            "cd_immune_false": -1,
             "cd_symptoms_false": -1,
             "cd_needs_icu_false": -1,
         }
@@ -47,7 +46,7 @@ COUNTDOWNS = {
 }
 """(dict): The dictionary with the information on countdowns.
 
-- cd_infectious_true and cd_immune_false are triggered by an infection
+- cd_infectious_true is triggered by an infection
 - cd_received_test_result is triggered by tests
 - all other countdowns are triggered by chain reactions.
 
