@@ -1,12 +1,11 @@
 import itertools
-from functools import partial
 from typing import Any
 from typing import Dict
 from typing import Optional
-from typing import Union
 
 import numpy as np
 import pandas as pd
+from sid.config import DTYPE_IMMUNITY
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.countdowns import COUNTDOWNS
 from sid.shared import fast_condition_evaluator
@@ -201,13 +200,7 @@ def update_derived_state_variables(states, derived_state_variables):
 
 
 def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.DataFrame:
-    """Update immunity level from infection and vaccination.
-
-    This function performs two steps. First, the old immunity level is updated to allow
-    for waning immunity. Second, the immunity level from a new infection or vaccination
-    are compared to the prior immunity level and the maximal level is chosen.
-
-    """
+    """Update immunity levels from infection and vaccination."""
     days_since_infection = states["cd_infectious_true"]
     days_since_vaccination = states["cd_is_immune_by_vaccine"]
 
@@ -227,6 +220,13 @@ def _compute_waning_immunity(
 ) -> pd.Series:
     """Compute waning immunity level.
 
+    The immunity level is a simple piece-wise function parametrized over the maximum
+    level of achievable immunity, the number of days it takes to achieve this maximum
+    and the linear slope determining how fast the immunity level decreases after
+    reaching the maximum. Before the maximum is achieved the function is modeled as a
+    third-degree polynomial and afterwards as a linear function. The coefficients are
+    adjusted to the parameters and set in ``_get_waning_immunity_coefficients``.
+
     Args:
         days_since_event (int): Days since event occurred.
         event (str): Reason for immunity. Must be in {"infection", "vaccination"}.
@@ -236,68 +236,56 @@ def _compute_waning_immunity(
         immunity (pandas.Series): Decreased immunity level.
 
     """
-    kwargs = _get_kwargs_for_waning_immunity(params, event)
-    func = partial(_waning_immunity_function, **kwargs)
-    return func(days_since_event)
+    coef = _get_waning_immunity_coefficients(params, event)
+    immunity = pd.Series(0, index=days_since_event.index, dtype=DTYPE_IMMUNITY)
+
+    before_maximum = (days_since_event > 0) & (
+        days_since_event < coef["time_to_reach_maximum"]
+    )
+    after_maximum = days_since_event >= coef["time_to_reach_maximum"]
+
+    immunity[before_maximum] = (
+        coef["slope_before_maximum"] * days_since_event[before_maximum] ** 3
+    )
+    immunity[after_maximum] = (
+        coef["intercept"]
+        + coef["slope_after_maximum"] * days_since_event[after_maximum]
+    )
+
+    return immunity
 
 
-def _get_kwargs_for_waning_immunity(
+def _get_waning_immunity_coefficients(
     params: pd.DataFrame, event: str
 ) -> Dict[str, float]:
-    """Transform high-level arguments for waning immunity to low-level arguments.
+    """Transform high-level arguments for waning immunity to low-level coefficients.
 
-    The arguments are transformed as follows. Given the event we pick a parameter
-    for the maximum level of immunity achievable through the event and the number of
-    days until that level is reached. Since the maximizer and maximum value of the
-    function ``_waning_immunity_function`` are available in closed form (conditional on
-    the coefficients) we can choose the coefficients to such that the maximizer and
-    maximum equal the parameters.
+    Coefficients are calibrated to parameters in params.
 
     Args:
         params (pandas.DataFrame): See :ref:`params`.
         event (str): Reason for immunity. Must be in {"infection", "vaccination"}.
 
     Returns:
-        kwargs (Dict[str, float]): The keyword arguments.
+        coef (Dict[str, float]): The coefficients.
 
     """
     maximum_immunity = params.loc[
-        ("immunity", "immunity_waning", f"maximum_immunity_{event}"), "value"
+        ("immunity", "immunity_level", f"from_{event}"), "value"
     ]
     time_to_reach_maximum = params.loc[
         ("immunity", "immunity_waning", f"time_to_reach_maximum_{event}"), "value"
     ]
+    slope_after_maximum = params.loc[
+        ("immunity", "immunity_waning", f"slope_after_maximum_{event}"), "value"
+    ]
 
-    shape = (time_to_reach_maximum ** 2 * (time_to_reach_maximum ** 2 + 2)) / (
-        (time_to_reach_maximum ** 2 - 2) ** 2
-    )
-    shape = 2
-    maximum = (shape / (shape - 1)) ** ((1 - shape) / 2) * (2 * np.exp(1)) ** (
-        (1 - shape) / 2
-    )
-    scale = maximum_immunity / maximum
-
-    kwargs = {"shape": shape, "scale": scale}
-    return kwargs
-
-
-def _waning_immunity_function(
-    x: Union[np.ndarray, pd.Series], shape: float, scale: float, x_scale: float = 50
-) -> Union[np.ndarray, pd.Series]:
-    """Function used to compute waning immunity level.
-
-    This function is parameterized via a shape parameter ``shape`` and scaling parameter
-    ``scale``. The shape of the function allows for rising immunity level until the
-    maximum is hit, followed by a slow decay.
-
-    Args:
-        x (Union[np.ndarray, pd.Series]): Evaluation points. Must be positive.
-        shape (float): Shape parameter of function. Must be positive.
-        scale (float): Scale parameter of function. Must be positive.
-        x_scale (float): Scaling parameter of data. Must be positive. Defaults to 40.
-
-    """
-    immunity = (
-        scale * ((x / x_scale) ** (1 - shape)) * np.exp(-shape / (x / x_scale) ** 2)
-    )
-    return immunity
+    slope_before_maximum = maximum_immunity / (time_to_reach_maximum ** 3)
+    intercept = maximum_immunity - slope_after_maximum * time_to_reach_maximum
+    coef = {
+        "time_to_reach_maximum": time_to_reach_maximum,
+        "slope_before_maximum": slope_before_maximum,
+        "slope_after_maximum": slope_after_maximum,
+        "intercept": intercept,
+    }
+    return coef

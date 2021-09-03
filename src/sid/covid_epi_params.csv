@@ -131,5 +131,7 @@ rapid_test,sensitivity,while_infectious,0.95
 rapid_test,sensitivity,after_infectious,0.5
 immunity,immunity_level,from_infection,0.99
 immunity,immunity_level,from_vaccination,0.8
-immunity,immunity_waning,lower_bound,0.2
-immunity,immunity_waning,discount_factor,0.995
+immunity,immunity_waning,time_to_reach_maximum_infection,0.2
+immunity,immunity_waning,time_to_reach_maximum_vaccination,0.2
+immunity,immunity_waning,slope_after_maximum_infection,0.995
+immunity,immunity_waning,slope_after_maximum_vaccination,0.995
