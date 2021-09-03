@@ -284,7 +284,9 @@ def sample_initial_distribution_of_infections_and_immunity(
     initial_immunity = sample_initial_immunity(
         initial_conditions["initial_immunity"], states["immunity"], next(seed)
     )
-    states = _integrate_immune_individuals(states, initial_immunity)
+    states = _integrate_immune_individuals(
+        states, initial_immunity, initial_conditions["burn_in_periods"]
+    )
 
     return states
 
@@ -449,29 +451,26 @@ def _sample_factorized_virus_strains_for_infections(
 
 
 def _integrate_immune_individuals(
-    states: pd.DataFrame, initial_immunity: pd.Series
+    states: pd.DataFrame,
+    initial_immunity: pd.Series,
+    burn_in_periods: int,
 ) -> pd.DataFrame:
     """Integrate immunity level of individuals in states.
-
-
-    TODO: The case where initial immunity is due to vaccination is  # noqa: T000
-    ignored here. This does not seem right?
 
     Args:
         states (pandas.DataFrame): The states which already include sampled infections.
         initial_immunity (pandas.Series): A series with sampled immunity levels of
             individuals.
+        burn_in_periods (int): The number of periods over which infections are
+            distributed and can progress. The default is one period.
 
     Returns:
         states (pandas.DataFrame): The states with initial immunity integrated.
 
     """
-    immunity = np.maximum(initial_immunity, states["immunity"])
-    states["immunity"] = immunity
+    extra_immune = initial_immunity > states["immunity"]
+    states.loc[extra_immune, "ever_infected"] = True
+    states.loc[extra_immune, "cd_ever_infected"] = burn_in_periods + 1
 
-    locs = immunity > 0
-    states.loc[locs, "ever_infected"] = True
-    states.loc[locs, "cd_ever_infected"] = 0
-    states.loc[locs, "cd_immune_false"] = states.loc[locs, "cd_immune_false_draws"]
-
+    states["immunity"] = np.maximum(initial_immunity, states["immunity"])
     return states

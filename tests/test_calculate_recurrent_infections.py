@@ -140,7 +140,6 @@ def test_infections_can_be_scaled_with_multiplier():
 
     assert np.isclose((newly_infected == 0).sum(), n_individuals / 2, atol=1e2)
     assert np.isclose(infection_counter[0], n_individuals / 2, atol=1e2)
-    # assert np.isclose(immune.sum(), n_individuals / 2, atol=1e2)  # noqa: E800
 
 
 @pytest.mark.unit

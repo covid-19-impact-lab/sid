@@ -1,11 +1,12 @@
 import itertools
+from functools import partial
 from typing import Any
 from typing import Dict
 from typing import Optional
+from typing import Union
 
 import numpy as np
 import pandas as pd
-from sid.config import DTYPE_IMMUNITY
 from sid.config import RELATIVE_POPULATION_PARAMETER
 from sid.countdowns import COUNTDOWNS
 from sid.shared import fast_condition_evaluator
@@ -70,7 +71,8 @@ def update_states(
     states = _update_info_on_new_vaccinations(states, newly_vaccinated)
 
     # important: this has to be called after _update_info_on_newly_infected and
-    # _update_info_on_new_vaccinations!
+    # _update_info_on_new_vaccinations, as it consolidates information in states that is
+    # created by these two functions!
     states = _update_immunity_level(states, params)
 
     states = update_derived_state_variables(states, derived_state_variables)
@@ -120,7 +122,6 @@ def _update_info_on_newly_infected(
     locs = states["newly_infected"]
     states.loc[locs, "ever_infected"] = True
     states.loc[locs, "cd_ever_infected"] = 0
-    states.loc[locs, "cd_immune_false"] = states.loc[locs, "cd_immune_false_draws"]
     states.loc[locs, "cd_infectious_true"] = states.loc[
         locs, "cd_infectious_true_draws"
     ]
@@ -161,10 +162,12 @@ def _update_info_on_new_tests(
     # For everyone who received a test result, the countdown for the test processing
     # has expired. If you have a positive test result (received_test_result &
     # immune) you will leave the state of knowing until your immunity expires.
-    states["new_known_case"] = states["received_test_result"] & states["immunity"] > 0
+    states["new_known_case"] = states["received_test_result"] & (
+        states["infectious"] | states["symptomatic"]
+    )
     states.loc[states["new_known_case"], "knows_immune"] = True
     states.loc[states["new_known_case"], "cd_knows_immune_false"] = states.loc[
-        states["new_known_case"], "cd_immune_false"
+        states["new_known_case"], "cd_immune_false"  # TODO: ...  # noqa: T000
     ]
 
     new_knows_infectious = (
@@ -188,10 +191,6 @@ def _update_info_on_new_vaccinations(
     """Activate the counter for immunity by vaccinations."""
     states["newly_vaccinated"] = newly_vaccinated
     states.loc[newly_vaccinated, "ever_vaccinated"] = True
-    states.loc[newly_vaccinated, "cd_is_immune_by_vaccine"] = states.loc[
-        newly_vaccinated, "cd_is_immune_by_vaccine_draws"
-    ]
-
     return states
 
 
@@ -202,34 +201,103 @@ def update_derived_state_variables(states, derived_state_variables):
 
 
 def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.DataFrame:
-    """Update immunity level from infection and vaccination."""
-    immunity = states["immunity"].copy()
+    """Update immunity level from infection and vaccination.
 
-    # first, decrease immunity level above lower bound using exponential discounting
-    locs = (
-        immunity > params.loc[("immunity", "immunity_waning", "lower_bound"), "value"]
-    )
-    immunity[locs] = (
-        params.loc[("immunity", "immunity_waning", "discount_factor"), "value"]
-        * immunity[locs]
-    )
+    This function performs two steps. First, the old immunity level is updated to allow
+    for waning immunity. Second, the immunity level from a new infection or vaccination
+    are compared to the prior immunity level and the maximal level is chosen.
 
-    # second, incorporate immunity level from newly infected individuals and individuals
-    # for which the vaccine starts working
-    newly_infected = states["newly_infected"]
-    newly_immune_by_vaccine = states["cd_is_immune_by_vaccine"] == 0
+    """
+    days_since_infection = states["cd_infectious_true"]
+    days_since_vaccination = states["cd_is_immune_by_vaccine"]
 
-    immunity_from_infection = (
-        newly_infected.astype(DTYPE_IMMUNITY)
-        * params.loc[("immunity", "immunity_level", "from_infection"), "value"]
+    immunity_from_infection = _compute_waning_immunity(
+        days_since_infection, "infection", params
     )
-    immunity_from_vaccination = (
-        newly_immune_by_vaccine.astype(DTYPE_IMMUNITY)
-        * params.loc[("immunity", "immunity_level", "from_vaccination"), "value"]
+    immunity_from_vaccination = _compute_waning_immunity(
+        days_since_vaccination, "vaccination", params
     )
 
-    levels = np.column_stack(
-        [immunity, immunity_from_infection, immunity_from_vaccination]
-    )
-    states["immunity"] = levels.max(axis=1)
+    states["immunity"] = np.maximum(immunity_from_infection, immunity_from_vaccination)
     return states
+
+
+def _compute_waning_immunity(
+    days_since_event: int, event: str, params: pd.DataFrame
+) -> pd.Series:
+    """Compute waning immunity level.
+
+    Args:
+        days_since_event (int): Days since event occurred.
+        event (str): Reason for immunity. Must be in {"infection", "vaccination"}.
+        params (pandas.DataFrame): See :ref:`params`.
+
+    Returns:
+        immunity (pandas.Series): Decreased immunity level.
+
+    """
+    kwargs = _get_kwargs_for_waning_immunity(params, event)
+    func = partial(_waning_immunity_function, **kwargs)
+    return func(days_since_event)
+
+
+def _get_kwargs_for_waning_immunity(
+    params: pd.DataFrame, event: str
+) -> Dict[str, float]:
+    """Transform high-level arguments for waning immunity to low-level arguments.
+
+    The arguments are transformed as follows. Given the event we pick a parameter
+    for the maximum level of immunity achievable through the event and the number of
+    days until that level is reached. Since the maximizer and maximum value of the
+    function ``_waning_immunity_function`` are available in closed form (conditional on
+    the coefficients) we can choose the coefficients to such that the maximizer and
+    maximum equal the parameters.
+
+    Args:
+        params (pandas.DataFrame): See :ref:`params`.
+        event (str): Reason for immunity. Must be in {"infection", "vaccination"}.
+
+    Returns:
+        kwargs (Dict[str, float]): The keyword arguments.
+
+    """
+    maximum_immunity = params.loc[
+        ("immunity", "immunity_waning", f"maximum_immunity_{event}"), "value"
+    ]
+    time_to_reach_maximum = params.loc[
+        ("immunity", "immunity_waning", f"time_to_reach_maximum_{event}"), "value"
+    ]
+
+    shape = (time_to_reach_maximum ** 2 * (time_to_reach_maximum ** 2 + 2)) / (
+        (time_to_reach_maximum ** 2 - 2) ** 2
+    )
+    shape = 2
+    maximum = (shape / (shape - 1)) ** ((1 - shape) / 2) * (2 * np.exp(1)) ** (
+        (1 - shape) / 2
+    )
+    scale = maximum_immunity / maximum
+
+    kwargs = {"shape": shape, "scale": scale}
+    return kwargs
+
+
+def _waning_immunity_function(
+    x: Union[np.ndarray, pd.Series], shape: float, scale: float, x_scale: float = 50
+) -> Union[np.ndarray, pd.Series]:
+    """Function used to compute waning immunity level.
+
+    This function is parameterized via a shape parameter ``shape`` and scaling parameter
+    ``scale``. The shape of the function allows for rising immunity level until the
+    maximum is hit, followed by a slow decay.
+
+    Args:
+        x (Union[np.ndarray, pd.Series]): Evaluation points. Must be positive.
+        shape (float): Shape parameter of function. Must be positive.
+        scale (float): Scale parameter of function. Must be positive.
+        x_scale (float): Scaling parameter of data. Must be positive. Defaults to 40.
+
+    """
+    immunity = (
+        scale * ((x / x_scale) ** (1 - shape)) * np.exp(-shape / (x / x_scale) ** 2)
+    )
+    return immunity
