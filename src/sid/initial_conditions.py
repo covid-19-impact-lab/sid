@@ -453,7 +453,7 @@ def _sample_factorized_virus_strains_for_infections(
 def _integrate_immune_individuals(
     states: pd.DataFrame,
     initial_immunity: pd.Series,
-    burn_in_periods: int,
+    number_burn_in_periods: int,
 ) -> pd.DataFrame:
     """Integrate immunity level of individuals in states.
 
@@ -461,7 +461,7 @@ def _integrate_immune_individuals(
         states (pandas.DataFrame): The states which already include sampled infections.
         initial_immunity (pandas.Series): A series with sampled immunity levels of
             individuals.
-        burn_in_periods (int): The number of periods over which infections are
+        number_burn_in_periods (int): The number of periods over which infections are
             distributed and can progress. The default is one period.
 
     Returns:
@@ -470,7 +470,7 @@ def _integrate_immune_individuals(
     """
     extra_immune = initial_immunity > states["immunity"]
     states.loc[extra_immune, "ever_infected"] = True
-    states.loc[extra_immune, "cd_ever_infected"] = burn_in_periods + 1
+    states.loc[extra_immune, "cd_ever_infected"] = number_burn_in_periods + 1
 
     states["immunity"] = np.maximum(initial_immunity, states["immunity"])
     return states
