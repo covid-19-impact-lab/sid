@@ -57,7 +57,14 @@ def test_random_contact_infects_susceptibles():
 
 @pytest.mark.unit
 def test_random_contact_immune_and_people_without_contacts_are_not_infected():
-    """Infections do not occur for immune random contacts and those without contacts."""
+    """Infections do not occur for immune random contacts and those without contacts.
+
+    There are two groups of individuals in one random contact model which can meet each
+    others. The individuals without contacts and with immunity should not get infected.
+    All individuals with contacts should have missed contacts and the others have no
+    missed contacts.
+
+    """
     random_contacts = np.array([10, 10, 0, 10, 0]).reshape(-1, 1)
     infectious = np.array([True, False, False, False, False])
     immunity = np.array([1.0, 1.0, 0.0, 1.0, 0.0])
@@ -102,7 +109,8 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
 
     assert (newly_infected == [-1, -1, -1, -1, -1]).all()
     assert (infection_counter == [0, 0, 0, 0, 0]).all()
-    assert (missed[[0, 1], :] > 0).all()
+    assert (immunity == np.array([1.0, 1.0, 0.0, 1.0, 0.0])).all()
+    assert (missed[[0, 1]] > 0).all()
     assert (missed[[2, 3, 4]] == 0).all()
     assert (was_infected == [-1, -1, -1, -1, -1]).all()
 
