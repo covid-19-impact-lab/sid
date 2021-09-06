@@ -103,6 +103,7 @@ def test_update_info_on_new_vaccinations():
         {
             "newly_vaccinated": [False, False, False, False],
             "ever_vaccinated": [False, False, False, True],
+            "cd_ever_vaccinated": [-9999, -9999, -9999, -10],
         }
     )
     newly_vaccinated = pd.Series([False, False, True, False])
@@ -113,6 +114,7 @@ def test_update_info_on_new_vaccinations():
         {
             "newly_vaccinated": [False, False, True, False],
             "ever_vaccinated": [False, False, True, True],
+            "cd_ever_vaccinated": [-9999, -9999, 0, -10],
         }
     )
 

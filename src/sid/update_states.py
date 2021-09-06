@@ -199,14 +199,18 @@ def update_derived_state_variables(states, derived_state_variables):
 
 def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.DataFrame:
     """Update immunity levels from infection and vaccination."""
-    days_since_infection = -states["cd_ever_infected"]
-    days_since_vaccination = -states["cd_ever_vaccinated"]
+    days_since_event = {}
+    for event in ["infected", "vaccinated"]:
+        days = states[f"cd_ever_{event}"].copy()
+        days[days <= -9999] = 0  # countdowns are initialized to -9999, hence values
+        # including and below -9999 need to be ignored
+        days_since_event[event] = -days
 
     immunity_from_infection = _compute_waning_immunity(
-        params, days_since_event=days_since_infection, event="infection"
+        params, days_since_event["infected"], event="infection"
     )
     immunity_from_vaccination = _compute_waning_immunity(
-        params, days_since_event=days_since_vaccination, event="vaccination"
+        params, days_since_event["vaccinated"], event="vaccination"
     )
 
     states["immunity"] = np.maximum(immunity_from_infection, immunity_from_vaccination)

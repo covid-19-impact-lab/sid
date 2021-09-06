@@ -89,7 +89,8 @@ def calculate_r_zero(
         share_susceptibles = 1 - not_susceptible.mean()
         r_zero = r_effective / share_susceptibles
     else:
-        share_susceptibles = 1 - not_susceptible.groupby(df[grouper]).mean()
+        not_susceptible = not_susceptible.to_frame().assign(date=df.date)
+        share_susceptibles = 1 - not_susceptible.groupby(grouper)["immunity"].mean()
         r_zero = r_effective / share_susceptibles
 
     return r_zero
