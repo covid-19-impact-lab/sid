@@ -191,6 +191,7 @@ def test_update_immunity_level(params, waning_immunity_fixture):
     assert_frame_equal(calculated, expected_states, check_dtype=False)
 
 
+@pytest.mark.unit
 @pytest.mark.parametrize("event", ["infection", "vaccination"])
 def test_compute_waning_immunity(params, event, waning_immunity_fixture):
     days_since_event = waning_immunity_fixture["days_since_event"]
