@@ -1,9 +1,12 @@
 import numpy as np
 import pandas as pd
 import pytest
+from pandas.testing import assert_frame_equal
 from pandas.testing import assert_series_equal
 from sid.config import INDEX_NAMES
+from sid.update_states import _compute_waning_immunity
 from sid.update_states import _kill_people_over_icu_limit
+from sid.update_states import _update_immunity_level
 from sid.update_states import _update_info_on_new_tests
 from sid.update_states import _update_info_on_new_vaccinations
 from sid.update_states import update_derived_state_variables
@@ -129,3 +132,68 @@ def test_update_derived_state_variables():
     calculated = update_derived_state_variables(states, derived_state_variables)["b"]
     expected = pd.Series([True, True, True, True, False], name="b")
     assert_series_equal(calculated, expected)
+
+
+@pytest.fixture()
+def waning_immunity_fixture():
+    """Waning immunity fixture.
+
+    We test 6 cases (assuming that time_to_reach_maximum is 7 for infection and 21 for
+    vaccination):
+
+    (-9999): Needs to be set to zero.
+    (-9998): Needs to be set to zero, because linear function will be negative.
+    (0): Needs to be zero.
+    (-6): Is the increasing part for both infection and vaccination.
+    (-8): This is in the decreasing (increasing) part for infection (vaccination).
+    (-29): In this part both infection and vaccination should be decreasing.
+
+    """
+    days_since_event_cd = pd.Series([-9999, -9998, 0, -6, -8, -29])
+
+    states = pd.DataFrame(
+        {
+            "cd_ever_infected": days_since_event_cd,
+            "cd_ever_vaccinated": days_since_event_cd,
+        }
+    )
+
+    # need to perform next lines since ``_compute_waning_immunity`` expects this task to
+    # be done by ``_udpate_immunity_level``.
+    days_since_event = days_since_event_cd.abs()
+    days_since_event[days_since_event >= 9999] = 0
+
+    # values below were calucated by hand
+    expected_immunity_infection = pd.Series([0, 0, 0, 0.62344, 0.9899, 0.9878])
+    expected_immunity_vaccination = pd.Series(
+        [0, 0, 0, 0.00787172, 0.018658891, 0.7998]
+    )
+
+    expected_immunity = np.maximum(
+        expected_immunity_infection, expected_immunity_vaccination
+    )
+    expected_states = states.assign(immunity=expected_immunity)
+
+    return {
+        "states": states,
+        "days_since_event": days_since_event,
+        "expected_immunity_infection": expected_immunity_infection,
+        "expected_immunity_vaccination": expected_immunity_vaccination,
+        "expected_states": expected_states,
+    }
+
+
+@pytest.mark.unit
+def test_update_immunity_level(params, waning_immunity_fixture):
+    states = waning_immunity_fixture["states"]
+    expected_states = waning_immunity_fixture["expected_states"]
+    calculated = _update_immunity_level(states, params)
+    assert_frame_equal(calculated, expected_states, check_dtype=False)
+
+
+@pytest.mark.parametrize("event", ["infection", "vaccination"])
+def test_compute_waning_immunity(params, event, waning_immunity_fixture):
+    days_since_event = waning_immunity_fixture["days_since_event"]
+    expected = waning_immunity_fixture[f"expected_immunity_{event}"]
+    calculated = _compute_waning_immunity(params, days_since_event, event)
+    assert_series_equal(calculated, expected, check_dtype=False)
