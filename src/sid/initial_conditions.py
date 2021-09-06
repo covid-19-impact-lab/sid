@@ -92,8 +92,8 @@ def sample_initial_immunity(
             beginning can be specified as an integer for the number, a float between 0
             and 1 for the share, and a :class:`pandas.Series` with the same index as
             states. Note that, infected individuals are immune and included.
-        infected_or_immune (pandas.Series): A series which indicates either immune or
-            infected individuals.
+        infected_or_immune (pandas.Series): A series which indicates immunity level from
+            from individuals in state.
         seed (optional[int]): A seed.
 
     Returns:
@@ -112,15 +112,15 @@ def sample_initial_immunity(
 
     initial_immunity = infected_or_immune.copy()
     if isinstance(immunity, int):
-        n_immune = initial_immunity.sum()
+        n_immune = (initial_immunity > 0).sum()
         n_additional_immune = immunity - n_immune
         if 0 < n_additional_immune <= n_people - n_immune:
-            choices = np.arange(len(initial_immunity))[~initial_immunity]
+            choices = np.arange(len(initial_immunity))[~(initial_immunity > 0)]
             ilocs = np.random.choice(choices, size=n_additional_immune, replace=False)
-            initial_immunity.iloc[ilocs] = True
+            initial_immunity.iloc[ilocs] = 1.0
 
     elif isinstance(immunity, pd.Series):
-        initial_immunity = initial_immunity | immunity
+        initial_immunity = np.maximum(initial_immunity, immunity)
     else:
         raise ValueError("'initial_immunity' must be an int, float or pd.Series.")
 
