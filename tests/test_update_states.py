@@ -138,7 +138,7 @@ def test_update_derived_state_variables():
 def waning_immunity_fixture():
     """Waning immunity fixture.
 
-    We test 6 cases (assuming that time_to_reach_maximum is 7 for infection and 21 for
+    We test 6 cases (assuming that time_to_reach_maximum is 7 for infection and 28 for
     vaccination):
 
     (-9999): Needs to be set to zero.
@@ -160,7 +160,7 @@ def waning_immunity_fixture():
 
     # need to perform next lines since ``_compute_waning_immunity`` expects this task to
     # be done by ``_udpate_immunity_level``.
-    days_since_event = days_since_event_cd.abs()
+    days_since_event = -days_since_event_cd
     days_since_event[days_since_event >= 9999] = 0
 
     # values below were calucated by hand
