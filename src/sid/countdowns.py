@@ -37,11 +37,9 @@ COUNTDOWNS = {
         }
     },
     "cd_received_test_result_true": {"changes": {"received_test_result": True}},
-    "cd_knows_immune_false": {"changes": {"knows_immune": False}},
     "cd_knows_infectious_false": {"changes": {"knows_infectious": False}},
     "cd_ever_infected": {},
-    # Immunity level changes are set in update_states.
-    "cd_is_immune_by_vaccine": {},
+    "cd_ever_vaccinated": {},
     "cd_received_rapid_test": {},
 }
 """(dict): The dictionary with the information on countdowns.
@@ -52,7 +50,11 @@ COUNTDOWNS = {
 
 """
 
-COUNTDOWNS_WITHOUT_DRAWS = ("cd_ever_infected", "cd_received_rapid_test")
+COUNTDOWNS_WITHOUT_DRAWS = (
+    "cd_ever_infected",
+    "cd_ever_vaccinated",
+    "cd_received_rapid_test",
+)
 """Tuple[str]: Countdowns which do not have draws."""
 
 COUNTDOWNS_WITH_DRAWS = tuple(sorted(set(COUNTDOWNS) - set(COUNTDOWNS_WITHOUT_DRAWS)))

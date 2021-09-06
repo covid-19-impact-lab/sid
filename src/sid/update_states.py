@@ -165,8 +165,6 @@ def _update_info_on_new_tests(
         states["infectious"] | states["symptomatic"]
     )
     states.loc[states["new_known_case"], "knows_immune"] = True
-    states.loc[states["new_known_case"], "cd_knows_immune_false"] = 1000  # Needs to be
-    # checked TODO: # noqa: T000
 
     new_knows_infectious = (
         states["knows_immune"] & states["infectious"] & states["new_known_case"]
@@ -189,9 +187,7 @@ def _update_info_on_new_vaccinations(
     """Activate the counter for immunity by vaccinations."""
     states["newly_vaccinated"] = newly_vaccinated
     states.loc[newly_vaccinated, "ever_vaccinated"] = True
-    states.loc[newly_vaccinated, "cd_is_immune_by_vaccine"] = states.loc[
-        newly_vaccinated, "cd_is_immune_by_vaccine_draws"
-    ]
+    states.loc[newly_vaccinated, "cd_ever_vaccinated"] = 0
     return states
 
 
@@ -203,14 +199,14 @@ def update_derived_state_variables(states, derived_state_variables):
 
 def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.DataFrame:
     """Update immunity levels from infection and vaccination."""
-    days_since_infection = states["cd_infectious_true"]
-    days_since_vaccination = states["cd_is_immune_by_vaccine"]
+    days_since_infection = -states["cd_ever_infected"]
+    days_since_vaccination = -states["cd_ever_vaccinated"]
 
     immunity_from_infection = _compute_waning_immunity(
-        days_since_infection, "infection", params
+        params, days_since_event=days_since_infection, event="infection"
     )
     immunity_from_vaccination = _compute_waning_immunity(
-        days_since_vaccination, "vaccination", params
+        params, days_since_event=days_since_vaccination, event="vaccination"
     )
 
     states["immunity"] = np.maximum(immunity_from_infection, immunity_from_vaccination)
@@ -218,7 +214,7 @@ def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.Dat
 
 
 def _compute_waning_immunity(
-    days_since_event: int, event: str, params: pd.DataFrame
+    params: pd.DataFrame, days_since_event: pd.Series, event: str
 ) -> pd.Series:
     """Compute waning immunity level.
 
@@ -230,12 +226,13 @@ def _compute_waning_immunity(
     adjusted to the parameters and set in ``_get_waning_immunity_coefficients``.
 
     Args:
-        days_since_event (int): Days since event occurred.
-        event (str): Reason for immunity. Must be in {"infection", "vaccination"}.
         params (pandas.DataFrame): See :ref:`params`.
+        days_since_event (pandas.Series): Series containing days since event occurred
+            for each individual in the state.
+        event (str): Reason for immunity. Must be in {"infection", "vaccination"}.
 
     Returns:
-        immunity (pandas.Series): Decreased immunity level.
+        immunity (pandas.Series): Adjusted immunity level.
 
     """
     coef = _get_waning_immunity_coefficients(params, event)
@@ -246,14 +243,20 @@ def _compute_waning_immunity(
     )
     after_maximum = days_since_event >= coef["time_to_reach_maximum"]
 
-    immunity[before_maximum] = (
-        coef["slope_before_maximum"] * days_since_event[before_maximum] ** 3
+    # increase immunity level for individuals who have not reached their maximum level
+    immunity[before_maximum] = coef["slope_before_maximum"] * (
+        days_since_event[before_maximum] ** 3
     )
+
+    # decrease immunity level for individuals who are beyond their maximum level
     immunity[after_maximum] = (
         coef["intercept"]
         + coef["slope_after_maximum"] * days_since_event[after_maximum]
     )
 
+    # make sure that immunity level is non-negative, which is not automatically enforced
+    # by the linear function specification
+    immunity = immunity.clip(lower=0)
     return immunity
 
 
