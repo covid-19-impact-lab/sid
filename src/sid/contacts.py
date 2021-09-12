@@ -113,19 +113,18 @@ def calculate_infections_by_contacts(
         (tuple): Tuple containing
 
         - infected (pandas.Series): Boolean Series that is True for newly infected
-            people.
+          people.
         - n_has_additionally_infected (pandas.Series): A series with counts of people an
-            individual has infected in this period by contact.
+          individual has infected in this period by contact.
         - missed_contacts (pandas.DataFrame): Counts of missed contacts for each contact
-            model.
+          model.
         - was_infected_by (numpy.ndarray): An array indicating the contact model which
-            caused the infection.
+          caused the infection.
 
     """
     states = states.copy()
     infectious = states["infectious"].to_numpy(copy=True)
-    immunity = states["immunity"].to_numpy(copy=True)
-    susceptibility_factor = susceptibility_factor.copy()
+    immunity = states["immunity"].to_numpy()
     virus_strain, _ = factorize_categorical_infections(
         states["virus_strain"], virus_strains["names"]
     )
@@ -221,12 +220,7 @@ def calculate_infections_by_contacts(
     )
     newly_infected = pd.Series(combined_newly_infected, index=states.index)
 
-    return (
-        newly_infected,
-        n_has_additionally_infected,
-        missed_contacts,
-        was_infected_by,
-    )
+    return newly_infected, n_has_additionally_infected, missed_contacts, was_infected_by
 
 
 @nb.njit  # pragma: no cover
@@ -302,9 +296,10 @@ def _calculate_infections_by_recurrent_contacts(
             model.
         infection_probs (numpy.ndarray): An array containing the infection probabilities
             for each recurrent contact model.
-        susceptibility_factor (np.ndarray): A multiplier which scales the infection
+        susceptibility_factor (numpy.ndarray): A multiplier which scales the infection
             probability.
-        contagiousness_factor (np.ndarray): Virus strain dependent contagiosity factor.
+        contagiousness_factor (numpy.ndarray): Virus strain dependent contagiosity
+            factor.
         immunity_resistance_factor (np.ndarray): Virus strain dependent immunity
             resistance factor. This factor determines how prior immunity influences
             infection probabilities. Higher values decrease the effectiveness to guard
@@ -317,12 +312,12 @@ def _calculate_infections_by_recurrent_contacts(
         (tuple) Tuple containing
 
         - newly_infected (numpy.ndarray): 1d integer array that is -1 for individuals
-            who are not newly infected and set to the virus strain of infection for
-            individuals who are infected.
+          who are not newly infected and set to the virus strain of infection for
+          individuals who are infected.
         - infection_counter (numpy.ndarray): 1d integer array, counting how many
-            individuals were infected by an individual.
+          individuals were infected by an individual.
         - was_infected_by (numpy.ndarray): An array indicating the contact model which
-            caused the infection.
+          caused the infection.
 
     """
     np.random.seed(seed)
@@ -333,10 +328,10 @@ def _calculate_infections_by_recurrent_contacts(
 
     for i in range(n_individuals):
         for cm in range(n_recurrent_contact_models):
-            # We only check if i infects someone else from her/his group. Whether
-            # she/he is infected by some j is only checked, when the main loop arrives
-            # at j. This allows us to skip completely if i is not infectious or has
-            # no contacts under contact model cm.
+            # We only check if i infects someone else from their group. Whether they is
+            # infected by some j is only checked, when the main loop arrives at j. This
+            # allows us to skip completely if i is not infectious or has no contacts
+            # under contact model cm.
             group_i = group_codes[i, cm]
             if group_i >= 0 and infectious[i] and recurrent_contacts[i, cm] > 0:
                 others = indexers[cm][group_i]
@@ -416,10 +411,10 @@ def _calculate_infections_by_random_contacts(
         (tuple) Tuple containing
 
         - newly_infected (numpy.ndarray): 1d integer array that is -1 for individuals
-            who are not newly infected and set to the virus strain of infection for
-            individuals who are infected.
+          who are not newly infected and set to the virus strain of infection for
+          individuals who are infected.
         - infection_counter (numpy.ndarray): 1d integer array, counting how many
-            individuals were infected by an individual.
+          individuals were infected by an individual.
         - missed (numpy.ndarray): Matrix which contains unmatched random contacts.
 
     """
