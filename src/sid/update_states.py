@@ -202,8 +202,8 @@ def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.Dat
     days_since_event = {}
     for event in ["infected", "vaccinated"]:
         days = states[f"cd_ever_{event}"].copy()
-        days[days <= -9999] = 0  # countdowns are initialized to -9999, hence values
-        # including and below -9999 need to be ignored
+        days[days <= -9999] = np.nan  # countdowns are initialized to -9999, hence
+        # individuals with values including and below -9999 need to be ignored.
         days_since_event[event] = -days
 
     immunity_from_infection = _compute_waning_immunity(
@@ -254,7 +254,7 @@ def _compute_waning_immunity(
 
     # decrease immunity level for individuals who are beyond their maximum level
     immunity[after_maximum] = (
-        coef["intercept"]
+        coef["intercept_after_maximum"]
         + coef["slope_after_maximum"] * days_since_event[after_maximum]
     )
 
@@ -290,11 +290,13 @@ def _get_waning_immunity_coefficients(
     ]
 
     slope_before_maximum = maximum_immunity / (time_to_reach_maximum ** 3)
-    intercept = maximum_immunity - slope_after_maximum * time_to_reach_maximum
+    intercept_after_maximum = (
+        maximum_immunity - slope_after_maximum * time_to_reach_maximum
+    )
     coef = {
         "time_to_reach_maximum": time_to_reach_maximum,
         "slope_before_maximum": slope_before_maximum,
         "slope_after_maximum": slope_after_maximum,
-        "intercept": intercept,
+        "intercept_afer_maximum": intercept_after_maximum,
     }
     return coef

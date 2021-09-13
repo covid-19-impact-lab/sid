@@ -118,6 +118,12 @@ def sample_initial_immunity(
             choices = np.arange(len(initial_immunity))[~(initial_immunity > 0)]
             ilocs = np.random.choice(choices, size=n_additional_immune, replace=False)
             initial_immunity.iloc[ilocs] = 1.0
+        elif n_additional_immune > 0:
+            raise ValueError(
+                "Number of initially immune exceeds number of individuals. Consider"
+                " setting a lower value for 'immunity'. Note that initial immunity"
+                " can also stem from an initial infection."
+            )
 
     elif isinstance(immunity, pd.Series):
         initial_immunity = np.maximum(initial_immunity, immunity)
@@ -462,7 +468,7 @@ def _integrate_immune_individuals(
         initial_immunity (pandas.Series): A series with sampled immunity levels of
             individuals.
         n_burn_in_periods (int): The number of periods over which infections are
-            distributed and can progress. The default is one period.
+            distributed and can progress.
 
     Returns:
         states (pandas.DataFrame): The states with initial immunity integrated.
