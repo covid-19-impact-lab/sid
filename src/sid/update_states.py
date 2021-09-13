@@ -297,6 +297,6 @@ def _get_waning_immunity_coefficients(
         "time_to_reach_maximum": time_to_reach_maximum,
         "slope_before_maximum": slope_before_maximum,
         "slope_after_maximum": slope_after_maximum,
-        "intercept_afer_maximum": intercept_after_maximum,
+        "intercept_after_maximum": intercept_after_maximum,
     }
     return coef
