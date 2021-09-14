@@ -114,7 +114,10 @@ def sample_initial_immunity(
     if isinstance(immunity, int):
         n_immune = (initial_immunity > 0).sum()
         n_additional_immune = immunity - n_immune
-        if 0 < n_additional_immune <= n_people - n_immune:
+        if n_people - n_immune < n_additional_immune:
+            raise ValueError(
+                "The number of people to be made immune exceeds the number of unimmunized individuals.") 
+        elif n_additional_immune > 0:
             choices = np.arange(len(initial_immunity))[~(initial_immunity > 0)]
             ilocs = np.random.choice(choices, size=n_additional_immune, replace=False)
             initial_immunity.iloc[ilocs] = 1.0
