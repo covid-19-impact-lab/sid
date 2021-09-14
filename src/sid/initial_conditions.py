@@ -118,11 +118,11 @@ def sample_initial_immunity(
             choices = np.arange(len(initial_immunity))[~(initial_immunity > 0)]
             ilocs = np.random.choice(choices, size=n_additional_immune, replace=False)
             initial_immunity.iloc[ilocs] = 1.0
-        elif n_additional_immune > 0:
+        elif n_additional_immune > (n_people - n_immune):
             raise ValueError(
-                "Number of initially immune exceeds number of individuals. Consider"
-                " setting a lower value for 'immunity'. Note that initial immunity"
-                " can also stem from an initial infection."
+                "Number of initially immune exceeds number of candidate individuals. "
+                "Consider setting a lower value for 'immunity'. Note that initial "
+                "immunity can also stem from an initial infection."
             )
 
     elif isinstance(immunity, pd.Series):
