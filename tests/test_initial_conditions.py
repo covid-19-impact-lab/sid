@@ -311,6 +311,11 @@ def test_scale_and_spread_initial_infections_w_testing_models(initial_states, pa
     )
 
     assert df["ever_infected"].sum() == 70_000
+    assert np.allclose(
+        df["cd_ever_infected"].value_counts(normalize=True),
+        np.array([8, 4, 2, 1]) / 15,
+        atol=1e-3,
+    )
     # Shows that tests can only be assigned with a one day lag.
     assert np.allclose(
         df["cd_received_test_result_true"].value_counts(normalize=True),
