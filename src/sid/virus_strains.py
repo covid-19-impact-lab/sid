@@ -20,12 +20,13 @@ def prepare_virus_strain_factors(
     The ``contagiousness_factor`` explains how contagious a virus strain is, in
     comparison to the base strain. The ``immunity_resistance_factor`` explains how well
     the immunity level guards from (re)infection, dependent on the strain. The infection
-    probability is multiplied with: (1 - immunity_resistance_factor * immunity).
+    probability is multiplied with: (1 - (1 - immunity_resistance_factor) * immunity),
+    so that higher values reduce the effect of immunity.
 
     """
     if len(virus_strains["names"]) == 1:
         contagiousness_factor = np.ones(1)
-        immunity_resistance_factor = np.ones(1)
+        immunity_resistance_factor = np.zeros(1)
     else:
         factors = np.array(
             [

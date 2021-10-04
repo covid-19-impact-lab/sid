@@ -24,7 +24,7 @@ def test_recurrent_contact_infects_susceptibles_and_leaves_other_group_untouched
 
     virus_strain = np.array([0, -1, -1, -1])
     contagiousness_factor = np.array([1])
-    immunity_resistance_factor = np.array([1])
+    immunity_resistance_factor = np.zeros(1)
 
     (
         newly_infected,
@@ -70,7 +70,7 @@ def test_infections_occur_not_in_other_recurrent_group():
 
     virus_strain = np.array([0, -1, -1, -1])
     contagiousness_factor = np.array([1])
-    immunity_resistance_factor = np.array([1])
+    immunity_resistance_factor = np.zeros(1)
 
     (
         newly_infected,
@@ -117,7 +117,7 @@ def test_infections_can_be_scaled_with_multiplier():
 
     virus_strain = np.array([0] + [-1] * (n_individuals - 1))
     contagiousness_factor = np.array([1])
-    immunity_resistance_factor = np.array([1])
+    immunity_resistance_factor = np.zeros(1)
 
     (
         newly_infected,
@@ -140,7 +140,6 @@ def test_infections_can_be_scaled_with_multiplier():
 
     assert np.isclose((newly_infected == 0).sum(), n_individuals / 2, atol=1e2)
     assert np.isclose(infection_counter[0], n_individuals / 2, atol=1e2)
-    # assert np.isclose(immune.sum(), n_individuals / 2, atol=1e2)  # noqa: E800
 
 
 @pytest.mark.unit
@@ -163,7 +162,7 @@ def test_multiple_virus_strains_spread_in_different_recurrent_groups():
 
     virus_strain = np.array([0, -1, 1, -1])
     contagiousness_factor = np.array([1, 1])
-    immunity_resistance_factor = np.array([1, 1])
+    immunity_resistance_factor = np.zeros(2)
 
     (
         newly_infected,

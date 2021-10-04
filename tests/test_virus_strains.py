@@ -20,7 +20,7 @@ from sid.virus_strains import prepare_virus_strain_factors
             {
                 "names": ["base_strain"],
                 "contagiousness_factor": np.ones(1),
-                "immunity_resistance_factor": np.ones(1),
+                "immunity_resistance_factor": np.zeros(1),
             },
             id="default single strain",
         ),
@@ -31,7 +31,7 @@ from sid.virus_strains import prepare_virus_strain_factors
             {
                 "names": ["b117"],
                 "contagiousness_factor": np.ones(1),
-                "immunity_resistance_factor": np.ones(1),
+                "immunity_resistance_factor": np.zeros(1),
             },
             id="non-default single strain",
         ),
@@ -43,7 +43,7 @@ from sid.virus_strains import prepare_virus_strain_factors
                     "subcategory": ["base_strain", "minus_strain"] * 2,
                     "name": ["contagiousness_factor"] * 2
                     + ["immunity_resistance_factor"] * 2,
-                    "value": [1, -1, 1, 1],
+                    "value": [1, -1, 0, 0],
                 }
             ).set_index(["category", "subcategory", "name"]),
             pytest.raises(ValueError, match="Factors of 'virus_strains' cannot"),
@@ -57,14 +57,14 @@ from sid.virus_strains import prepare_virus_strain_factors
                     "category": ["virus_strain"] * 2,
                     "subcategory": ["base_strain"] * 2,
                     "name": ["contagiousness_factor", "immunity_resistance_factor"],
-                    "value": [0.5, 1.0],
+                    "value": [0.5, 0.0],
                 }
             ).set_index(["category", "subcategory", "name"]),
             does_not_raise(),
             {
                 "names": ["base_strain"],
                 "contagiousness_factor": np.ones(1),
-                "immunity_resistance_factor": np.ones(1),
+                "immunity_resistance_factor": np.zeros(1),
             },
             id="single factor stays the same if one",
         ),
@@ -76,14 +76,14 @@ from sid.virus_strains import prepare_virus_strain_factors
                     "subcategory": ["base_strain", "a_new_strain"] * 2,
                     "name": ["contagiousness_factor"] * 2
                     + ["immunity_resistance_factor"] * 2,
-                    "value": [0.5, 0.25, 1, 1],
+                    "value": [0.5, 0.25, 0, 0],
                 }
             ).set_index(["category", "subcategory", "name"]),
             does_not_raise(),
             {
                 "names": ["a_new_strain", "base_strain"],
                 "contagiousness_factor": np.array([0.5, 1]),
-                "immunity_resistance_factor": np.array([1.0, 1]),
+                "immunity_resistance_factor": np.zeros(2),
             },
             id="factors are scaled",
         ),

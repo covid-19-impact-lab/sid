@@ -50,7 +50,9 @@ def calculate_r_effective(df: pd.DataFrame, window_length: int = 7) -> pd.Series
     return r_effective
 
 
-def calculate_r_zero(df: pd.DataFrame, window_length: int = 7) -> pd.Series:
+def calculate_r_zero(
+    df: pd.DataFrame, window_length: int = 7, threshold: float = 0.75
+) -> pd.Series:
     """Calculate the basic replication number :math:`R_0`.
 
     This is done by dividing the effective reproduction number by the share of
@@ -66,6 +68,10 @@ def calculate_r_zero(df: pd.DataFrame, window_length: int = 7) -> pd.Series:
         window_length (int): how many days to use to identify the previously infectious
             people. The lower, the more changes in behavior can be seen, but the smaller
             the number of people on which to calculate :math:`R_0`.
+        threshold (float): Parameter determining at which immunity level threshold an
+            individual is considered as "immune" in a binary setting. This is needed
+            for the approximation of the share of susceptible individuals. Must be in
+            [0, 1]; default: 0.75.
 
     Returns:
         r_zero (pandas.Series): The average number of people that would have been
@@ -76,12 +82,15 @@ def calculate_r_zero(df: pd.DataFrame, window_length: int = 7) -> pd.Series:
     """
     r_effective = calculate_r_effective(df=df, window_length=window_length)
 
+    not_susceptible = df["immunity"] > threshold
+
     grouper = _create_time_grouper(df)
     if grouper is None:
-        share_susceptibles = 1 - df["immunity"].mean()
+        share_susceptibles = 1 - not_susceptible.mean()
         r_zero = r_effective / share_susceptibles
     else:
-        share_susceptibles = 1 - df.groupby(grouper)["immunity"].mean()
+        not_susceptible = not_susceptible.to_frame().assign(date=df.date)
+        share_susceptibles = 1 - not_susceptible.groupby(grouper)["immunity"].mean()
         r_zero = r_effective / share_susceptibles
 
     return r_zero

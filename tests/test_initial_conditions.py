@@ -246,7 +246,8 @@ def test_create_initial_immunity(immunity, infected_or_immune, expectation, expe
 def test_scale_and_spread_initial_infections_w_testing_models(initial_states, params):
     """Testing models can be used to replicate the share_known_cases.
 
-    This test assumes that only half of all infections are known.
+    In this test we double the amount of infected people every period. This test assumes
+    that only half of all infections are known.
 
     """
 
@@ -311,8 +312,8 @@ def test_scale_and_spread_initial_infections_w_testing_models(initial_states, pa
 
     assert df["ever_infected"].sum() == 70_000
     assert np.allclose(
-        df["cd_immune_false"].value_counts(normalize=True),
-        np.array([8, 7]) / 15,
+        df["cd_ever_infected"].value_counts(normalize=True),
+        np.array([8, 4, 2, 1]) / 15,
         atol=1e-3,
     )
     # Shows that tests can only be assigned with a one day lag.
