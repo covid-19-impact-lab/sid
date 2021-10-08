@@ -170,8 +170,8 @@ def sample_initial_distribution_of_infections_and_immunity(
               is preserved between the groups formed by ``assort_by`` variables. By
               default, no group is formed and infections spread across the whole
               population.
-            - ``burn_in_periods`` (int): The number of periods over which infections are
-              distributed and can progress. The default is one period.
+            - ``burn_in_periods`` (List[pd.Timestamp]): List of dates that make up the
+              burn-in period.
             - ``growth_rate`` (float): The growth rate specifies the increase of
               infections from one burn-in period to the next. For example, two indicates
               doubling case numbers every period. The value must be greater than or
@@ -384,7 +384,8 @@ def _spread_out_initial_infections(
 
     Args:
         scaled_infections (pandas.Series): The scaled infections.
-        burn_in_periods (List[pd.Timestamp]): Number of burn-in periods.
+        burn_in_periods (List[pd.Timestamp]): List of dates that make up the burn-in
+            period.
         growth_rate (float): The growth rate of infections from one burn-in period to
             the next.
         seed (itertools.count): The seed counter.
