@@ -206,10 +206,10 @@ def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.Dat
         # individuals with values including and below -9999 need to be ignored.
         days_since_event[event] = -days
 
-    immunity_from_infection = _compute_waning_immunity(
+    immunity_from_infection = compute_waning_immunity(
         params, days_since_event["infected"], event="infection"
     )
-    immunity_from_vaccination = _compute_waning_immunity(
+    immunity_from_vaccination = compute_waning_immunity(
         params, days_since_event["vaccinated"], event="vaccination"
     )
 
@@ -217,7 +217,7 @@ def _update_immunity_level(states: pd.DataFrame, params: pd.DataFrame) -> pd.Dat
     return states
 
 
-def _compute_waning_immunity(
+def compute_waning_immunity(
     params: pd.DataFrame, days_since_event: pd.Series, event: str
 ) -> pd.Series:
     """Compute waning immunity level.

@@ -42,6 +42,7 @@ def households_w_one_infected():
     states = pd.DataFrame(
         {
             "infectious": [True] + [False] * 7,
+            "cd_infectious_true": [-1] * 8,
             "immunity": [1.0] + [0.0] * 7,
             "group_codes_households": [0] * 4 + [1] * 4,
             "households": [0] * 4 + [1] * 4,

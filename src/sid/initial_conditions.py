@@ -20,6 +20,7 @@ from sid.config import DTYPE_VIRUS_STRAIN
 from sid.contacts import boolean_choice
 from sid.testing import perform_testing
 from sid.time import timestamp_to_sid_period
+from sid.update_states import compute_waning_immunity
 from sid.update_states import update_derived_state_variables
 from sid.update_states import update_states
 from sid.vaccination import vaccinate_individuals
@@ -117,7 +118,8 @@ def sample_initial_immunity(
         if 0 < n_additional_immune <= n_people - n_immune:
             choices = np.arange(len(initial_immunity))[~(initial_immunity > 0)]
             ilocs = np.random.choice(choices, size=n_additional_immune, replace=False)
-            initial_immunity.iloc[ilocs] = 1.0
+            initial_immunity.iloc[ilocs] = 1.0  # this is reduced to a realistic value
+            # given params in the subsequent call to ``_integrate_immune_individuals``.
         elif n_additional_immune > (n_people - n_immune):
             raise ValueError(
                 "Number of initially immune exceeds number of candidate individuals. "
@@ -291,7 +293,11 @@ def sample_initial_distribution_of_infections_and_immunity(
         initial_conditions["initial_immunity"], states["immunity"], next(seed)
     )
     states = _integrate_immune_individuals(
-        states, initial_immunity, len(initial_conditions["burn_in_periods"])
+        states,
+        params,
+        initial_immunity,
+        len(initial_conditions["burn_in_periods"]),
+        next(seed),
     )
 
     return states
@@ -387,7 +393,7 @@ def _spread_out_initial_infections(
         burn_in_periods (List[pd.Timestamp]): Number of burn-in periods.
         growth_rate (float): The growth rate of infections from one burn-in period to
             the next.
-        seed (itertools.count): The seed counter.
+        seed (int): Seed to control randomness.
 
     Return:
         spread_infections (pandas.DataFrame): A list of boolean arrays which indicate
@@ -458,25 +464,38 @@ def _sample_factorized_virus_strains_for_infections(
 
 def _integrate_immune_individuals(
     states: pd.DataFrame,
+    params: pd.DataFrame,
     initial_immunity: pd.Series,
     n_burn_in_periods: int,
+    seed: int,
 ) -> pd.DataFrame:
     """Integrate immunity level of individuals in states.
 
     Args:
         states (pandas.DataFrame): The states which already include sampled infections.
+        params (pandas.DataFrame): The parameters.
         initial_immunity (pandas.Series): A series with sampled immunity levels of
             individuals.
         n_burn_in_periods (int): The number of periods over which infections are
             distributed and can progress.
+        seed (int): Seed to control randomness.
 
     Returns:
         states (pandas.DataFrame): The states with initial immunity integrated.
 
     """
+    np.random.seed(seed)
+
     extra_immune = initial_immunity > states["immunity"]
     states.loc[extra_immune, "ever_infected"] = True
     states.loc[extra_immune, "cd_ever_infected"] = -(n_burn_in_periods + 1)
+
+    # set waned immunity level given params, randomizing the infection date
+    infection_date = pd.Series(
+        np.random.randint(1, n_burn_in_periods, size=sum(extra_immune))
+    )
+    waned_immunity = compute_waning_immunity(params, infection_date, event="infection")
+    initial_immunity[extra_immune] = waned_immunity
 
     states["immunity"] = np.maximum(initial_immunity, states["immunity"])
     return states

@@ -124,6 +124,7 @@ def calculate_infections_by_contacts(
     """
     states = states.copy()
     infectious = states["infectious"].to_numpy(copy=True)
+    cd_infectious_true = states["cd_infectious_true"].to_numpy()
     immunity = states["immunity"].to_numpy()
     virus_strain, _ = factorize_categorical_infections(
         states["virus_strain"], virus_strains["names"]
@@ -161,6 +162,7 @@ def calculate_infections_by_contacts(
         ) = _calculate_infections_by_recurrent_contacts(
             recurrent_contacts=recurrent_contacts,
             infectious=infectious,
+            cd_infectious_true=cd_infectious_true,
             immunity=immunity,
             virus_strain=virus_strain,
             group_codes=group_codes_recurrent,
@@ -189,6 +191,7 @@ def calculate_infections_by_contacts(
         ) = _calculate_infections_by_random_contacts(
             random_contacts=random_contacts,
             infectious=infectious,
+            cd_infectious_true=cd_infectious_true,
             immunity=immunity,
             virus_strain=virus_strain,
             group_codes=group_codes_random,
@@ -268,6 +271,7 @@ def _reduce_random_contacts_with_infection_probs(
 def _calculate_infections_by_recurrent_contacts(
     recurrent_contacts: np.ndarray,
     infectious: np.ndarray,
+    cd_infectious_true: np.ndarray,
     immunity: np.ndarray,
     virus_strain: np.ndarray,
     group_codes: np.ndarray,
@@ -287,6 +291,8 @@ def _calculate_infections_by_recurrent_contacts(
             for each contact model where model["model"] != "meet_group".
         infectious (numpy.ndarray): 1d boolean array that indicates if a person is
             infectious. This is not directly changed after an infection.
+        cd_infectious_true (numpy.ndarray): 1d integer array with countdown values until
+            an individual is infectious.
         immunity (numpy.ndarray): 1d float array indicating immunity level
         virus_strain (numpy.ndarray):
         group_codes (numpy.ndarray): 2d integer array with the index of the group used
@@ -338,7 +344,11 @@ def _calculate_infections_by_recurrent_contacts(
                 # extract infection probability into a variable for faster access
                 base_probability = infection_probs[cm]
                 for j in others:
-                    j_is_susceptible = not infectious[j] and newly_infected[j] == -1
+                    j_is_susceptible = (
+                        not infectious[j]
+                        and cd_infectious_true[j] < 0
+                        and newly_infected[j] == -1
+                    )
                     if j_is_susceptible and recurrent_contacts[j, cm] > 0:
                         # j is infected depending on its own susceptibility.
                         virus_strain_i = virus_strain[i]
@@ -367,6 +377,7 @@ def _calculate_infections_by_recurrent_contacts(
 def _calculate_infections_by_random_contacts(
     random_contacts: np.ndarray,
     infectious: np.ndarray,
+    cd_infectious_true: np.ndarray,
     immunity: np.ndarray,
     virus_strain: np.ndarray,
     group_codes: np.ndarray,
@@ -386,6 +397,8 @@ def _calculate_infections_by_random_contacts(
             for each contact model where model["model"] != "meet_group".
         infectious (numpy.ndarray): 1d boolean array that indicates if a person is
             infectious. This is not directly changed after an infection.
+        cd_infectious_true (numpy.ndarray): 1d integer array with countdown values until
+            an individual is infectious.
         immunity (numpy.ndarray): 1d float array indicating immunity level
         virus_strain (numpy.ndarray):
         group_codes (numpy.ndarray): 2d integer array with the index of the group used
@@ -452,8 +465,16 @@ def _calculate_infections_by_random_contacts(
                     random_contacts[i, cm] -= 1
                     random_contacts[j, cm] -= 1
 
-                    i_is_susceptible = not infectious[i] and newly_infected[i] == -1
-                    j_is_susceptible = not infectious[j] and newly_infected[j] == -1
+                    i_is_susceptible = (
+                        not infectious[i]
+                        and cd_infectious_true[i] < 0
+                        and newly_infected[i] == -1
+                    )
+                    j_is_susceptible = (
+                        not infectious[j]
+                        and cd_infectious_true[j] < 0
+                        and newly_infected[j] == -1
+                    )
 
                     if infectious[i] and j_is_susceptible:
                         virus_strain_i = virus_strain[i]

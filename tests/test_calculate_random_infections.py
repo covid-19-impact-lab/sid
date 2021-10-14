@@ -9,6 +9,7 @@ def test_random_contact_infects_susceptibles():
     """Individual infects random contacts within its and across groups."""
     random_contacts = np.array([2, 1, 1]).reshape(-1, 1)
     infectious = np.array([True, False, False])
+    cd_infectious_true = np.array([-1, -1, -1])
     immunity = np.array([1.0, 0.0, 0.0])
 
     group_codes = np.array([0, 0, 1]).reshape(-1, 1)
@@ -37,6 +38,7 @@ def test_random_contact_infects_susceptibles():
     ) = _calculate_infections_by_random_contacts(
         random_contacts,
         infectious,
+        cd_infectious_true,
         immunity,
         virus_strain,
         group_codes,
@@ -67,6 +69,7 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
     """
     random_contacts = np.array([10, 10, 0, 10, 0]).reshape(-1, 1)
     infectious = np.array([True, False, False, False, False])
+    cd_infectious_true = np.array([-1, -1, -1, -1, -1])
     immunity = np.array([1.0, 1.0, 0.0, 1.0, 0.0])
 
     group_codes = np.array([0, 0, 0, 1, 1]).reshape(-1, 1)
@@ -95,6 +98,7 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
     ) = _calculate_infections_by_random_contacts(
         random_contacts,
         infectious,
+        cd_infectious_true,
         immunity,
         virus_strain,
         group_codes,
@@ -119,6 +123,7 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
 def test_multiple_virus_strains_spread_in_different_random_groups():
     random_contacts = np.array([1, 1, 1, 1]).reshape(-1, 1)
     infectious = np.array([True, False, True, False])
+    cd_infectious_true = np.array([-1, -1, -1, -1])
     immunity = np.array([1.0, 0.0, 1.0, 0.0])
 
     group_codes = np.array([0, 0, 1, 1]).reshape(-1, 1)
@@ -147,6 +152,7 @@ def test_multiple_virus_strains_spread_in_different_random_groups():
     ) = _calculate_infections_by_random_contacts(
         random_contacts,
         infectious,
+        cd_infectious_true,
         immunity,
         virus_strain,
         group_codes,

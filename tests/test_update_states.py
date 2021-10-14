@@ -4,11 +4,11 @@ import pytest
 from pandas.testing import assert_frame_equal
 from pandas.testing import assert_series_equal
 from sid.config import INDEX_NAMES
-from sid.update_states import _compute_waning_immunity
 from sid.update_states import _kill_people_over_icu_limit
 from sid.update_states import _update_immunity_level
 from sid.update_states import _update_info_on_new_tests
 from sid.update_states import _update_info_on_new_vaccinations
+from sid.update_states import compute_waning_immunity
 from sid.update_states import update_derived_state_variables
 
 
@@ -158,7 +158,7 @@ def waning_immunity_fixture():
         }
     )
 
-    # need to perform next lines since ``_compute_waning_immunity`` expects this task to
+    # need to perform next lines since ``compute_waning_immunity`` expects this task to
     # be done by ``_udpate_immunity_level``.
     days_since_event = -days_since_event_cd
     days_since_event[days_since_event >= 9999] = 0
@@ -193,8 +193,8 @@ def test_update_immunity_level(params, waning_immunity_fixture):
 
 @pytest.mark.unit
 @pytest.mark.parametrize("event", ["infection", "vaccination"])
-def test_compute_waning_immunity(params, event, waning_immunity_fixture):
+def testcompute_waning_immunity(params, event, waning_immunity_fixture):
     days_since_event = waning_immunity_fixture["days_since_event"]
     expected = waning_immunity_fixture[f"expected_immunity_{event}"]
-    calculated = _compute_waning_immunity(params, days_since_event, event)
+    calculated = compute_waning_immunity(params, days_since_event, event)
     assert_series_equal(calculated, expected, check_dtype=False)
