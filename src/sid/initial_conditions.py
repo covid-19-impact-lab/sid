@@ -492,7 +492,7 @@ def _integrate_immune_individuals(
 
     # set waned immunity level given params, randomizing the infection date
     infection_date = pd.Series(
-        np.random.randint(1, n_burn_in_periods, size=sum(extra_immune))
+        np.random.randint(0, n_burn_in_periods, size=sum(extra_immune))
     )
     waned_immunity = compute_waning_immunity(params, infection_date, event="infection")
     initial_immunity[extra_immune] = waned_immunity
