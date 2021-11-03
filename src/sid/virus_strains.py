@@ -17,22 +17,42 @@ def prepare_virus_strain_factors(
     This function recreates the dictionary to not change the original value in partialed
     function and adds the factors.
 
+    The ``contagiousness_factor`` explains how contagious a virus strain is, in
+    comparison to the base strain. The ``immunity_resistance_factor`` explains how well
+    the immunity level guards from (re)infection, dependent on the strain. The infection
+    probability is multiplied with: (1 - (1 - immunity_resistance_factor) * immunity),
+    so that higher values reduce the effect of immunity.
+
     """
     if len(virus_strains["names"]) == 1:
-        factors = np.ones(1)
+        contagiousness_factor = np.ones(1)
+        immunity_resistance_factor = np.zeros(1)
     else:
         factors = np.array(
             [
-                params.loc[("virus_strain", name, "factor"), "value"]
+                params.loc[
+                    (
+                        "virus_strain",
+                        name,
+                        ["contagiousness_factor", "immunity_resistance_factor"],
+                    ),
+                    "value",
+                ]
                 for name in virus_strains["names"]
             ]
         )
-        factors = factors / factors.max()
 
-        if any(factors < 0):
+        if (factors < 0).any():
             raise ValueError("Factors of 'virus_strains' cannot be smaller than 0.")
 
-    new_virus_strains = {"names": virus_strains["names"], "factors": factors}
+        contagiousness_factor, immunity_resistance_factor = factors.T
+        contagiousness_factor = contagiousness_factor / contagiousness_factor.max()
+
+    new_virus_strains = {
+        "names": virus_strains["names"],
+        "contagiousness_factor": contagiousness_factor,
+        "immunity_resistance_factor": immunity_resistance_factor,
+    }
 
     return new_virus_strains
 

@@ -20,6 +20,7 @@ import pandas as pd
 from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import DTYPE_COUNTDOWNS
 from sid.config import DTYPE_GROUP_CODE
+from sid.config import DTYPE_IMMUNITY
 from sid.config import DTYPE_INFECTION_COUNTER
 from sid.config import SAVED_COLUMNS
 from sid.contacts import calculate_contacts
@@ -426,8 +427,9 @@ def _simulate(
         susceptibility_factor_model (Callable): A function which takes the
             states and parameters and returns an infection probability multiplier for
             each individual.
-        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"`` and
-            ``"factors"`` holding the different contagiousness factors of multiple
+        virus_strains (Dict[str, Any]): A dictionary with the keys ``"names"``,
+            ``"contagiousness_factor"`` and ``"immunity_resistance_factor"`` holding the
+            different contagiousness factors and immunity resistance factors of multiple
             viruses.
         vaccination_models (Optional[Dict[str, Dict[str, Any]): A dictionary of models
             which allow to vaccinate individuals. The ``"model"`` key holds a function
@@ -613,8 +615,8 @@ def _simulate(
             newly_infected_contacts=newly_infected_contacts,
             newly_infected_events=newly_infected_events,
             params=params,
-            to_be_processed_tests=to_be_processed_tests,
             virus_strains=virus_strains,
+            to_be_processed_tests=to_be_processed_tests,
             newly_vaccinated=newly_vaccinated,
             seed=seed,
             derived_state_variables=derived_state_variables,
@@ -965,6 +967,9 @@ def _process_initial_states(
         if col not in states.columns:
             states[col] = DTYPE_COUNTDOWNS(-9999)
         states[col] = states[col].astype(DTYPE_COUNTDOWNS)
+
+    if "immunity" not in states.columns:
+        states["immunity"] = DTYPE_IMMUNITY(0)
 
     states["n_has_infected"] = DTYPE_INFECTION_COUNTER(0)
     states["pending_test_date"] = pd.NaT

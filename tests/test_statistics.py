@@ -12,7 +12,7 @@ def data_for_a_single_day():
         {
             "cd_infectious_false": [-2, -1, -1, 0] + [2, 5],
             "n_has_infected": [2, 1, 1, 1] + [0, 0],
-            "immune": [True] * 4 + [False, False],
+            "immunity": [1.0] * 4 + [0.0] * 2,
         }
     )
     return df
@@ -40,7 +40,7 @@ def data_for_multiple_days():
         {
             "cd_infectious_false": [-2, -1, -1, 0] + [2, 5],
             "n_has_infected": [2, 1, 1, 1] + [0, 0],
-            "immune": [True] * 4 + [False, False],
+            "immunity": [1.0] * 4 + [0.0] * 2,
             "date": pd.to_datetime(["2020-03-09"] * 3 + ["2020-03-10"] * 3),
         }
     )

@@ -9,7 +9,8 @@ def test_random_contact_infects_susceptibles():
     """Individual infects random contacts within its and across groups."""
     random_contacts = np.array([2, 1, 1]).reshape(-1, 1)
     infectious = np.array([True, False, False])
-    immune = np.array([True, False, False])
+    cd_infectious_true = np.array([-1, -1, -1])
+    immunity = np.array([1.0, 0.0, 0.0])
 
     group_codes = np.array([0, 0, 1]).reshape(-1, 1)
 
@@ -27,40 +28,49 @@ def test_random_contact_infects_susceptibles():
 
     virus_strain = np.array([0, -1, -1])
     contagiousness_factor = np.array([1])
+    immunity_resistance_factor = np.zeros(1)
 
     (
         newly_infected,
         infection_counter,
-        immune,
         missed,
         was_infected,
     ) = _calculate_infections_by_random_contacts(
         random_contacts,
         infectious,
-        immune,
+        cd_infectious_true,
+        immunity,
         virus_strain,
         group_codes,
         assortative_matching_cum_probs,
         indexers,
         susceptibility_factor,
         contagiousness_factor,
+        immunity_resistance_factor,
         infection_counter,
         0,
     )
 
     assert (newly_infected == [-1, 0, 0]).all()
     assert (infection_counter == [2, 0, 0]).all()
-    assert (immune == [True, True, True]).all()
     assert (missed == 0).all()
     assert (was_infected == [-1, 0, 0]).all()
 
 
 @pytest.mark.unit
 def test_random_contact_immune_and_people_without_contacts_are_not_infected():
-    """Infections do not occur for immune random contacts and those without contacts."""
+    """Infections do not occur for immune random contacts and those without contacts.
+
+    There are two groups of individuals in one random contact model which can meet each
+    others. The individuals without contacts and with immunity should not get infected.
+    All individuals with contacts should have missed contacts and the others have no
+    missed contacts.
+
+    """
     random_contacts = np.array([10, 10, 0, 10, 0]).reshape(-1, 1)
     infectious = np.array([True, False, False, False, False])
-    immune = np.array([True, True, False, True, False])
+    cd_infectious_true = np.array([-1, -1, -1, -1, -1])
+    immunity = np.array([1.0, 1.0, 0.0, 1.0, 0.0])
 
     group_codes = np.array([0, 0, 0, 1, 1]).reshape(-1, 1)
 
@@ -78,32 +88,34 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
 
     virus_strain = np.array([0, -1, -1, -1, -1])
     contagiousness_factor = np.array([1])
+    immunity_resistance_factor = np.zeros(1)
 
     (
         newly_infected,
         infection_counter,
-        immune,
         missed,
         was_infected,
     ) = _calculate_infections_by_random_contacts(
         random_contacts,
         infectious,
-        immune,
+        cd_infectious_true,
+        immunity,
         virus_strain,
         group_codes,
         assortative_matching_cum_probs,
         indexers,
         susceptibility_factor,
         contagiousness_factor,
+        immunity_resistance_factor,
         infection_counter,
         0,
     )
 
     assert (newly_infected == [-1, -1, -1, -1, -1]).all()
     assert (infection_counter == [0, 0, 0, 0, 0]).all()
-    assert (immune == [True, True, False, True, False]).all()
-    assert (missed[[0, 1, 3], :] > 0).all()
-    assert (missed[[2, 4]] == 0).all()
+    assert (immunity == np.array([1.0, 1.0, 0.0, 1.0, 0.0])).all()
+    assert (missed[[0, 1]] > 0).all()
+    assert (missed[[2, 3, 4]] == 0).all()
     assert (was_infected == [-1, -1, -1, -1, -1]).all()
 
 
@@ -111,7 +123,8 @@ def test_random_contact_immune_and_people_without_contacts_are_not_infected():
 def test_multiple_virus_strains_spread_in_different_random_groups():
     random_contacts = np.array([1, 1, 1, 1]).reshape(-1, 1)
     infectious = np.array([True, False, True, False])
-    immune = np.array([True, False, True, False])
+    cd_infectious_true = np.array([-1, -1, -1, -1])
+    immunity = np.array([1.0, 0.0, 1.0, 0.0])
 
     group_codes = np.array([0, 0, 1, 1]).reshape(-1, 1)
 
@@ -129,29 +142,30 @@ def test_multiple_virus_strains_spread_in_different_random_groups():
 
     virus_strain = np.array([0, -1, 1, -1])
     contagiousness_factor = np.array([1, 1])
+    immunity_resistance_factor = np.zeros(2)
 
     (
         newly_infected,
         infection_counter,
-        immune,
         missed,
         was_infected,
     ) = _calculate_infections_by_random_contacts(
         random_contacts,
         infectious,
-        immune,
+        cd_infectious_true,
+        immunity,
         virus_strain,
         group_codes,
         assortative_matching_cum_probs,
         indexers,
         susceptibility_factor,
         contagiousness_factor,
+        immunity_resistance_factor,
         infection_counter,
         0,
     )
 
     assert (newly_infected == [-1, 0, -1, 1]).all()
     assert (infection_counter == [1, 0, 1, 0]).all()
-    assert (immune == [True, True, True, True]).all()
     assert (missed == 0).all()
     assert (was_infected == [-1, 0, -1, 0]).all()

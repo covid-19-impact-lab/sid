@@ -1,6 +1,5 @@
 category,subcategory,name,value
 health_system,icu_limit_relative,icu_limit_relative,50
-cd_immune_false,all,365,1
 cd_infectious_true,all,1,0.39
 cd_infectious_true,all,2,0.35
 cd_infectious_true,all,3,0.22
@@ -123,11 +122,7 @@ cd_received_test_result_true,all,1,0.33
 cd_received_test_result_true,all,2,0.5
 cd_received_test_result_true,all,3,0.1
 cd_received_test_result_true,all,4,0.07
-cd_knows_immune_false,all,-1,1
 cd_knows_infectious_false,all,-1,1
-cd_is_immune_by_vaccine,all,-1,0.25
-cd_is_immune_by_vaccine,all,14,0.35
-cd_is_immune_by_vaccine,all,21,0.4
 rapid_test,specificity,specificity,0.994
 rapid_test,sensitivity,pre-infectious,0.35
 rapid_test,sensitivity,start_infectious,0.88

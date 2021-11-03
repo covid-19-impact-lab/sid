@@ -7,7 +7,6 @@ import pandas as pd
 
 BOOLEAN_STATE_COLUMNS = [
     "ever_infected",
-    "immune",
     "infectious",
     "symptomatic",
     "needs_icu",
@@ -34,16 +33,17 @@ The dtype has to be signed integer because `-1` is assigned to counters which ha
 been started.
 
 """
+DTYPE_CONTACT_MODEL_CODES = np.int8
 DTYPE_DRAW_COURSE_OF_DISEASE = np.int16
 DTYPE_GROUP_CODE = np.int32
+DTYPE_GROUP_TRANSITION_PROBABILITIES = np.float32
 DTYPE_INDEX = np.uint32
-DTYPE_VIRUS_STRAIN = np.int8
 DTYPE_INFECTION_COUNTER = np.uint16
+DTYPE_IMMUNITY = np.float32
 DTYPE_N_CONTACTS = np.uint16
 DTYPE_SID_PERIOD = np.int16
+DTYPE_VIRUS_STRAIN = np.int8
 DTYPE_VIRUS_STRAIN_CODES = np.int8
-DTYPE_CONTACT_MODEL_CODES = np.int8
-DTYPE_GROUP_TRANSITION_PROBABILITIES = np.float32
 
 INDEX_NAMES = ["category", "subcategory", "name"]
 
@@ -60,7 +60,13 @@ SAVED_COLUMNS = {
     "contacts": False,
     "countdown_draws": False,
     "group_codes": False,
-    "other": ["n_has_infected", "newly_infected", "new_known_case", "virus_strain"],
+    "other": [
+        "n_has_infected",
+        "newly_infected",
+        "new_known_case",
+        "virus_strain",
+        "immunity",
+    ],
     "channels": False,
     "rapid_tests": True,
 }

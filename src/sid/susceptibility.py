@@ -17,7 +17,7 @@ def prepare_susceptibility_factor(
     The multiplier defines individual susceptibility which can be used to let infection
     probabilities vary by age.
 
-    If not multiplier is given, all individuals have the same susceptibility. Otherwise,
+    If no multiplier is given, all individuals have the same susceptibility. Otherwise,
     a custom function generates multipliers for the infection probability for each
     individual.
 
