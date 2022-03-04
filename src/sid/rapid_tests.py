@@ -115,7 +115,9 @@ def _sample_test_outcome(states, receives_rapid_test, params, seed):
         warnings.filterwarnings(
             "ignore", message="indexing past lexsort depth may impact performance."
         )
-        sensitivity_params = params.loc[("rapid_test", "sensitivity"), "value"]
+        sensitivity_params = params.loc[("rapid_test", "sensitivity"), "value"].copy()
+        sensitivity_params.index = sensitivity_params.index.map(int)
+        sensitivity_params = sensitivity_params.to_dict()
 
     infected = states["cd_infectious_true"] >= -10
     receives_test_and_is_infected = infected & receives_rapid_test
@@ -136,26 +138,14 @@ def _sample_test_outcome(states, receives_rapid_test, params, seed):
 
 
 def _create_sensitivity(states, sensitivity_params):
-    """Create the sensitivity se"""
-    sensitivity = pd.Series(np.nan, index=states.index)
-    p_pos_preinfectious = sensitivity_params.loc["pre-infectious"]
-    p_pos_start_infectious = sensitivity_params.loc["start_infectious"]
-    p_pos_while_infectious = sensitivity_params.loc["while_infectious"]
-    p_pos_after_infectious = sensitivity_params.loc["after_infectious"]
+    """Create the sensitivity se.
 
-    sensitivity[states["cd_infectious_true"] > 0] = p_pos_preinfectious
-    sensitivity[states["infectious"]] = p_pos_while_infectious
-    sensitivity[states["cd_infectious_true"] == 0] = p_pos_start_infectious
-    within_10_days = states["cd_infectious_true"].between(-10, 0)
-    sensitivity[~states["infectious"] & within_10_days] = p_pos_after_infectious
-    if sensitivity.isnull().any():
-        raise ValueError(
-            "There are NaN left in the person-dependent sensitivity. "
-            "The likeliest explanation is that _create_sensitivity was called "
-            "with uninfected individuals (i.e. with individuals where "
-            "`cd_infectious_true` < -10)."
-        )
-    return sensitivity
+    Sensitivity is simply looked up for all values of cd_infectious_true that are
+    present in sensitivity_params. For all other values of cd_infectious_true it is
+    set to 0.
+
+    """
+    return states["cd_infectious_true"].map(sensitivity_params.get).fillna(0)
 
 
 def _update_states_with_rapid_tests_outcomes(

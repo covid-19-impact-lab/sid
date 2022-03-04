@@ -21,7 +21,7 @@ def test_simulate_rapid_tests(params, initial_states, tmp_path):
         }
     }
 
-    params.loc[("infection_prob", "standard", "standard"), "value"] = 0.5
+    params.loc[("infection_prob", "standard", "standard"), "value"] = 0.8
 
     simulate = get_simulate_func(
         params=params,
@@ -29,7 +29,7 @@ def test_simulate_rapid_tests(params, initial_states, tmp_path):
         contact_models=CONTACT_MODELS,
         path=tmp_path,
         rapid_test_models=rapid_test_models,
-        seed=144,
+        seed=145,
     )
 
     result = simulate(params)
@@ -61,7 +61,7 @@ def test_simulate_rapid_tests_with_reaction_models(params, initial_states, tmp_p
         }
     }
 
-    params.loc[("infection_prob", "standard", "standard"), "value"] = 0.5
+    params.loc[("infection_prob", "standard", "standard"), "value"] = 0.8
 
     simulate = get_simulate_func(
         params=params,
@@ -71,7 +71,7 @@ def test_simulate_rapid_tests_with_reaction_models(params, initial_states, tmp_p
         rapid_test_models=rapid_test_models,
         rapid_test_reaction_models=rapid_test_reaction_models,
         saved_columns={"contacts": True},
-        seed=144,
+        seed=145,
     )
 
     result = simulate(params)
@@ -205,36 +205,24 @@ def test_sample_test_outcome(rapid_test_states, params):
     assert np.isclose(1 - uninfected_share_positive, specificity, atol=1e-2)
 
     # preinfectious
-    sensitivity = params.loc[("rapid_test", "sensitivity", "pre-infectious"), "value"]
+    sensitivity = params.loc[("rapid_test", "sensitivity", "1"), "value"]
     tested_preinfectious = receives_rapid_test & (states["cd_infectious_true"] > 0)
     preinfectious_share_positive = is_tested_positive[tested_preinfectious].mean()
     assert np.isclose(sensitivity, preinfectious_share_positive, atol=1e-2)
 
     # first day of infectiousness
-    sensitivity = params.loc[("rapid_test", "sensitivity", "start_infectious"), "value"]
+    sensitivity = params.loc[("rapid_test", "sensitivity", "0"), "value"]
     tested_start_infectious = receives_rapid_test & (states["cd_infectious_true"] == 0)
     start_infectious_share_positive = is_tested_positive[tested_start_infectious].mean()
     assert np.isclose(sensitivity, start_infectious_share_positive, atol=1e-2)
 
     # while infectious
-    sensitivity = params.loc[("rapid_test", "sensitivity", "while_infectious"), "value"]
+    sensitivity = params.loc[("rapid_test", "sensitivity", "-1"), "value"]
     tested_while_infectious = receives_rapid_test & (
         states["infectious"] & (states["cd_infectious_true"] < 0)
     )
     while_infectious_share_positive = is_tested_positive[tested_while_infectious].mean()
     assert np.isclose(sensitivity, while_infectious_share_positive, atol=1e-2)
-
-    # after infectious
-    sensitivity = params.loc[("rapid_test", "sensitivity", "after_infectious"), "value"]
-    tested_after_infectious = (
-        receives_rapid_test
-        & ~states["infectious"]
-        & (states["cd_infectious_true"] < 0)
-        & (states["cd_infectious_true"] > -10)
-    )
-
-    after_infectious_share_positive = is_tested_positive[tested_after_infectious].mean()
-    assert np.isclose(sensitivity, after_infectious_share_positive, atol=1e-2)
 
 
 @pytest.mark.unit
@@ -264,48 +252,27 @@ def test_update_states_with_rapid_tests_outcomes():
 @pytest.mark.unit
 def test_create_sensitivity():
     states = pd.DataFrame(
-        columns=["infectious", "cd_infectious_true"],
+        columns=["cd_infectious_true"],
         data=[
-            [False, 2],  # not infectious yet
-            [True, 0],  # first day of infectiousness
-            [True, -1],  # 2nd day of infectiousness
-            [False, -5],  # not infectious anymore
+            [2],  # before infectiousness and before sensitivity becomes positive
+            [0],  # first day of infectiousness
+            [-1],  # 2nd day of infectiousness
+            [-5],  # after sensitivity is positive
         ],
     )
-    sensitivity_params = pd.Series(
-        [0.35, 0.88, 0.95, 0.5],
-        index=[
-            "pre-infectious",
-            "start_infectious",
-            "while_infectious",
-            "after_infectious",
-        ],
+
+    sensitivity_params = {
+        1: 0.35,
+        0: 0.88,
+        -1: 0.95,
+        -2: 0.5,
+        -3: 0.4,
+    }
+
+    pd.Series(
+        [0.35, 0.88, 0.95, 0.5, 0.2],
+        index=[1, 0, -1, -2, -3],
     )
     result = _create_sensitivity(states, sensitivity_params)
-    expected = pd.Series([0.35, 0.88, 0.95, 0.5, 0.0])
+    expected = pd.Series([0, 0.88, 0.95, 0])
     result.equals(expected)
-
-
-@pytest.mark.unit
-def test_create_sensitivity_raises_nan_error():
-    states = pd.DataFrame(
-        columns=["infectious", "cd_infectious_true"],
-        data=[
-            [False, 2],  # not infectious yet
-            [True, 0],  # first day of infectiousness
-            [True, -1],  # 2nd day of infectiousness
-            [False, -5],  # not infectious anymore
-            [False, -12],  # recovered
-        ],
-    )
-    sensitivity_params = pd.Series(
-        [0.35, 0.88, 0.95, 0.5],
-        index=[
-            "pre-infectious",
-            "start_infectious",
-            "while_infectious",
-            "after_infectious",
-        ],
-    )
-    with pytest.raises(ValueError, match="NaN left in the"):
-        _create_sensitivity(states, sensitivity_params)
