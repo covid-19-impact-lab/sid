@@ -130,6 +130,6 @@ cd_is_immune_by_vaccine,all,14,0.35
 cd_is_immune_by_vaccine,all,21,0.4
 rapid_test,specificity,specificity,0.994
 rapid_test,sensitivity,pre-infectious,0.35
-rapid_test,sensitivity,start_infectious,0.88
-rapid_test,sensitivity,while_infectious,0.95
-rapid_test,sensitivity,after_infectious,0.5
+rapid_test,sensitivity,start_infectious,0.7
+rapid_test,sensitivity,while_infectious,0.7
+rapid_test,sensitivity,after_infectious,0.35
