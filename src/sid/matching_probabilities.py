@@ -1,4 +1,5 @@
 """Functions to work with transition matrices for assortative matching."""
+
 import string
 import warnings
 from typing import List
