@@ -1,4 +1,5 @@
 """This module contains configuration values for sid."""
+
 from pathlib import Path
 
 import numpy as np

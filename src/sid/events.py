@@ -1,4 +1,5 @@
 """This module contains the code to calculate infections by events."""
+
 import pandas as pd
 from sid.config import DTYPE_VIRUS_STRAIN
 from sid.virus_strains import combine_first_factorized_infections
