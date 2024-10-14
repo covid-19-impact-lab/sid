@@ -3,6 +3,7 @@
 https://github.com/covid-19-impact-lab/utilities/blob/master/utilities/colors.py.""
 
 """
+
 import numpy as np
 import seaborn as sns
 from matplotlib.colors import LinearSegmentedColormap

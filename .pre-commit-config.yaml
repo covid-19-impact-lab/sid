@@ -1,6 +1,6 @@
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v5.0.0
     hooks:
     -   id: check-added-large-files
         args: ['--maxkb=500']
@@ -18,7 +18,7 @@ repos:
         args: [--branch, main]
     -   id: trailing-whitespace
 -   repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.9.0  # Use the ref you want to point at
+    rev: v1.10.0  # Use the ref you want to point at
     hooks:
     -   id: python-check-blanket-noqa
     -   id: python-check-mock-methods
@@ -32,31 +32,31 @@ repos:
     -   id: text-unicode-replacement-char
         exclude_types: [jupyter]
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.29.0
+    rev: v3.18.0
     hooks:
     -   id: pyupgrade
         args: [--py36-plus]
--   repo: https://github.com/asottile/reorder_python_imports
-    rev: v2.6.0
+-   repo: https://github.com/asottile/reorder-python-imports
+    rev: v3.14.0
     hooks:
     -   id: reorder-python-imports
         types: [python]
 -   repo: https://github.com/asottile/setup-cfg-fmt
-    rev: v1.17.0
+    rev: v2.7.0
     hooks:
     -   id: setup-cfg-fmt
 -   repo: https://github.com/psf/black
-    rev: 21.9b0
+    rev: 24.10.0
     hooks:
     -   id: black
         types: [python]
 -   repo: https://github.com/asottile/blacken-docs
-    rev: v1.11.0
+    rev: 1.19.0
     hooks:
     -   id: blacken-docs
         additional_dependencies: [black]
 -   repo: https://github.com/PyCQA/flake8
-    rev: 3.9.2
+    rev: 7.1.1
     hooks:
     -   id: flake8
         types: [python]
@@ -76,29 +76,29 @@ repos:
             Pygments,
         ]
 - repo: https://github.com/nbQA-dev/nbQA
-  rev: 1.1.1
+  rev: 1.8.7
   hooks:
     -   id: nbqa-black
     -   id: nbqa-pyupgrade
     -   id: nbqa-isort
 -   repo: https://github.com/PyCQA/doc8
-    rev: 0.9.1
+    rev: v1.1.2
     hooks:
     -   id: doc8
 -   repo: https://github.com/econchick/interrogate
-    rev: 1.5.0
+    rev: 1.7.0
     hooks:
     -   id: interrogate
         args: [-v, --fail-under=78, src]
         pass_filenames: false
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.1.0
+    rev: v2.3.0
     hooks:
     -   id: codespell
         exclude: \.ipynb
         args: [-L effekt, -L unparseable]
 -   repo: https://github.com/mgedmin/check-manifest
-    rev: "0.47"
+    rev: "0.50"
     hooks:
     -   id: check-manifest
 -   repo: meta

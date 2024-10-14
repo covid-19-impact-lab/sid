@@ -1,4 +1,5 @@
 """This module contains routines to validate inputs to functions."""
+
 import inspect
 import warnings
 from typing import Callable

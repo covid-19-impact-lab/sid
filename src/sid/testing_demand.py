@@ -1,4 +1,5 @@
 """Contains the code for calculating the demand for tests."""
+
 import itertools
 from typing import Any
 from typing import Dict

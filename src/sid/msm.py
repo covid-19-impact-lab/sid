@@ -15,6 +15,7 @@ References:
        of Asset Prices. Econometrica, 61(4), 929-952.
 
 """
+
 import functools
 
 import numpy as np
@@ -156,7 +157,7 @@ def _msm(
     moment_errors = flat_simulated_moments - flat_empirical_moments
 
     root_contribs = np.sqrt(np.diagonal(weighting_matrix)) * moment_errors
-    value = np.sum(root_contribs ** 2)
+    value = np.sum(root_contribs**2)
 
     out = {
         "value": value,
