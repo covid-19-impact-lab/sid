@@ -13,6 +13,7 @@ on the exact dates in the states even if the ``"date"`` column is removed during
 estimation to reduce memory consumption.
 
 """
+
 from functools import partial
 
 import pandas as pd

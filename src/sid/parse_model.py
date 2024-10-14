@@ -1,4 +1,5 @@
 """This module contains the code the parse input data."""
+
 import copy
 import pprint
 import warnings
