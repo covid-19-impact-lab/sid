@@ -12,7 +12,6 @@ from bokeh.models import HoverTool
 from sid.colors import get_colors
 from sid.policies import compute_pseudo_effect_sizes_of_policies
 
-
 DEFAULT_FIGURE_KWARGS = {
     "height": 400,
     "width": 600,
