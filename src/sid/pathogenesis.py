@@ -4,6 +4,7 @@ This will have to be changed completely, once we allow for randomness in the
 countdown lengths. Currently, most of it is deterministic.
 
 """
+
 import numpy as np
 import pandas as pd
 from sid.config import DTYPE_DRAW_COURSE_OF_DISEASE

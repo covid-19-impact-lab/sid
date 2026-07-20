@@ -58,7 +58,6 @@ from sid.validation import validate_vaccination_models
 from sid.virus_strains import prepare_virus_strain_factors
 from tqdm import tqdm
 
-
 logger = logging.getLogger("sid")
 
 

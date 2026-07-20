@@ -7,7 +7,6 @@ from sid.visualize_simulation_results import _load_data
 from sid.visualize_simulation_results import _nice_str
 from sid.visualize_simulation_results import visualize_simulation_results
 
-
 KEEP_VARS = ["immune", "n_has_infected", "cd_infectious_false"]
 
 

@@ -1,4 +1,5 @@
 """This module contains the code for vaccinating individuals."""
+
 import itertools
 from typing import Any
 from typing import Dict

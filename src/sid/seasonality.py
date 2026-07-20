@@ -1,4 +1,5 @@
 """This module contains the code related to seasonality."""
+
 import itertools
 from typing import Any
 from typing import Callable
