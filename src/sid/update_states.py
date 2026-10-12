@@ -289,7 +289,7 @@ def _get_waning_immunity_coefficients(
         ("immunity", "immunity_waning", f"slope_after_maximum_{event}"), "value"
     ]
 
-    slope_before_maximum = maximum_immunity / (time_to_reach_maximum ** 3)
+    slope_before_maximum = maximum_immunity / (time_to_reach_maximum**3)
     intercept_after_maximum = (
         maximum_immunity - slope_after_maximum * time_to_reach_maximum
     )

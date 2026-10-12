@@ -7,7 +7,6 @@ from sid.shared import boolean_choice
 from sid.shared import factorize_assortative_variables
 from sid.shared import random_choice
 
-
 NP_ARRAY_WITH_SINGLE_TUPLE = np.empty(1, dtype=object)
 NP_ARRAY_WITH_SINGLE_TUPLE[0] = (0,)
 
