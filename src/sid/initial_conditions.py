@@ -4,6 +4,7 @@ The initial conditions govern the distribution of infections and immunity in the
 beginning of a simulation and can used to create patterns which match the real data.
 
 """
+
 import itertools
 import math
 from typing import Any
@@ -456,9 +457,9 @@ def _sample_factorized_virus_strains_for_infections(
             sampled_virus_strains = np.random.choice(
                 virus_strain_factors, p=probabilities, size=n_infected
             )
-            spread_out_virus_strains.loc[
-                spread_out_infections[column], column
-            ] = sampled_virus_strains
+            spread_out_virus_strains.loc[spread_out_infections[column], column] = (
+                sampled_virus_strains
+            )
 
     return spread_out_virus_strains
 
