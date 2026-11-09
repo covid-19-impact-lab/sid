@@ -1,4 +1,5 @@
 """This module holds the interface for the testing models."""
+
 import itertools
 from typing import Any
 from typing import Dict

@@ -1,4 +1,5 @@
 """This module contains routines to validate inputs to functions."""
+
 import inspect
 import warnings
 from typing import Callable
@@ -10,7 +11,6 @@ from sid.config import BOOLEAN_STATE_COLUMNS
 from sid.config import INDEX_NAMES
 from sid.countdowns import COUNTDOWNS_WITH_DRAWS
 from sid.time import get_date
-
 
 COMMON_ARGS = ("states", "params", "seed")
 

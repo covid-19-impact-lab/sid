@@ -1,4 +1,5 @@
 """This module contains everything related to contacts and matching."""
+
 import itertools
 from typing import Any
 from typing import Dict
