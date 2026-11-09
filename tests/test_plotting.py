@@ -6,7 +6,6 @@ from resources import CONTACT_MODELS
 from sid.plotting import plot_infection_rates_by_contact_models
 from sid.plotting import plot_policy_gantt_chart
 
-
 POLICIES_FOR_GANTT_CHART = {
     "closed_schools": {
         "affected_contact_model": "school",
